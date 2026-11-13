@@ -390,8 +390,8 @@ html,body{background:var(--bg)}
 .kpi{border-radius:22px;padding:16px}
 .kpi:nth-child(1){background:var(--lav)}.kpi:nth-child(2){background:var(--peach)}.kpi:nth-child(3){background:var(--sky)}.kpi:nth-child(4){background:var(--lime)}
 @media (prefers-color-scheme:dark){.kpi:nth-child(4){background:#33421A}}
-.kpi span{color:rgba(17,18,20,.6)} .kpi b{font-size:25px;color:#111214}
-@media (prefers-color-scheme:dark){.kpi span{color:rgba(255,255,255,.6)}.kpi b{color:#fff}}
+.kpi b{font-size:25px}
+
 .kpi em.up{color:#14663A} .kpi em.dn{color:#B4232B} .kpi em.fl{color:rgba(17,18,20,.55)}
 @media (prefers-color-scheme:dark){.kpi em.up{color:#7EE2A8}.kpi em.dn{color:#FF8E8E}.kpi em.fl{color:rgba(255,255,255,.5)}}
 .mcard{background:var(--card)}
@@ -415,8 +415,8 @@ html,body{background:var(--bg)}
 .kv div{border-radius:18px}
 .kv div:nth-child(1){background:var(--sky)}.kv div:nth-child(2){background:var(--peach)}.kv div:nth-child(3){background:var(--lime)}
 @media (prefers-color-scheme:dark){.kv div:nth-child(3){background:#33421A}}
-.kv b,.kv span{color:#111214!important}
-@media (prefers-color-scheme:dark){.kv b,.kv span{color:#fff!important}}
+.kv span{color:#111214}
+
 .bar i,.mbar i.p{background:var(--ink)} .mbar i.w{background:var(--peach)}
 .people span{background:var(--soft);border-radius:999px;padding:5px 11px}
 .recv{border-radius:18px}
@@ -454,6 +454,17 @@ html,body{background:var(--bg)}
 .pseg button.on{box-shadow:none}
 .month{background:var(--card)}
 .tdin.inp{background:var(--bg)}
+
+/* calmer: one accent only */
+.kpi,.kpi:nth-child(n){background:var(--bg)!important}
+.kpi span{color:var(--mut)!important}.kpi b{color:var(--ink)}
+.kpi em.up{color:var(--ok)!important}.kpi em.dn{color:var(--pay)!important}.kpi em.fl{color:var(--mut)!important}
+.kv div,.kv div:nth-child(n){background:var(--bg)!important}
+.kv b{color:var(--ink)}.kv span{color:var(--mut)!important}
+.qa i,.qa button:nth-child(n) i{background:var(--bg)!important;color:var(--ink)!important}
+.qa button:nth-child(1) i{background:var(--lime)!important;color:#111214!important}
+.mbar i.w{background:var(--soft)}
+.preview{background:var(--card)}
 </style>
 </head>
 <body>
@@ -467,7 +478,7 @@ html,body{background:var(--bg)}
 <script>
 function hideToast(){const t=document.getElementById("toast");if(t)t.classList.remove("on")}
 if(window.navigator.standalone===true||matchMedia("(display-mode: standalone)").matches)document.documentElement.classList.add("ios-app");
-const APP_VERSION="3.0";
+const APP_VERSION="3.1";
 /* ============ data layer ============ */
 const TABLES=["clients","sites","workers","rates","entries","income"];
 const EMPTY=()=>({clients:[],sites:[],workers:[],rates:[],entries:[],income:[]});
@@ -590,7 +601,7 @@ const C=id=>DB.clients.find(x=>x.id===id)||{name:"—"};
 const wage=e=>e.hours*e.rate;
 const initials=n=>n.split(/\s+/).filter(Boolean).slice(0,2).map(x=>x[0]).join("").toUpperCase();
 const PAL0=[["#EEF0FF","#4F46E5"],["#FFF0F0","#D93D42"],["#EAF8EF","#12924A"],["#FFF6E5","#B26F05"],["#EAF4FF","#1C6FD1"],["#F6EEFF","#8B3FD9"],["#E9FAF7","#0E8C7B"]];
-const PAL=[["#D9D2FF","#111214"],["#FFD9C7","#111214"],["#C9F26B","#111214"],["#C8E6FF","#111214"],["#C9F0DD","#111214"],["#FFE58F","#111214"],["#F6C9E8","#111214"]];
+const PAL=[["var(--soft)","var(--ink)"]];
 const avc=n=>{let h=0;for(const c of n)h=(h*31+c.charCodeAt(0))>>>0;return PAL[h%PAL.length]};
 const av=(n,extra="")=>{const[b,f]=avc(n);return `<div class="av" style="background:${b};color:${f};${extra}">${esc(initials(n))}</div>`};
 const plural=(n,w)=>n+" "+(n===1?w:(w==="person"?"people":w==="entry"?"entries":w+"s"));
@@ -792,7 +803,7 @@ function homePage(){
   const month=`<div class="a-month"><div class="sec sec-first"><h2>${P0.mode==="day"?"Day":P0.mode==="week"?"Week":"Month"}</h2><button class="link" onclick="go('reports')">Reports ›</button></div>
     <div class="card mcard"><div class="mhead">${perSwitch("home",[["day","Day"],["week","Week"],["month","Month"]])}</div>
       ${(()=>{const pp={...P0};perStep(pp,-1);const ps=perStats(pp),pl=P0.mode==="month"?"vs "+mShort(pp.d.slice(0,7)):P0.mode==="week"?"vs last week":"vs day before";
-        const dl=(a,b,good)=>{if(!b)return `<em class="fl">${a?"new":"–"}</em>`;const p=Math.round((a-b)/Math.abs(b)*100);if(!p)return `<em class="fl">same ${pl}</em>`;return `<em class="${(p>0)===good?"up":"dn"}">${p>0?"↑":"↓"} ${Math.abs(p)}% ${pl}</em>`};
+        const dl=(a,b,good)=>{if(!b)return "";const p=Math.round((a-b)/Math.abs(b)*100);if(!p)return `<em class="fl">same ${pl}</em>`;return `<em class="${(p>0)===good?"up":"dn"}">${p>0?"↑":"↓"} ${Math.abs(p)}% ${pl}</em>`};
         return `<div class="kpis">
         <div class="kpi"><span>Hours</span><b class="num">${st.hours.toLocaleString()}</b>${dl(st.hours,ps.hours,true)}</div>
         <div class="kpi"><span>Wages</span><b class="num">${money(st.wages)}</b>${dl(st.wages,ps.wages,true)}</div>
