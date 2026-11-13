@@ -72,6 +72,7 @@ html.ios-app .tdbar{bottom:104px}
 .tdbar .btn{box-shadow:0 10px 26px rgba(14,19,37,.22)}
 @media (min-width:900px){.tdbar{bottom:20px;max-width:420px;margin-left:auto}}
 .nav .tabsg button{font-size:10px!important}
+body.sheet-open .toast,html.ios-app body.sheet-open .toast{bottom:auto;top:calc(env(safe-area-inset-top) + 14px)}
 @media (min-width:900px){.ptitle{display:none!important}.tabs button{white-space:nowrap}}
 .recv{display:flex;justify-content:space-between;gap:10px;width:100%;margin-top:12px;padding:11px 12px;border-radius:12px;background:var(--soft);font-size:13.5px;color:var(--ink2);text-align:left}
 .recv b{font-weight:700;color:var(--ink)}
@@ -293,7 +294,7 @@ textarea.inp{height:76px;padding:12px 15px;resize:none}
 <script>
 function hideToast(){const t=document.getElementById("toast");if(t)t.classList.remove("on")}
 if(window.navigator.standalone===true||matchMedia("(display-mode: standalone)").matches)document.documentElement.classList.add("ios-app");
-const APP_VERSION="2.16";
+const APP_VERSION="2.17";
 /* ============ data layer ============ */
 const TABLES=["clients","sites","workers","rates","entries","income"];
 const EMPTY=()=>({clients:[],sites:[],workers:[],rates:[],entries:[],income:[]});
@@ -494,6 +495,7 @@ function problems(){
   Object.values(dupG).forEach(x=>{const n=[...x.days].filter(d=>d!=="M").length;out.push({type:"dup",e:x.e,text:`${W(x.e.workerId).name} — ${Sx(x.e.siteId).name}, ${mLabel(x.e.month)}: entered twice${n>1?` on ${n} days`:n===1?` on ${dayLabel([...x.days].find(d=>d!=="M"))}`:""}`})});
   const mix={};DB.entries.forEach(e=>{const k=e.workerId+"|"+e.siteId+"|"+e.month;(mix[k]=mix[k]||{d:0,m:null});if(e.date)mix[k].d++;else mix[k].m=e});
   Object.values(mix).forEach(x=>{if(x.m&&x.d)out.push({type:"mix",e:x.m,text:`${W(x.m.workerId).name} — ${Sx(x.m.siteId).name}, ${mLabel(x.m.month)}: whole-month total and daily hours — may count twice`})});
+  DB.sites.forEach(x=>{if(hasBill(x))return;const e=DB.entries.find(q=>q.siteId===x.id&&q.hours>0&&(q.kind||"work")==="work");if(e)out.push({type:"bill",site:x,e,text:`${x.name}: money in not set`})});
   const seenT=new Set(); return out.filter(p=>!seenT.has(p.text)&&seenT.add(p.text));
 }
 
@@ -588,7 +590,7 @@ function homePage(){
       <div class="sub">${owed.length?`${plural(owed.length,"person")} waiting · all months`:"Everyone is paid up"}</div>
     </div>`;
   const prob=pr.length?`<div class="a-prob"><div class="sec sec-first"><h2 style="display:flex;align-items:center;gap:8px;color:var(--warn)">${ICON.warn}Needs checking</h2><span class="h"><span class="count">${pr.length}</span></span></div>
-    <div class="list">${pr.slice(0,5).map(p=>`<div class="row tap" onclick="openPerson('${p.e.workerId}')"><div class="av" style="background:var(--warn-s);color:var(--warn)">!</div><div class="main"><div class="t1">${esc(W(p.e.workerId).name)}</div><div class="t2">${esc(Sx(p.e.siteId).name)} · ${mLabel(p.e.month)} · ${p.type==="dup"?esc(p.text.split(": ")[1]):p.type==="mix"?"month total + daily hours":"no pay rate"}</div></div>${ICON.chev}</div>`).join("")}</div></div>`:"";
+    <div class="list">${pr.slice(0,5).map(p=>`<div class="row tap" onclick="${p.type==="bill"?`editSite('${p.site.id}')`:`openPerson('${p.e.workerId}')`}"><div class="av" style="background:var(--warn-s);color:var(--warn)">!</div><div class="main"><div class="t1">${esc(p.type==="bill"?p.site.name:W(p.e.workerId).name)}</div><div class="t2">${p.type==="bill"?"Money in from this site isn't set · tap to add</div></div>"+ICON.chev+"</div>":""}${p.type==="bill"?"<!--":""}${esc(Sx(p.e.siteId).name)} · ${mLabel(p.e.month)} · ${p.type==="dup"?esc(p.text.split(": ")[1]):p.type==="mix"?"month total + daily hours":"no pay rate"}</div></div>${ICON.chev}</div>${p.type==="bill"?"-->":""}`).join("")}</div></div>`:"";
   const topay=`<div class="a-topay"><div class="sec sec-first"><h2>To pay</h2>${owed.length>1?`<button class="link" onclick="go('pay')">Pay run ›</button>`:`<span class="h"><span class="count">${owed.length}</span></span>`}</div>
     <div class="list">${owed.length?owed.map(o=>{const w=W(o.workerId);return `
       <div class="row">
@@ -653,7 +655,7 @@ function personPage(id){
   const es=all.filter(e=>inPer(e,P1)).sort((a,b)=>sortKey(b).localeCompare(sortKey(a)));
   const hours=es.reduce((s,e)=>s+ +e.hours,0), total=es.reduce((s,e)=>s+wage(e),0), owe=all.filter(e=>!e.paid&&e.rate>0).reduce((s,e)=>s+wage(e),0);
   const rates=DB.rates.filter(r=>r.workerId===id);
-  const pr=problems().filter(p=>p.e.workerId===id);
+  const pr=problems().filter(p=>p.type!=="bill"&&p.e.workerId===id);
   const byM={}; es.forEach(e=>(byM[e.month]=byM[e.month]||[]).push(e));
   const months=Object.keys(byM), cap=P1.mode==="all"&&!state.allHist?3:99;
   const hidden=(P1.mode==="day"||P1.mode==="week")&&all.some(e=>!e.date&&e.month===P1.d.slice(0,7));
@@ -781,7 +783,7 @@ function payPage(){
 }
 async function doPayRun(){const today=todayD(),on=prGroups().filter(x=>!PR.off.has(x.id)),before=on.flatMap(x=>x.es.map(e=>({...e}))),rows=before.map(e=>({...e,paid:true,paidAt:today})),tot=rows.reduce((a,e)=>a+wage(e),0);
   if(!confirmBox(`Mark ${plural(on.length,"person")} as paid — ${money(tot)}?`))return;
-  await putMany("entries",rows);PR.off=new Set();render();toast(`✓ ${plural(on.length,"person")} paid · ${money(tot)}`,async()=>{await putMany("entries",before);render()})}
+  await putMany("entries",rows);PR.off=new Set();render();toast(`✓ ${plural(on.length,"person")} paid · ${money(tot)}`,async()=>{await putMany("entries",before);render()});billNudge(rows)}
 async function paySlip(wid){const x=prGroups().find(g=>g.id===wid);if(!x)return;
   const lines=x.es.slice().sort((a,b)=>sortKey(a).localeCompare(sortKey(b))).map(e=>`${e.date?dayLabel(e.date):mLabel(e.month)} · ${Sx(e.siteId).name}${isWork(e)?"":" ("+KIND[e.kind]+")"} · ${e.hours} hrs × ${money(e.rate)} = ${money(wage(e))}`);
   const text=`Pay summary — ${W(wid).name}\n${prLabel()}\n\n${lines.join("\n")}\n\nTotal hours: ${x.h}\nTotal pay: ${money(x.amt)}`;
@@ -1008,6 +1010,10 @@ async function saveMoney(){
 
 /* ---- Pay ---- */
 let P={};
+function billNudge(rows){const ss=[...new Set(rows.filter(e=>(e.kind||"work")==="work").map(e=>e.siteId))].map(Sx).filter(x=>x.id&&!hasBill(x));if(!ss.length)return;
+  setTimeout(()=>showSheet(`<h3>Paid ✓ — one thing missing</h3><div class="lead">You haven't said how much comes in from ${ss.length===1?"this site":"these sites"}, so the app can't work out money in or profit.</div>
+  <div style="margin-bottom:14px">${ss.map(x=>`<div class="check" onclick="editSite('${x.id}')"><div class="av" style="background:var(--warn-s);color:var(--warn)">!</div><div class="main"><div class="t1">${esc(x.name)}</div><div class="t2">${esc(C(x.clientId).name)} · add charge rate or fixed amount</div></div>${ICON.chev}</div>`).join("")}</div>
+  <button class="btn ghost" style="margin-top:0" onclick="closeSheet()">Later</button>`),450)}
 function openPay(wid){hideToast();
   const es=DB.entries.filter(e=>e.workerId===wid&&!e.paid&&e.hours>0&&e.rate>0).sort((a,b)=>sortKey(a).localeCompare(sortKey(b)));
   P={wid,sel:new Set(es.map(e=>e.id)),es}; drawPay(); $("#sheet").classList.add("on");$("#scrim").classList.add("on");sheetClose=null;
@@ -1026,7 +1032,7 @@ async function doPay(){
   const before=P.es.filter(e=>P.sel.has(e.id)).map(e=>({...e}));
   const tot=rows.reduce((s,e)=>s+wage(e),0), name=W(P.wid).name;
   await putMany("entries",rows); closeSheet(); render();
-  toast(`✓ ${esc(name)} paid ${money(tot)}`,async()=>{await putMany("entries",before);render()});
+  toast(`✓ ${esc(name)} paid ${money(tot)}`,async()=>{await putMany("entries",before);render()});billNudge(rows);
 }
 
 /* ---- Edit entry ---- */
