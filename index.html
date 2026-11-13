@@ -65,6 +65,8 @@ input,textarea{-webkit-user-select:text;user-select:text}
 .h{font-size:13px;font-weight:650;color:var(--mut);letter-spacing:.02em;display:flex;align-items:center;gap:8px}
 .h .count{background:var(--soft);color:var(--ink2);border-radius:20px;padding:1px 8px;font-size:12px}
 .sec{display:flex;align-items:center;justify-content:space-between;margin:26px 4px 10px}
+.sec-first{margin-top:26px}
+@media (min-width:900px){.sec-first{margin-top:4px}}
 .sec h2{font-size:18px;font-weight:720;letter-spacing:-.01em}
 .link{color:var(--acc);font-weight:600;font-size:14.5px;padding:8px 0}
 
@@ -108,7 +110,8 @@ input,textarea{-webkit-user-select:text;user-select:text}
 
 /* search */
 .search{display:flex;align-items:center;gap:10px;background:var(--card);border-radius:16px;box-shadow:var(--sh);padding:0 16px;height:52px}
-.search input{flex:1;border:0;outline:0;background:none;font-size:16px}
+.search input{flex:1;border:0;outline:0;background:none;font-size:16px;-webkit-appearance:none;appearance:none;min-width:0}
+.search input::-webkit-search-cancel-button{-webkit-appearance:none}
 .chips{display:flex;gap:8px;overflow-x:auto;padding:12px 2px 2px;scrollbar-width:none}
 .chips::-webkit-scrollbar{display:none}
 .chip{padding:11px 16px;border-radius:20px;background:var(--card);box-shadow:var(--sh);font-size:14px;font-weight:600;color:var(--ink2);white-space:nowrap}
@@ -133,11 +136,12 @@ html.ios-app .toast{bottom:130px}
 .nav .fab{width:56px;height:56px;border-radius:18px;background:var(--acc);color:#fff;display:grid;place-items:center;margin-top:-22px;box-shadow:0 10px 22px rgba(79,70,229,.4)}
 
 /* sheet */
-.scrim{position:fixed;inset:0;background:rgba(14,19,37,.42);opacity:0;pointer-events:none;transition:opacity .22s;z-index:40}
-.scrim.on{opacity:1;pointer-events:auto}
-.sheet{position:fixed;left:0;right:0;bottom:0;background:var(--card);border-radius:26px 26px 0 0;max-height:92vh;overflow:auto;transform:translateY(105%);visibility:hidden;transition:transform .28s cubic-bezier(.2,.8,.2,1),visibility 0s .28s;z-index:50;padding:10px 20px calc(22px + env(safe-area-inset-bottom))}
+.scrim{position:fixed;inset:0;background:rgba(14,19,37,.42);opacity:0;visibility:hidden;pointer-events:none;transition:opacity .22s,visibility 0s .22s;z-index:40}
+.scrim.on{opacity:1;visibility:visible;pointer-events:auto;transition:opacity .22s}
+.sheet{position:fixed;left:0;right:0;bottom:var(--kb,0px);overscroll-behavior:contain;-webkit-overflow-scrolling:touch;background:var(--card);border-radius:26px 26px 0 0;max-height:calc(var(--vvh,100vh) - env(safe-area-inset-top) - 24px);overflow:auto;transform:translateY(105%);visibility:hidden;transition:transform .28s cubic-bezier(.2,.8,.2,1),visibility 0s .28s;z-index:50;padding:10px 20px calc(22px + env(safe-area-inset-bottom))}
 .sheet.on{transform:none;visibility:visible;transition:transform .28s cubic-bezier(.2,.8,.2,1)}
-.grab{width:40px;height:5px;border-radius:3px;background:var(--line);margin:0 auto 12px}
+.grab{width:40px;height:5px;border-radius:3px;background:var(--line);margin:0 auto 12px;box-shadow:0 0 0 14px transparent}
+body.sheet-open{overflow:hidden}
 .sheet h3{font-size:21px;font-weight:760;letter-spacing:-.02em;margin-bottom:4px}
 .sheet .lead{color:var(--mut);font-size:14.5px;margin-bottom:16px}
 .seg{display:flex;background:var(--soft);border-radius:13px;padding:4px;gap:4px;margin-bottom:18px;overflow-x:auto;scrollbar-width:none}
@@ -179,6 +183,7 @@ textarea.inp{height:76px;padding:12px 15px;resize:none}
 .box{width:24px;height:24px;border-radius:8px;border:2px solid #C8CCDA;display:grid;place-items:center;flex:none;color:#fff}
 .box.on{background:var(--ok);border-color:var(--ok)}
 
+.toast span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .toast{position:fixed;left:16px;right:16px;margin:0 auto;width:fit-content;bottom:calc(96px + env(safe-area-inset-bottom));transform:translateY(30px);background:var(--ink);color:#fff;border-radius:16px;padding:13px 16px;font-size:14.5px;font-weight:550;display:flex;align-items:center;gap:14px;opacity:0;pointer-events:none;transition:all .25s;z-index:60;max-width:92vw;box-shadow:0 12px 28px rgba(14,19,37,.3)}
 .toast.on{opacity:1;transform:none;pointer-events:auto}
 .toast button{color:#A5B4FC;font-weight:700}
@@ -233,7 +238,7 @@ textarea.inp{height:76px;padding:12px 15px;resize:none}
 <script>
 function hideToast(){const t=document.getElementById("toast");if(t)t.classList.remove("on")}
 if(window.navigator.standalone===true||matchMedia("(display-mode: standalone)").matches)document.documentElement.classList.add("ios-app");
-const APP_VERSION="2.1";
+const APP_VERSION="2.2";
 /* ============ data layer ============ */
 const TABLES=["clients","sites","workers","rates","entries","income"];
 const EMPTY=()=>({clients:[],sites:[],workers:[],rates:[],entries:[],income:[]});
@@ -450,7 +455,7 @@ function homePage(){
     </div>
     ${pr.length?`<div class="problems"><div class="pt">${ICON.warn} ${plural(pr.length,"thing")} to check</div>${pr.slice(0,4).map(p=>`<div class="pi" onclick="openPerson('${p.e.workerId}')">${esc(p.text)}</div>`).join("")}</div>`:""}`;
   const right=`
-    <div class="sec" style="margin-top:4px"><h2>To pay</h2><span class="h"><span class="count">${owed.length}</span></span></div>
+    <div class="sec sec-first"><h2>To pay</h2><span class="h"><span class="count">${owed.length}</span></span></div>
     <div class="list">${owed.length?owed.map(o=>{const w=W(o.workerId);return `
       <div class="row">
         <div class="row tap" style="padding:0;border:0;flex:1;min-width:0" onclick="openPerson('${o.workerId}')">${av(w.name)}
@@ -488,7 +493,7 @@ function peoplePage(){
   ws.sort((a,b)=>(owed[b.id]||0)-(owed[a.id]||0)||a.name.localeCompare(b.name));
   const nOwed=DB.workers.filter(w=>owed[w.id]).length;
   return `
-    <div class="search">${ICON.search}<input id="q" placeholder="Search name, site or client" value="${esc(state.q)}" oninput="state.q=this.value;state.focusSearch=true;render()" autocomplete="off"></div>
+    <div class="search">${ICON.search}<input id="q" type="search" enterkeyhint="search" placeholder="Search name, site or client" value="${esc(state.q)}" oninput="state.q=this.value;state.focusSearch=true;render()" autocomplete="off"></div>
     <div class="chips">${[["all","Everyone"],["owed",`Waiting for pay · ${nOwed}`],["paid","All paid"]].map(([k,l])=>`<button class="chip ${state.filter===k?"on":""}" onclick="state.filter='${k}';render()">${l}</button>`).join("")}</div>
     <div class="list" style="margin-top:14px">${ws.length?ws.map(w=>{
       const sites=DB.rates.filter(r=>r.workerId===w.id).map(r=>Sx(r.siteId).name);
@@ -556,7 +561,7 @@ function morePage(){
     <div class="row" onclick="showConnectQR()"><div class="main"><div class="t1">Connect another device</div><div class="t2">Show a QR code for your phone or laptop</div></div>${ICON.chev}</div>
     <div class="row" onclick="setPin(()=>toast('✓ PIN changed'))"><div class="main"><div class="t1">Change PIN</div></div>${ICON.chev}</div>
     <div class="row" onclick="disconnect()"><div class="main"><div class="t1" style="color:var(--pay)">Disconnect this device</div><div class="t2">Your data stays in the Sheet</div></div>${ICON.chev}</div>
-  </div>`:`<div class="list settings" style="margin-bottom:22px"><div class="row" onclick="openConnect()"><div class="av" style="background:var(--acc-s);color:var(--acc)">${ICON.sheet}</div><div class="main"><div class="t1">Connect to Google Sheet</div><div class="t2">Save to your own Sheet · use on phone and laptop</div></div>${ICON.chev}</div></div>`}
+  </div>`:`<div class="list settings" style="margin-bottom:22px"><div class="row" onclick="openConnect()"><div class="av" style="background:var(--acc-s);color:var(--acc)">${ICON.sheet}</div><div class="main"><div class="t1">Connect to Google Sheet</div><div class="t2">Use on phone and laptop</div></div>${ICON.chev}</div></div>`}
   <div class="list settings">
     <div class="row" onclick="exportCSV()"><div class="main"><div class="t1">Download for Excel</div><div class="t2">All hours as a spreadsheet file</div></div>${ICON.chev}</div>
     <div class="row" onclick="backup()"><div class="main"><div class="t1">Download a backup</div><div class="t2">One file with everything</div></div>${ICON.chev}</div>
@@ -573,9 +578,18 @@ function morePage(){
 /* ============ sheets ============ */
 let sheetClose=null;
 function openSheet(html,onClose){$("#sheet").innerHTML=`<div class="grab"></div>`+html;$("#sheet").classList.add("on");$("#scrim").classList.add("on");sheetClose=onClose||null;$("#sheet").scrollTop=0}
-function closeSheet(){$("#sheet").classList.remove("on");$("#scrim").classList.remove("on");if(sheetClose)sheetClose()}
+function closeSheet(){document.body.classList.remove("sheet-open");const sh=$("#sheet");if(sh.style.transform){sh.style.transition="transform .25s";sh.style.transform="translateY(110%)";setTimeout(()=>{sh.style.transition="";sh.style.transform=""},300)}sh.classList.remove("on");$("#scrim").classList.remove("on");if(sheetClose)sheetClose()}
 $("#scrim").onclick=closeSheet;
-(function(){const sh=document.getElementById("sheet");const chk=()=>{sh.classList.toggle("scrolly",sh.scrollHeight>sh.clientHeight+4)};
+document.addEventListener("touchstart",()=>{},{passive:true});
+(function(){const sh=document.getElementById("sheet");const chk=()=>{sh.classList.toggle("scrolly",sh.scrollHeight>sh.clientHeight+4);document.body.classList.toggle("sheet-open",sh.classList.contains("on"))};
+  new MutationObserver(chk).observe(sh,{attributes:true,attributeFilter:["class"]});
+  /* keyboard: keep the panel above it */
+  const vv=window.visualViewport;const fit=()=>{if(!vv)return;const kb=Math.max(0,window.innerHeight-vv.height-vv.offsetTop);document.documentElement.style.setProperty("--kb",kb+"px");document.documentElement.style.setProperty("--vvh",vv.height+"px");chk()};
+  if(vv){vv.addEventListener("resize",fit);vv.addEventListener("scroll",fit);fit()}
+  /* swipe down to close, like iOS */
+  let y0=null,dy=0;sh.addEventListener("touchstart",e=>{if(sh.scrollTop<=0&&!e.target.closest("input,textarea,.sug")){y0=e.touches[0].clientY;dy=0}else y0=null},{passive:true});
+  sh.addEventListener("touchmove",e=>{if(y0==null)return;dy=e.touches[0].clientY-y0;if(dy>0){sh.style.transition="none";sh.style.transform=`translateY(${dy}px)`}},{passive:true});
+  sh.addEventListener("touchend",()=>{if(y0==null)return;sh.style.transition="";if(dy>110)closeSheet();else sh.style.transform="";y0=null});
   new MutationObserver(()=>requestAnimationFrame(chk)).observe(sh,{childList:true,subtree:true});window.addEventListener("resize",chk)})();
 document.addEventListener("keydown",e=>{if(e.key==="Escape")closeSheet()});
 
@@ -609,7 +623,7 @@ function formHours(){
   const h=parseFloat(F.hours)||0;
   const dup=F.workerId&&F.siteId&&DB.entries.some(e=>e.workerId===F.workerId&&e.siteId===F.siteId&&e.month===F.month);
   return `${monthField()}
-  <div class="f"><label>Who worked?</label><input class="inp" id="wq" placeholder="Start typing a name" value="${esc(F.q)}" autocomplete="off" oninput="F.q=this.value;F.workerId=null;F.siteId=null;sugWorkers()" onfocus="sugWorkers()"><div id="sug"></div></div>
+  <div class="f"><label>Who worked?</label><input class="inp" id="wq" placeholder="Start typing a name" autocapitalize="words" autocorrect="off" spellcheck="false" value="${esc(F.q)}" autocomplete="off" oninput="F.q=this.value;F.workerId=null;F.siteId=null;sugWorkers()" onfocus="sugWorkers()"><div id="sug"></div></div>
   ${F.workerId?`<div class="f"><label>Which site?</label><div class="opts">${rs.length?rs.map(r=>`<button class="opt ${F.siteId===r.siteId?"on":""}" onclick="F.siteId='${r.siteId}';drawAdd()">${esc(Sx(r.siteId).name)}<small>${money(r.rate)}/hr</small></button>`).join(""):`<span class="t2">No site yet — <button class="link" onclick="openAdd('worker','${F.workerId}')">add one</button></span>`}</div></div>`:""}
   <div class="two">
     <div class="f"><label>Hours</label><input class="inp num" id="hrs" inputmode="decimal" placeholder="0" value="${esc(F.hours)}" oninput="F.hours=this.value.replace(/[^0-9.]/g,'');this.value=F.hours;updPreview()"></div>
@@ -641,7 +655,7 @@ async function saveHours(){
 }
 function formWorker(){
   const existing=F.workerId?W(F.workerId):null;
-  return `<div class="f"><label>Name</label><input class="inp" placeholder="Full name" value="${esc(F.name)}" oninput="F.name=this.value" ${existing?"disabled":""}></div>
+  return `<div class="f"><label>Name</label><input class="inp" placeholder="Full name" autocapitalize="words" autocomplete="off" enterkeyhint="next" value="${esc(F.name)}" oninput="F.name=this.value" ${existing?"disabled":""}></div>
   <div class="f"><label>Works at</label><div class="opts">${DB.sites.length?"":`<span class="t2">No sites yet — <button class="link" onclick="F.kind='site';F.name='';drawAdd()">add a site first</button></span>`}${DB.sites.map(s=>`<button class="opt ${F.siteId===s.id?"on":""}" onclick="F.siteId='${s.id}';drawAdd()">${esc(s.name)}</button>`).join("")}</div></div>
   <div class="f"><label>Pay rate ($ per hour)</label><input class="inp num" inputmode="decimal" placeholder="e.g. 25" value="${esc(F.rate)}" oninput="F.rate=this.value"></div>
   <div class="hint">Works at more than one site? Save, then add the next site from their page.</div>
@@ -658,7 +672,7 @@ async function saveWorker(){
   closeSheet(); render(); toast(`✓ ${esc(w.name)} · ${esc(Sx(F.siteId).name)} · ${money(rate)}/hr`);
 }
 function formSite(){
-  return `<div class="f"><label>Site name</label><input class="inp" placeholder="e.g. Parramatta" value="${esc(F.name)}" oninput="F.name=this.value"></div>
+  return `<div class="f"><label>Site name</label><input class="inp" placeholder="e.g. Parramatta" autocapitalize="words" autocomplete="off" value="${esc(F.name)}" oninput="F.name=this.value"></div>
   <div class="f"><label>Client</label><div class="opts">${DB.clients.map(c=>`<button class="opt ${F.clientId===c.id?"on":""}" onclick="F.clientId='${c.id}';drawAdd()">${esc(c.name)}</button>`).join("")}<button class="opt" onclick="F.kind='client';drawAdd()">+ New client</button></div></div>
   ${F.err?`<div class="err">${F.err}</div>`:""}<button class="btn" onclick="saveSite()">Save site</button>`;
 }
@@ -668,7 +682,7 @@ async function saveSite(){
   await put("sites",{id:uid(),name,clientId:F.clientId}); closeSheet(); render(); toast(`✓ Site added · ${esc(name)}`);
 }
 function formClient(){
-  return `<div class="f"><label>Client name</label><input class="inp" placeholder="e.g. Bupa" value="${esc(F.name)}" oninput="F.name=this.value"></div>
+  return `<div class="f"><label>Client name</label><input class="inp" placeholder="e.g. Bupa" autocapitalize="words" autocomplete="off" value="${esc(F.name)}" oninput="F.name=this.value"></div>
   ${F.err?`<div class="err">${F.err}</div>`:""}<button class="btn" onclick="saveClient()">Save client</button>`;
 }
 async function saveClient(){
@@ -730,7 +744,7 @@ function openEntry(id){hideToast();
 function showSheet(html){$("#sheet").innerHTML=`<div class="grab"></div>`+html;$("#sheet").classList.add("on");$("#scrim").classList.add("on");sheetClose=null;$("#sheet").scrollTop=0}
 function editWorker(id){hideToast();const w=W(id);let name=w.name,active=w.active!==false;
   const draw=()=>{showSheet(`<h3>Edit worker</h3><div class="lead">Change the name, or mark them as left.</div>
-    <div class="f"><label>Name</label><input class="inp" id="en" value="${esc(name)}"></div>
+    <div class="f"><label>Name</label><input class="inp" id="en" autocapitalize="words" value="${esc(name)}"></div>
     <div class="f"><label>Still working?</label><button class="toggle" style="width:100%" id="ea"><span>${active?"Yes, working":"Left the crew"}</span><span class="sw ${active?"on":""}"></span></button></div>
     <div class="hint">People who left are hidden from lists, but their history stays.</div>
     <button class="btn" id="es">Save</button><button class="btn ghost" onclick="closeSheet()">Cancel</button>`);
@@ -781,7 +795,7 @@ function openConnect(){hideToast();
   showSheet(`<h3>Connect to Google Sheet</h3><div class="lead">Your data will be saved in your own Google Sheet and shared between your phone and laptop.</div>
   <button class="btn" id="cq">Scan QR code</button>
   <div class="grp" style="text-align:center;padding:16px 0 8px">or paste the connect code</div>
-  <div class="f"><textarea class="inp" id="cc" placeholder="CW1.…" style="height:90px;font-size:14px" autocapitalize="off" autocorrect="off" spellcheck="false"></textarea></div>
+  <div class="f"><textarea class="inp" id="cc" placeholder="CW1.…" style="height:90px;font-size:16px" autocapitalize="off" autocorrect="off" spellcheck="false"></textarea></div>
   <div id="cerr"></div>
   <button class="btn ghost" id="cp" style="margin-top:0">Connect with this code</button>
   <div class="hint" style="margin-top:14px">Get the code from your Google Sheet: <b>Crew Wages → Connect a device</b>.</div>`);
