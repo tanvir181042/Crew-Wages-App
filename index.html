@@ -66,6 +66,20 @@ input,textarea{-webkit-user-select:text;user-select:text}
 .h .count{background:var(--soft);color:var(--ink2);border-radius:20px;padding:1px 8px;font-size:12px}
 .sec{display:flex;align-items:center;justify-content:space-between;margin:26px 4px 10px}
 .sec-first{margin-top:26px}
+.glance{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:16px}
+.glance button{background:var(--card);border-radius:var(--r-lg,20px);padding:14px 12px;text-align:left;display:flex;flex-direction:column;gap:2px}
+.glance b{font-size:28px;font-weight:780;letter-spacing:-.04em;line-height:1.1}
+.glance span{font-size:13px;font-weight:650;color:var(--ink2)}
+.glance small{font-size:11.5px;color:var(--mut)}
+.glance button:active{opacity:.7}
+.plbar{height:6px;border-radius:3px;background:var(--soft);margin-top:7px;overflow:hidden}
+.plbar i{display:block;height:100%;border-radius:3px}.plbar i.pos{background:var(--ok)}.plbar i.neg{background:var(--pay)}
+.dchart{display:flex;align-items:flex-end;gap:3px;height:120px}
+.dchart div{flex:1;height:100%;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;gap:4px;min-width:0}
+.dchart i{display:block;width:100%;max-width:26px;border-radius:5px 5px 2px 2px;background:var(--ink)}
+.dchart i.now{background:var(--lime,#C9F26B)}
+.dchart span{font-size:10.5px;color:var(--mut);height:12px;font-weight:600}
+@media (min-width:900px){.home{grid-template-areas:"hero topay" "glance topay" "prob topay" "month sites" "month paid"!important}.a-glance{grid-area:glance}.a-sites{grid-area:sites}}
 .inp.tdin{width:74px;height:46px;padding:0;text-align:center;flex:none;border-radius:12px}
 .tdbar{position:sticky;bottom:calc(max(14px, env(safe-area-inset-bottom)) + 78px);margin-top:18px;z-index:5}
 html.ios-app .tdbar{bottom:104px}
@@ -547,7 +561,7 @@ textarea.inp{height:96px!important;padding:14px 16px!important}
 <script>
 function hideToast(){const t=document.getElementById("toast");if(t)t.classList.remove("on")}
 if(window.navigator.standalone===true||matchMedia("(display-mode: standalone)").matches)document.documentElement.classList.add("ios-app");
-const APP_VERSION="3.3";
+const APP_VERSION="3.4";
 /* ============ data layer ============ */
 const TABLES=["clients","sites","workers","rates","entries","income"];
 const EMPTY=()=>({clients:[],sites:[],workers:[],rates:[],entries:[],income:[]});
@@ -713,7 +727,7 @@ const sortKey=e=>(e.date||e.month+"-00");
 function inPer(e,p){if(p.mode==="all")return true;if(p.mode==="month")return e.month===p.d.slice(0,7);if(p.mode==="week")return !!e.date&&weekStart(e.date)===weekStart(p.d);return e.date===p.d}
 function perLabel(p){if(p.mode==="all")return "All time";if(p.mode==="month")return mLabel(p.d.slice(0,7));if(p.mode==="week")return (weekStart(p.d)===weekStart(todayD())?"This week · ":"")+weekLabel(p.d);return dayRel(p.d)}
 function perStep(p,n){if(p.mode==="day")p.d=addD(p.d,n);else if(p.mode==="week")p.d=addD(p.d,7*n);else if(p.mode==="month"){const m=addM(p.d.slice(0,7),n);p.d=m===todayD().slice(0,7)?todayD():m+"-01"}}
-const PERS={home:()=>state.per,person:()=>state.pper};
+const PERS={home:()=>state.per,person:()=>state.pper,site:()=>state.sper};
 function perSwitch(key,modes){const p=PERS[key]();
   const sub=k=>{const d=parseD(p.d);return k==="day"?`${DOW[d.getDay()]} ${d.getDate()}`:k==="week"?weekLabel(p.d):k==="month"?FMN[d.getMonth()]:"Everything"};
   const full=k=>{const d=parseD(p.d);return k==="day"?dayRel(p.d)+(dayRel(p.d)===dayLabel(p.d)?"":" · "+dayLabel(p.d)):k==="week"?perLabel(p):FMN[d.getMonth()]+" "+d.getFullYear()};
@@ -761,7 +775,7 @@ function problems(){
 }
 
 /* ============ state & router ============ */
-let state={tab:"home",month:null,person:null,pstack:[],q:"",filter:"all",siteFocus:null,per:{mode:"month",d:todayD()},pper:{mode:"all",d:todayD()}};
+let state={tab:"home",month:null,person:null,pstack:[],q:"",filter:"all",siteFocus:null,per:{mode:"month",d:todayD()},pper:{mode:"all",d:todayD()},sper:{mode:"month",d:todayD()}};
 const scrolls=[];let navAnim=false;
 function go(tab,extra={}){hideToast();state={...state,tab,person:null,pstack:[],...extra};scrolls.length=0;render();window.scrollTo({top:0,behavior:"instant"})}
 
@@ -786,7 +800,7 @@ function buildApp(){
     <button class="icon-btn gear" onclick="go('more')" aria-label="Settings">${ICON.more.replace('width="24" height="24"','width="20" height="20"')}</button>
   </div>`;
   let body="";
-  if(state.person) body=personPage(state.person);
+  if(state.person) body=isSiteKey(state.person)?sitePage(state.person):personPage(state.person);
   else if(state.tab==="home") body=homePage();
   else if(state.tab==="people") body=peoplePage();
   else if(state.tab==="sites") body=sitesPage();
@@ -798,7 +812,7 @@ function buildApp(){
 }
 
 function miniUpdate(content){const m=$("#mini");if(!m)return;
-  if(content)m.innerHTML=(state.person?`<button class="mback" onclick="goBack()">${ICON.back}Back</button>`:"")+`<b>${esc(state.person?W(state.person).name:(DB.workers.length||state.tab!=="home"?TITLES[state.tab]:""))}</b>`;
+  if(content)m.innerHTML=(state.person?`<button class="mback" onclick="goBack()">${ICON.back}Back</button>`:"")+`<b>${esc(state.person?(isSiteKey(state.person)?Sx(state.person.slice(2)).name:W(state.person).name):(DB.workers.length||state.tab!=="home"?TITLES[state.tab]:""))}</b>`;
   const th=state.person?96:(DB.workers.length||state.tab!=="home"?44:9999);m.classList.toggle("on",window.scrollY>th)}
 window.addEventListener("scroll",()=>miniUpdate(false),{passive:true});
 const EASE="cubic-bezier(.32,.72,0,1)",RM=matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -872,7 +886,7 @@ function homePage(){
           <div class="amt num">${money(o.amount)}</div></div>
         <button class="pay-btn" onclick="openPay('${o.workerId}')">Pay</button>
       </div>`}).join(""):`<div class="empty"><div class="e" style="color:var(--ok)">${ICON.party}</div>Everyone is paid up</div>`}</div></div>`;
-  const month=`<div class="a-month"><div class="sec sec-first"><h2>${P0.mode==="day"?"Day":P0.mode==="week"?"Week":"Month"}</h2><button class="link" onclick="go('reports')">Reports ›</button></div>
+  const month=`<div class="a-month"><div class="sec sec-first"><h2>Money</h2><button class="link" onclick="go('reports')">Reports ›</button></div>
     <div class="card mcard"><div class="mhead">${perSwitch("home",[["day","Day"],["week","Week"],["month","Month"]])}</div>
       ${(()=>{const pp={...P0};perStep(pp,-1);const ps=perStats(pp),pl=P0.mode==="month"?"vs "+mShort(pp.d.slice(0,7)):P0.mode==="week"?"vs last week":"vs day before";
         const dl=(a,b,good)=>{if(!b)return "";const p=Math.round((a-b)/Math.abs(b)*100);if(!p)return `<em class="fl">same ${pl}</em>`;return `<em class="${(p>0)===good?"up":"dn"}">${p>0?"↑":"↓"} ${Math.abs(p)}% ${pl}</em>`};
@@ -892,7 +906,25 @@ function homePage(){
     <div class="list" style="margin-top:14px">${steps.map(([k,t,d,done],i)=>`<div class="row tap" onclick="openAdd('${k}')"><div class="av" style="background:${done?"var(--ok-s)":"var(--acc-s)"};color:${done?"var(--ok)":"var(--acc)"}">${done?"✓":i+1}</div><div class="main"><div class="t1">${t}</div><div class="t2">${d}</div></div>${ICON.chev}</div>`).join("")}</div>
     <button class="btn ghost" style="margin-top:14px" onclick="resetDemo(true,true)">Or try it with sample data</button>`;
   }
-  return `<div class="home">${hero}${prob}${topay}${month}${paid}</div>`;
+  const since=addD(todayD(),-30);
+  const actW=DB.workers.filter(w=>w.active!==false&&DB.entries.some(e=>e.workerId===w.id&&(e.date?e.date>=since:e.month>=since.slice(0,7)))).length;
+  const actS=DB.sites.filter(x=>DB.entries.some(e=>e.siteId===x.id&&(e.date?e.date>=since:e.month>=since.slice(0,7)))).length;
+  const actC=new Set(DB.sites.filter(x=>DB.entries.some(e=>e.siteId===x.id&&(e.date?e.date>=since:e.month>=since.slice(0,7)))).map(x=>x.clientId)).size;
+  const glance=`<div class="a-glance"><div class="glance">
+    <button onclick="go('people')"><b class="num">${actW}</b><span>Active workers</span><small>${DB.workers.filter(w=>w.active!==false).length} on the team</small></button>
+    <button onclick="go('sites')"><b class="num">${actS}</b><span>Active sites</span><small>${DB.sites.length} in total</small></button>
+    <button onclick="go('sites')"><b class="num">${actC}</b><span>Active clients</span><small>${DB.clients.length} in total</small></button>
+  </div><div class="t2" style="margin:8px 4px 0;font-size:12.5px">Active = worked in the last 30 days</div></div>`;
+  const sp=DB.sites.map(x=>siteStats(x,P0)).filter(r=>r.h||r.w||r.b),known=sp.filter(r=>r.p!=null).sort((a,b)=>b.p-a.p),unknown=sp.filter(r=>r.p==null);
+  const mxp=Math.max(1,...known.map(r=>Math.abs(r.p))),tp=known.reduce((a,r)=>a+r.p,0),loss=known.filter(r=>r.p<0);
+  const siteRow=r=>`<div class="row tap" onclick="openSite('${r.x.id}')"><div class="main"><div class="t1">${esc(r.x.name)}</div><div class="t2">${esc(C(r.x.clientId).name)} · ${r.h} hrs · ${plural(r.people,"worker")}</div>
+      ${r.p!=null?`<div class="plbar"><i class="${r.p<0?"neg":"pos"}" style="width:${Math.max(3,Math.abs(r.p)/mxp*100)}%"></i></div>`:""}</div>
+      <div class="amt num" style="color:${r.p==null?"var(--mut)":r.p<0?"var(--pay)":"var(--ok)"}">${r.p==null?"–":money(r.p)}<small>${r.p==null?(r.note?"monthly fee":"not set"):r.b?Math.round(r.p/r.b*100)+"% margin":r.p<0?"loss":"profit"}</small></div>${ICON.chev}</div>`;
+  const sites=sp.length?`<div class="a-sites"><div class="sec"><h2>Sites · profit & loss</h2><button class="link" onclick="go('reports')">All ›</button></div>
+    <div class="card" style="padding:14px 18px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center"><div><div class="t2" style="font-size:13px">${perLabel(P0)} · ${plural(known.length,"site")}</div><div class="num" style="font-size:26px;font-weight:780;letter-spacing:-.03em;color:${tp<0?"var(--pay)":"var(--ok)"}">${money(tp)}</div></div>
+      ${loss.length?`<span class="tag pay">${plural(loss.length,"site")} losing money</span>`:`<span class="tag ok">All sites profitable</span>`}</div>
+    <div class="list">${known.slice(0,state.allSites?999:5).map(siteRow).join("")}${unknown.map(siteRow).join("")}${known.length>5&&!state.allSites?`<div class="row tap" style="justify-content:center;font-weight:650" onclick="state.allSites=true;render()">Show all ${known.length} sites</div>`:""}</div></div>`:"";
+  return `<div class="home">${hero}${glance}${prob}${month}${sites}${topay}${paid}</div>`;
 }
 const stat=(k,v,c,neg)=>`<div class="stat"><div class="k"><span class="dot" style="background:${c}"></span>${k}</div><div class="v num"${neg?' style="color:var(--pay)"':""}>${v}</div></div>`;
 function groupPaid(es){
@@ -937,17 +969,19 @@ function personPage(id){
           <span class="tag ${e.paid?"ok":"pay"}">${e.paid?"Paid":"To pay"}</span><div class="amt num" style="min-width:72px">${money(wage(e))}</div></div>`;
   return `
     <div style="display:flex;justify-content:space-between;align-items:center"><button class="back" onclick="goBack()">${ICON.back}Back</button><button class="link" style="display:flex;gap:6px;align-items:center;padding:6px 2px 14px" onclick="editWorker('${id}')">${ICON.edit}Edit</button></div>
-    <div class="ph">${av(w.name)}<div style="flex:1;min-width:0"><h1>${esc(w.name)}${w.active===false?' <span class="tag mut" style="vertical-align:middle">Left</span>':""}</h1><div class="t2">${rates.length?rates.map(r=>esc(Sx(r.siteId).name)).join(" · "):"No site yet"}</div></div></div>
+    <div class="ph">${av(w.name)}<div style="flex:1;min-width:0"><h1>${esc(w.name)}${w.active===false?' <span class="tag mut" style="vertical-align:middle">Left</span>':""}</h1><div class="t2">${(()=>{const last=all.filter(e=>e.date).sort((a,b)=>b.date.localeCompare(a.date))[0];return last?`Last worked ${dayRel(last.date)===dayLabel(last.date)?dayLabel(last.date):dayRel(last.date).toLowerCase()} · ${esc(Sx(last.siteId).name)}`:""})()||(rates.length?rates.map(r=>esc(Sx(r.siteId).name)).join(" · "):"No site yet")}</div></div></div>
     ${owe?`<button class="btn red" style="margin:0 0 14px" onclick="openPay('${id}')">Pay ${money(owe)}</button>`:""}
     ${pr.length?`<div class="problems" style="margin:0 0 14px">${pr.map(p=>`<div class="pi" style="cursor:default">${esc(p.text)}</div>`).join("")}</div>`:""}
     <div class="card mcard"><div class="mhead">${perSwitch("person",[["day","Day"],["week","Week"],["month","Month"],["all","All"]])}</div>
-      <div class="mgrid" style="grid-template-columns:1fr 1fr 1fr">
-        <div><span>Hours</span><b class="num">${hours.toLocaleString()}</b></div>
-        <div><span>Earned</span><b class="num">${money(total)}</b></div>
-        <div><span>To pay</span><b class="num" style="color:${owe?"var(--pay)":"var(--ok)"}">${owe?money(owe):"$0"}</b></div>
-      </div>
+      ${(()=>{const dd=new Set(es.filter(e=>e.date).map(e=>e.date)).size;return `<div class="kpis">
+        <div class="kpi"><span>Earned</span><b class="num">${money(total)}</b><em class="fl">${perLabel(P1)}</em></div>
+        <div class="kpi"><span>Hours</span><b class="num">${hours.toLocaleString()}</b>${dd?`<em class="fl">${plural(dd,"day")} worked</em>`:""}</div>
+        <div class="kpi"><span>Per day</span><b class="num">${dd?money(es.filter(e=>e.date).reduce((a,e)=>a+wage(e),0)/dd):"–"}</b><em class="fl">average</em></div>
+        <div class="kpi"><span>To pay</span><b class="num" style="color:${owe?"var(--pay)":"var(--ok)"}">${owe?money(owe):"$0"}</b><em class="fl">all time</em></div>
+      </div>`})()}
       <div class="mfoot">${es.some(e=>!isWork(e))?`Leave: ${["annual","sick"].map(k=>[k,es.filter(e=>e.kind===k).reduce((a,e)=>a+ +e.hours,0)]).filter(x=>x[1]).map(([k,h])=>`${KIND[k].toLowerCase()} ${h} hrs`).join(", ")}<br>`:""}${P1.mode==="all"?`All time · ${plural(all.length,"entry")}`:`${perLabel(P1)} · ${plural(es.length,"entry")}`} · To pay is all time${hidden?`<br><span style="color:var(--warn)">A whole-month total for ${mLabel(P1.d.slice(0,7))} is only counted in Month view.</span>`:""}</div>
     </div>
+    ${workerExtras(id,es,P1)}
     <div class="cols">
       <div>
         <div class="sec"><h2>Hours</h2><button class="link" onclick="openAdd('hours','${id}')">+ Add hours</button></div>
@@ -958,7 +992,7 @@ function personPage(id){
       <div>
         <div class="sec"><h2>Works at</h2><button class="link" onclick="openAdd('worker','${id}')">+ Add site</button></div>
         <div class="list">${rates.length?rates.map(r=>{const s=Sx(r.siteId); const mates=DB.rates.filter(x=>x.siteId===r.siteId&&x.workerId!==id).map(x=>W(x.workerId));
-          return `<div class="row"><div class="main"><div class="t1">${esc(s.name)} <span class="tag mut" style="margin-left:6px">${esc(C(s.clientId).name)}</span></div>
+          return `<div class="row"><div class="main" onclick="openSite('${s.id}')" style="cursor:pointer"><div class="t1">${esc(s.name)} <span class="tag mut" style="margin-left:6px">${esc(C(s.clientId).name)}</span></div>
           <div class="people">${mates.length?mates.map(m=>`<span onclick="openPerson('${m.id}')">${esc(m.name)}</span>`).join(""):`<span style="cursor:default;color:var(--mut)">Works here alone</span>`}</div></div>
           <button class="amt num" style="text-align:right" onclick="editRate('${r.id}')">${money(r.rate)}<small style="color:var(--acc)">per hour · edit</small></button></div>`}).join(""):`<div class="empty">Not linked to a site yet</div>`}</div>
       </div>
@@ -985,7 +1019,7 @@ function sitesPage(){
       ${billing?`<button class="recv" onclick="moneyList('${c.id}')"><span>Received <b class="num">${money(inc)}</b></span><span>${billed-inc>0?`Still owed to you <b class="num" style="color:var(--warn)">${money(billed-inc)}</b>`:"Fully paid"} ›</span></button>`:""}
       ${noRate?`<div class="t2" style="margin-top:8px;color:var(--warn);white-space:normal">${plural(noRate,"site")} with hours ${noRate===1?"has":"have"} no charge rate — tap the site to add it.</div>`:""}
       <div style="margin-top:12px">${ord.slice(0,open?999:4).map(r=>{const s=r.x,ws=[...new Set(DB.rates.filter(q=>q.siteId===s.id).map(q=>q.workerId))];
-        return `<div class="site"><div style="flex:1;min-width:0"><button class="t1" style="text-align:left;max-width:100%" onclick="editSite('${s.id}')">${esc(s.name)}</button>${s.address?`<div class="t2">${esc(s.address)}</div>`:""}
+        return `<div class="site"><div style="flex:1;min-width:0"><button class="t1" style="text-align:left;max-width:100%" onclick="openSite('${s.id}')">${esc(s.name)} ›</button>${s.address?`<div class="t2">${esc(s.address)}</div>`:""}
           <div class="people">${ws.length?ws.map(id=>`<span onclick="openPerson('${id}')">${esc(W(id).name)}</span>`).join(""):`<span style="cursor:default;color:var(--mut)">No one yet</span>`}</div>
           ${r.b!=null?`<div class="t2 num" style="margin-top:6px">${r.h} hrs · in ${money(r.b)} · wages ${money(r.w)}</div><div class="mbar">${r.b>0?`<i class="w" style="width:${Math.min(100,r.w/r.b*100)}%"></i><i class="p" style="width:${Math.max(0,100-r.w/r.b*100)}%"></i>`:""}</div>`:""}</div>
           ${r.b!=null?`<div class="amt num" style="color:${r.p>=0?"var(--ok)":"var(--pay)"}">${money(r.p)}<small>profit</small></div>`:`<div class="amt num">${r.h}<small>hrs</small></div>`}</div>`}).join("")||`<div class="empty">No sites yet</div>`}</div>
@@ -993,6 +1027,58 @@ function sitesPage(){
     </div>`}).join("")}</div>
   ${DB.clients.length?"":`<div class="card empty">No clients yet</div>`}
   <div class="two" style="margin-top:4px"><button class="btn ghost" style="margin-top:0" onclick="openAdd('client')">+ New client</button><button class="btn ghost" style="margin-top:0" onclick="openAdd('site')">+ New site</button></div>`;
+}
+
+/* ============ v4: site detail, worker breakdowns, dashboard ============ */
+function siteStats(x,p){const es=DB.entries.filter(e=>e.siteId===x.id&&inPer(e,p)),work=es.filter(isWork);
+  const h=work.reduce((a,e)=>a+ +e.hours,0),w=es.reduce((a,e)=>a+wage(e),0);
+  let b=null,note="";
+  if(hasBill(x)){if(x.billType==="fixed"){if(p.mode==="month")b=+x.fixed||0;else if(p.mode==="all")b=(+x.fixed||0)*new Set(es.map(e=>e.month)).size;else note="Fixed monthly — see Month view"}else b=h*(+x.charge||0)}
+  return {x,es,h,w,b,p:b==null?null:b-w,note,people:new Set(work.map(e=>e.workerId)).size}}
+function openSite(id){openPerson("s:"+id)}
+const isSiteKey=k=>typeof k==="string"&&k.startsWith("s:");
+function sitePage(key){
+  const id=key.slice(2),x=Sx(id),P=state.sper,st=siteStats(x,P),c=C(x.clientId);
+  const byW={};st.es.forEach(e=>{const r=byW[e.workerId]||(byW[e.workerId]={id:e.workerId,h:0,w:0,days:new Set()});r.h+= +e.hours;r.w+=wage(e);if(e.date)r.days.add(e.date)});
+  const assigned=DB.rates.filter(r=>r.siteId===id);
+  const byD={};st.es.forEach(e=>{const k=e.date||("M"+e.month);(byD[k]=byD[k]||[]).push(e)});
+  const days=Object.keys(byD).sort().reverse();
+  const margin=st.b?Math.round(st.p/st.b*100):null;
+  return `
+  <div style="display:flex;justify-content:space-between;align-items:center"><button class="back" onclick="goBack()">${ICON.back}Back</button><button class="link" style="display:flex;gap:6px;align-items:center;padding:6px 2px 14px" onclick="editSite('${id}')">${ICON.edit}Edit</button></div>
+  <div class="ph"><div class="av" style="border-radius:16px!important">${ICON.sites.replace('width="24" height="24"','width="26" height="26"')}</div><div style="flex:1;min-width:0"><h1>${esc(x.name)}</h1><div class="t2">${esc(c.name)}${x.address?" · "+esc(x.address):""}</div></div></div>
+  <div class="card mcard"><div class="mhead">${perSwitch("site",[["day","Day"],["week","Week"],["month","Month"],["all","All"]])}</div>
+    <div class="kpis">
+      <div class="kpi"><span>Money in</span><b class="num">${st.b==null?"–":money(st.b)}</b></div>
+      <div class="kpi"><span>Wages</span><b class="num">${money(st.w)}</b></div>
+      <div class="kpi"><span>${st.p!=null&&st.p<0?"Loss":"Profit"}</span><b class="num" style="color:${st.p==null?"inherit":st.p<0?"var(--pay)":"var(--ok)"}">${st.p==null?"–":money(st.p)}</b>${margin!=null?`<em class="fl">${margin}% margin</em>`:""}</div>
+      <div class="kpi"><span>Hours</span><b class="num">${st.h.toLocaleString()}</b><em class="fl">${plural(st.people,"worker")}</em></div>
+    </div>
+    ${st.b?`<div style="padding:0 14px 6px"><div class="mbar" style="height:10px;border-radius:5px">${st.w>0?`<i class="w" style="width:${Math.min(100,st.w/st.b*100)}%;background:var(--pay)"></i>`:""}${st.p>0?`<i class="p" style="width:${st.p/st.b*100}%"></i>`:""}</div><div class="t2" style="display:flex;justify-content:space-between;margin-top:6px"><span>Wages ${Math.round(Math.min(100,st.w/st.b*100))}%</span><span>Profit ${Math.max(0,margin)}%</span></div></div>`:""}
+    <div class="mfoot">${!hasBill(x)?`<button class="link" style="padding:0;color:var(--warn)" onclick="editSite('${id}')">Set how much comes in from this site →</button>`:st.note?st.note:x.billType==="fixed"?`Client pays ${money(x.fixed)} a month`:`Client pays ${money(x.charge)}/hr · you pay ${assigned.length?assigned.map(r=>money(r.rate)).filter((v,i,a)=>a.indexOf(v)===i).join(" / "):"–"}/hr`}</div>
+  </div>
+  <div class="cols">
+    <div>
+      <div class="sec"><h2>Who works here</h2><button class="link" onclick="openAdd('worker')">+ Add</button></div>
+      <div class="list">${assigned.length?assigned.map(r=>{const v=byW[r.workerId]||{h:0,w:0,days:new Set()};return `<div class="row tap" onclick="openPerson('${r.workerId}')">${av(W(r.workerId).name)}<div class="main"><div class="t1">${esc(W(r.workerId).name)}</div><div class="t2">${money(r.rate)}/hr · ${v.h} hrs${v.days.size?` · ${plural(v.days.size,"day")}`:""}</div></div><div class="amt num">${money(v.w)}<small>earned</small></div>${ICON.chev}</div>`}).join(""):`<div class="empty">No one assigned yet</div>`}</div>
+    </div>
+    <div>
+      <div class="sec"><h2>Day by day</h2></div>
+      <div class="list">${days.length?days.slice(0,state.allHist?999:14).map(k=>{const es=byD[k];return `<div class="row"><div class="main"><div class="t1">${k.startsWith("M")?mLabel(k.slice(1))+" · whole month":dayLabel(k)}</div><div class="t2">${es.map(e=>esc(W(e.workerId).name.split(" ")[0])+" "+e.hours+"h").join(" · ")}</div></div><div class="amt num">${es.reduce((a,e)=>a+ +e.hours,0)}<small>hrs</small></div></div>`}).join("")+(days.length>14&&!state.allHist?`<div class="row tap" style="justify-content:center;color:var(--ink);font-weight:650" onclick="state.allHist=true;render()">Show all ${days.length}</div>`:""):`<div class="empty">No hours for ${perLabel(P).toLowerCase()}</div>`}</div>
+    </div>
+  </div>`;
+}
+/* worker: by-site + daily earnings chart */
+function workerExtras(id,es,P){
+  const bs={};es.forEach(e=>{const r=bs[e.siteId]||(bs[e.siteId]={id:e.siteId,h:0,w:0,d:new Set()});r.h+= +e.hours;r.w+=wage(e);if(e.date)r.d.add(e.date)});
+  const rows=Object.values(bs).sort((a,b)=>b.w-a.w);
+  let chart="";
+  if(P.mode==="week"||P.mode==="month"){
+    const ds=[];if(P.mode==="week"){const ws=weekStart(P.d);for(let i=0;i<7;i++)ds.push(addD(ws,i))}else{const m=P.d.slice(0,7);let d=m+"-01";while(d.slice(0,7)===m){ds.push(d);d=addD(d,1)}}
+    const v=ds.map(d=>es.filter(e=>e.date===d).reduce((a,e)=>a+wage(e),0)),mx=Math.max(1,...v),best=Math.max(...v);
+    if(best>0)chart=`<div class="sec"><h2>Earned each day</h2><span class="h">best ${money(best)}</span></div><div class="card" style="padding:16px 14px 10px"><div class="dchart">${ds.map((d,i)=>`<div title="${dayLabel(d)} · ${money(v[i])}"><i style="height:${v[i]?Math.max(6,v[i]/mx*100):0}%" class="${d===todayD()?"now":""}"></i><span>${P.mode==="week"?DOW[parseD(d).getDay()].slice(0,1):(parseD(d).getDate()%5===1||ds.length<10?parseD(d).getDate():"")}</span></div>`).join("")}</div></div>`;
+  }
+  return `${chart}${rows.length?`<div class="sec"><h2>By site</h2><span class="h">${perLabel(P)}</span></div><div class="list">${rows.map(r=>`<div class="row tap" onclick="openSite('${r.id}')"><div class="main"><div class="t1">${esc(Sx(r.id).name)}</div><div class="t2">${r.h} hrs${r.d.size?" · "+plural(r.d.size,"day"):""} · ${esc(C(Sx(r.id).clientId).name)}</div></div><div class="amt num">${money(r.w)}</div>${ICON.chev}</div>`).join("")}</div>`:""}`;
 }
 
 /* ---------- shared ---------- */
