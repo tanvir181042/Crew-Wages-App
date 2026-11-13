@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#F5F6FA" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0B0D14" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" id="tcl" content="#F5F6FA" media="(prefers-color-scheme: light)">
+<meta name="theme-color" id="tcd" content="#0B0D14" media="(prefers-color-scheme: dark)">
 <title>Crew Wages</title>
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-180.png">
@@ -151,7 +151,7 @@ html.ios-app .toast{bottom:124px}
 .pghost .gd{position:absolute;inset:0;background:#000;opacity:0}
 
 /* sheet */
-.scrim{position:fixed;inset:0;background:linear-gradient(to bottom,rgba(14,19,37,0) 0,rgba(14,19,37,0) env(safe-area-inset-top),rgba(14,19,37,.42) calc(env(safe-area-inset-top) + 36px));opacity:0;visibility:hidden;pointer-events:none;transition:opacity .22s,visibility 0s .22s;z-index:40}
+.scrim{position:fixed;inset:0;background:rgba(14,19,37,.42);opacity:0;visibility:hidden;pointer-events:none;transition:opacity .22s,visibility 0s .22s;z-index:40}
 .scrim.on{opacity:1;visibility:visible;pointer-events:auto;transition:opacity .22s}
 .sheet{position:fixed;left:0;right:0;bottom:var(--kb,0px);overscroll-behavior:contain;-webkit-overflow-scrolling:touch;background:var(--card);border-radius:26px 26px 0 0;max-height:calc(var(--vvh,100vh) - env(safe-area-inset-top) - 24px);overflow:auto;transform:translateY(105%);visibility:hidden;transition:transform .28s cubic-bezier(.2,.8,.2,1),visibility 0s .28s;z-index:50;padding:10px 20px calc(22px + env(safe-area-inset-bottom))}
 .sheet.on{transform:none;visibility:visible;transition:transform .28s cubic-bezier(.2,.8,.2,1)}
@@ -257,7 +257,7 @@ textarea.inp{height:76px;padding:12px 15px;resize:none}
 <script>
 function hideToast(){const t=document.getElementById("toast");if(t)t.classList.remove("on")}
 if(window.navigator.standalone===true||matchMedia("(display-mode: standalone)").matches)document.documentElement.classList.add("ios-app");
-const APP_VERSION="2.6";
+const APP_VERSION="2.7";
 /* ============ data layer ============ */
 const TABLES=["clients","sites","workers","rates","entries","income"];
 const EMPTY=()=>({clients:[],sites:[],workers:[],rates:[],entries:[],income:[]});
@@ -642,7 +642,8 @@ function openSheet(html,onClose){$("#sheet").innerHTML=`<div class="grab"></div>
 function closeSheet(){document.body.classList.remove("sheet-open");const sh=$("#sheet");if(sh.style.transform){sh.style.transition="transform .25s";sh.style.transform="translateY(110%)";setTimeout(()=>{sh.style.transition="";sh.style.transform=""},300)}sh.classList.remove("on");$("#scrim").classList.remove("on");if(sheetClose)sheetClose()}
 $("#scrim").onclick=closeSheet;
 document.addEventListener("touchstart",()=>{},{passive:true});
-(function(){const sh=document.getElementById("sheet");const chk=()=>{sh.classList.toggle("scrolly",sh.scrollHeight>sh.clientHeight+4);document.body.classList.toggle("sheet-open",sh.classList.contains("on"))};
+const tint={on:false};
+(function(){const sh=document.getElementById("sheet");const chk=()=>{sh.classList.toggle("scrolly",sh.scrollHeight>sh.clientHeight+4);const on=sh.classList.contains("on");document.body.classList.toggle("sheet-open",on);if(on!==tint.on){tint.on=on;const l=document.getElementById("tcl"),d=document.getElementById("tcd");if(l)l.content=on?"#9497A1":"#F5F6FA";if(d)d.content=on?"#0C101B":"#0B0D14"}};
   new MutationObserver(chk).observe(sh,{attributes:true,attributeFilter:["class"]});
   /* keyboard: keep the panel above it */
   const vv=window.visualViewport;const fit=()=>{if(!vv)return;const kb=Math.max(0,window.innerHeight-vv.height-vv.offsetTop);document.documentElement.style.setProperty("--kb",kb+"px");document.documentElement.style.setProperty("--vvh",vv.height+"px");chk()};
