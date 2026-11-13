@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" id="tcl" content="#F3F1EC" media="(prefers-color-scheme: light)">
-<meta name="theme-color" id="tcd" content="#0B0D14" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" id="tcl" content="#FFFFFF" media="(prefers-color-scheme: light)">
+<meta name="theme-color" id="tcd" content="#000000" media="(prefers-color-scheme: dark)">
 <title>Crew Wages</title>
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-180.png">
@@ -440,6 +440,20 @@ html,body{background:var(--bg)}
 .box.on{background:var(--ink);border-color:var(--ink)}
 .preview{border-radius:22px;background:var(--lime)}
 .preview .pl,.preview .pv{color:#111214}
+
+/* white background variant */
+:root{--bg:#FFFFFF;--card:#F5F5F3;--soft:#ECECE8;--soft2:#FFFFFF;--line:#E6E6E1}
+@media (prefers-color-scheme:dark){:root{--bg:#000000;--card:#151518;--soft:#222226;--soft2:#1B1B1F;--line:#26262B}}
+.sheet{background:var(--bg)}
+.sheet .inp{background:var(--card)}
+.list .row{border-top-color:#E9E9E4}
+@media (prefers-color-scheme:dark){.list .row{border-top-color:#232327}}
+.mcard .kpi{box-shadow:none}
+#mini{background:rgba(255,255,255,.88)!important}
+@media (prefers-color-scheme:dark){#mini{background:rgba(0,0,0,.85)!important}}
+.pseg button.on{box-shadow:none}
+.month{background:var(--card)}
+.tdin.inp{background:var(--bg)}
 </style>
 </head>
 <body>
