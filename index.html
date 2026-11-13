@@ -139,6 +139,7 @@ input[type=date].inp{-webkit-appearance:none;appearance:none;display:flex;align-
 @media (min-width:900px){.sec-first{margin-top:4px}}
 .sec h2{font-size:18px;font-weight:720;letter-spacing:-.01em}
 .link{color:var(--acc);font-weight:600;font-size:14.5px;padding:8px 0}
+.subback{display:flex;align-items:center;min-height:44px;margin:-6px 0 6px;color:var(--ink);font-size:15px;font-weight:650}
 
 .hero{background:linear-gradient(150deg,#1B1F3B 0%,#0E1325 70%);color:#fff;border-radius:24px;padding:22px;position:relative;overflow:hidden}
 .hero:after{content:"";position:absolute;right:-60px;top:-80px;width:240px;height:240px;border-radius:50%;background:radial-gradient(circle,rgba(99,102,241,.55),transparent 70%)}
@@ -585,7 +586,7 @@ textarea.inp{height:96px!important;padding:14px 16px!important}
 <script>
 function hideToast(){const t=document.getElementById("toast");if(t)t.classList.remove("on")}
 if(window.navigator.standalone===true||matchMedia("(display-mode: standalone)").matches)document.documentElement.classList.add("ios-app");
-const APP_VERSION="3.8";
+const APP_VERSION="3.9";
 /* ============ data layer ============ */
 const TABLES=["clients","sites","workers","rates","entries","income"];
 const EMPTY=()=>({clients:[],sites:[],workers:[],rates:[],entries:[],income:[]});
@@ -1267,7 +1268,11 @@ function toast(msg,undo){const t=$("#toast");t.innerHTML=`<span>${msg}</span>`+(
 
 /* ---- Add ---- */
 let F={};
-function openAdd(kind="hours",ref=null){hideToast();
+let FBACK=[];
+const SUBNAME={hours:"Hours",worker:"Worker",site:"Site",client:"Client",money:"Money in"};
+function goSub(kind,preset={}){FBACK.push({...F});F={kind,name:"",err:"",clientId:null,siteId:null,workerId:null,rate:"",billType:undefined,billAmt:"",address:"",amount:"",q:"",month:F.month,mode:F.mode,date:F.date,wk:F.wk,days:F.days,...preset};drawAdd();setTimeout(()=>{const f=$("#sheet .fbody input:not([disabled])");if(f&&!f.value)f.focus()},60)}
+function backSub(sel={}){const prev=FBACK.pop();F={...prev,...sel,err:""};drawAdd()}
+function openAdd(kind="hours",ref=null){hideToast();FBACK=[];
   const lastMode=(()=>{try{return localStorage.getItem("cw_hmode")||"day"}catch(e){return "day"}})();
   F={kind,mode:lastMode,date:todayD(),wk:weekStart(todayD()),days:["","","","","","",""],month:state.month||nowM(),workerId:null,siteId:null,hours:"",paid:false,notes:"",name:"",rate:"",clientId:null,amount:"",q:""};
   if(kind==="hours"&&ref){F.workerId=ref;const rs=DB.rates.filter(r=>r.workerId===ref);if(rs.length===1)F.siteId=rs[0].siteId;F.q=W(ref).name}
@@ -1286,7 +1291,7 @@ function drawAdd(){
   if(F.kind==="money") body=formMoney();
   const sh=$("#sheet"),order=segs.map(x=>x[0]),prevKind=drawAdd.last,changed=sh.classList.contains("on")&&prevKind&&prevKind!==F.kind;
   const h0=sh.offsetHeight,oldOn=sh.querySelector(".seg button.on"),segEl=sh.querySelector(".seg"),from=oldOn&&segEl?{l:oldOn.offsetLeft,w:oldOn.offsetWidth}:null,sl=segEl?segEl.scrollLeft:0;
-  sh.innerHTML=`<div class="grab"></div><h3>Add</h3><div class="seg"><i class="ind"></i>${segs.map(([k,l])=>`<button class="${F.kind===k?"on":""}" onclick="F.kind='${k}';F.err='';drawAdd()">${l}</button>`).join("")}</div><div class="fbody">${body}</div>`;
+  sh.innerHTML=`<div class="grab"></div><h3>Add</h3><div class="seg"><i class="ind"></i>${segs.map(([k,l])=>`<button class="${F.kind===k?"on":""}" onclick="FBACK=[];F.kind='${k}';F.err='';drawAdd()">${l}</button>`).join("")}</div><div class="fbody">${FBACK.length?`<button class="link subback" onclick="backSub()">‹ Back to ${SUBNAME[FBACK[FBACK.length-1].kind]}</button>`:""}${body}</div>`;
   drawAdd.last=F.kind;
   const seg=sh.querySelector(".seg"),on=seg.querySelector("button.on"),ind=seg.querySelector(".ind");seg.scrollLeft=sl;
   const place=(x)=>{ind.style.left=x.l+"px";ind.style.width=x.w+"px"};
@@ -1329,7 +1334,7 @@ function formHours(){
   return `${leaveOn()?`<div class="pseg" style="margin:0 0 10px">${Object.entries(KIND).map(([k,l])=>`<button class="${(F.hkind||"work")===k?"on":""}" onclick="F.hkind='${k}';drawAdd()">${l}</button>`).join("")}</div>`:""}<div class="pseg" style="margin:0 0 16px">${[["day","One day"],["week","A week"],["month","Whole month"]].map(([k,l])=>`<button class="${F.mode===k?"on":""}" onclick="F.mode='${k}';try{localStorage.setItem('cw_hmode','${k}')}catch(e){};drawAdd()">${l}</button>`).join("")}</div>
   ${when}
   <div class="f"><label>Who worked?</label><input class="inp" id="wq" placeholder="Start typing a name" autocapitalize="words" autocorrect="off" spellcheck="false" value="${esc(F.q)}" autocomplete="off" oninput="F.q=this.value;F.workerId=null;F.siteId=null;sugWorkers()" onfocus="sugWorkers()"><div id="sug"></div></div>
-  ${F.workerId?`<div class="f"><label>Which site?</label><div class="opts">${rs.length?rs.map(r=>`<button class="opt ${F.siteId===r.siteId?"on":""}" onclick="F.siteId='${r.siteId}';drawAdd()">${esc(Sx(r.siteId).name)}<small>${money(r.rate)}/hr</small></button>`).join(""):`<span class="t2">No site yet — <button class="link" onclick="openAdd('worker','${F.workerId}')">add one</button></span>`}</div></div>`:""}
+  ${F.workerId?`<div class="f"><label>Which site?</label><div class="opts">${rs.length?rs.map(r=>`<button class="opt ${F.siteId===r.siteId?"on":""}" onclick="F.siteId='${r.siteId}';drawAdd()">${esc(Sx(r.siteId).name)}<small>${money(r.rate)}/hr</small></button>`).join(""):`<span class="t2">No site yet — <button class="link" onclick="goSub('worker',{workerId:'${F.workerId}',name:W('${F.workerId}').name})">add one</button></span>`}</div></div>`:""}
   ${hoursField}
   <div class="f"><label>Note <span style="color:var(--mut);font-weight:500">(optional)</span></label><input class="inp" placeholder="e.g. Public holiday" value="${esc(F.notes)}" oninput="F.notes=this.value"></div>
   <div class="preview" id="pv"><div><div class="pl">${F.siteId?`${h||0} hrs × ${money(rate)}`:"Pay"}</div><div class="pv num">${money(h*rate)}</div></div><span class="tag ${F.paid?"ok":"pay"}">${F.paid?"Paid":"Goes to To pay"}</span></div>
@@ -1345,7 +1350,7 @@ function updPreview(){const h=hoursTotal();const wy=$("#why");if(wy)wy.innerHTML
 function sugWorkers(){
   const q=F.q.trim().toLowerCase(); const box=$("#sug"); if(!box)return;
   let ws=DB.workers.filter(w=>w.active!==false&&(!q||w.name.toLowerCase().includes(q))).slice(0,6);
-  if(!ws.length){box.innerHTML=`<div class="sug"><button onclick="F.kind='worker';F.name=F.q;drawAdd()"><div class="main"><div class="t1">+ Add “${esc(F.q)}” as a new worker</div></div></button></div>`;return}
+  if(!ws.length){box.innerHTML=`<div class="sug"><button onmousedown="event.preventDefault()" onclick="goSub('worker',{name:F.q.trim()})"><div class="main"><div class="t1">+ Add “${esc(F.q)}” as a new worker</div></div></button></div>`;return}
   box.innerHTML=`<div class="sug">${ws.map(w=>`<button onmousedown="event.preventDefault()" onclick="pickW('${w.id}')">${av(w.name)}<div class="main"><div class="t1">${esc(w.name)}</div><div class="t2">${DB.rates.filter(r=>r.workerId===w.id).map(r=>esc(Sx(r.siteId).name)).join(", ")}</div></div></button>`).join("")}</div>`;
 }
 function pickW(id){F.workerId=id;F.q=W(id).name;const rs=DB.rates.filter(r=>r.workerId===id);F.siteId=rs.length===1?rs[0].siteId:null;drawAdd();setTimeout(()=>{if(F.siteId)$("#hrs")?.focus()},50)}
@@ -1364,7 +1369,7 @@ async function saveHours(){
 function formWorker(){
   const existing=F.workerId?W(F.workerId):null;
   return `<div class="f"><label>Name</label><input class="inp" placeholder="Full name" autocapitalize="words" autocomplete="off" enterkeyhint="next" value="${esc(F.name)}" oninput="F.name=this.value" ${existing?"disabled":""}></div>
-  <div class="f"><label>Works at</label><div class="opts">${DB.sites.length?"":`<span class="t2">No sites yet — <button class="link" onclick="F.kind='site';F.name='';drawAdd()">add a site first</button></span>`}${DB.sites.map(s=>`<button class="opt ${F.siteId===s.id?"on":""}" onclick="F.siteId='${s.id}';drawAdd()">${esc(s.name)}</button>`).join("")}</div></div>
+  <div class="f"><label>Works at</label><div class="opts">${DB.sites.map(s=>`<button class="opt ${F.siteId===s.id?"on":""}" onclick="F.siteId='${s.id}';drawAdd()">${esc(s.name)}</button>`).join("")}<button class="opt" onclick="goSub('site')">+ New site</button></div></div>
   <div class="f"><label>Pay rate ($ per hour)</label><input class="inp num" inputmode="decimal" placeholder="e.g. 25" value="${esc(F.rate)}" oninput="F.rate=this.value"></div>
   <div class="hint">Works at more than one site? Save, then add the next site from their page.</div>
   ${F.err?`<div class="err">${F.err}</div>`:""}
@@ -1377,11 +1382,13 @@ async function saveWorker(){
   if(!w){w={id:uid(),name,active:true};await put("workers",w)}
   const ex=DB.rates.find(r=>r.workerId===w.id&&r.siteId===F.siteId);
   await put("rates",{id:ex?ex.id:uid(),workerId:w.id,siteId:F.siteId,rate});
-  closeSheet(); render(); toast(`✓ ${esc(w.name)} · ${esc(Sx(F.siteId).name)} · ${money(rate)}/hr`);
+  const msg=`✓ ${esc(w.name)} · ${esc(Sx(F.siteId).name)} · ${money(rate)}/hr`;
+  if(FBACK.length&&FBACK[FBACK.length-1].kind==="hours"){const sid=F.siteId;backSub({workerId:w.id,q:w.name,siteId:sid});render();toast(msg);setTimeout(()=>$("#hrs")?.focus(),60);return}
+  closeSheet(); render(); toast(msg);
 }
 function formSite(){
   return `<div class="f"><label>Site name</label><input class="inp" placeholder="e.g. Parramatta" autocapitalize="words" autocomplete="off" value="${esc(F.name)}" oninput="F.name=this.value"></div>
-  <div class="f"><label>Client</label><div class="opts">${DB.clients.map(c=>`<button class="opt ${F.clientId===c.id?"on":""}" onclick="F.clientId='${c.id}';drawAdd()">${esc(c.name)}</button>`).join("")}<button class="opt" onclick="F.kind='client';drawAdd()">+ New client</button></div></div>
+  <div class="f"><label>Client</label><div class="opts">${DB.clients.map(c=>`<button class="opt ${F.clientId===c.id?"on":""}" onclick="F.clientId='${c.id}';drawAdd()">${esc(c.name)}</button>`).join("")}<button class="opt" onclick="goSub('client')">+ New client</button></div></div>
   ${billFields(F,{obj:"F",fn:"drawAdd()"})}
   ${F.err?`<div class="err">${F.err}</div>`:""}<button class="btn" onclick="saveSite()">Save site</button>`;
 }
@@ -1389,7 +1396,9 @@ async function saveSite(){
   const name=F.name.trim(); if(!name)return F.err="Type a site name",drawAdd(); if(!F.clientId)return F.err="Pick a client",drawAdd();
   if(DB.sites.some(s=>s.name.toLowerCase()===name.toLowerCase()))return F.err="That site already exists",drawAdd();
   const amt=parseFloat(F.billAmt)||0,bt=F.billType||"hourly";
-  await put("sites",{id:uid(),name,clientId:F.clientId,address:(F.address||"").trim(),billType:bt,charge:bt==="hourly"?amt:0,fixed:bt==="fixed"?amt:0}); closeSheet(); render(); toast(`✓ Site added · ${esc(name)}`);
+  const sid=uid();await put("sites",{id:sid,name,clientId:F.clientId,address:(F.address||"").trim(),billType:bt,charge:bt==="hourly"?amt:0,fixed:bt==="fixed"?amt:0});
+  if(FBACK.length){backSub({siteId:sid});render();toast(`✓ Site added · ${esc(name)}`);return}
+  closeSheet(); render(); toast(`✓ Site added · ${esc(name)}`);
 }
 function formClient(){
   return `<div class="f"><label>Client name</label><input class="inp" placeholder="e.g. Bupa" autocapitalize="words" autocomplete="off" value="${esc(F.name)}" oninput="F.name=this.value"></div>
@@ -1398,10 +1407,12 @@ function formClient(){
 async function saveClient(){
   const name=F.name.trim(); if(!name)return F.err="Type a name",drawAdd();
   if(DB.clients.some(c=>c.name.toLowerCase()===name.toLowerCase()))return F.err="That client already exists",drawAdd();
-  const c={id:uid(),name}; await put("clients",c); F={...F,kind:"site",clientId:c.id,name:"",err:""}; drawAdd(); toast(`✓ Client added · ${esc(name)} — now add a site`);
+  const c={id:uid(),name}; await put("clients",c);
+  if(FBACK.length){backSub({clientId:c.id});render();toast(`✓ Client added · ${esc(name)}`);return}
+  F={...F,kind:"site",clientId:c.id,name:"",err:"",billAmt:"",address:""}; drawAdd(); toast(`✓ Client added · ${esc(name)} — now add a site`);
 }
 function formMoney(){
-  return `${monthField()}<div class="f"><label>From client</label><div class="opts">${DB.clients.length?"":`<span class="t2">No clients yet — <button class="link" onclick="F.kind='client';F.name='';drawAdd()">add a client first</button></span>`}${DB.clients.map(c=>`<button class="opt ${F.clientId===c.id?"on":""}" onclick="F.clientId='${c.id}';drawAdd()">${esc(c.name)}</button>`).join("")}</div></div>
+  return `${monthField()}<div class="f"><label>From client</label><div class="opts">${DB.clients.map(c=>`<button class="opt ${F.clientId===c.id?"on":""}" onclick="F.clientId='${c.id}';drawAdd()">${esc(c.name)}</button>`).join("")}<button class="opt" onclick="goSub('client')">+ New client</button></div></div>
   <div class="f"><label>Amount ($)</label><input class="inp num" inputmode="decimal" placeholder="0" value="${esc(F.amount)}" oninput="F.amount=this.value"></div>
   ${F.err?`<div class="err">${F.err}</div>`:""}<button class="btn" onclick="saveMoney()">Save money in</button>`;
 }
