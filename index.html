@@ -127,13 +127,28 @@ input,textarea{-webkit-user-select:text;user-select:text}
 .grp{font-size:13px;font-weight:650;color:var(--mut);padding:16px 6px 8px}
 
 /* bottom nav */
-.nav{position:fixed;left:0;right:0;bottom:0;background:var(--nav);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-top:1px solid var(--line);display:flex;justify-content:space-around;align-items:center;padding:10px 8px calc(max(14px, env(safe-area-inset-bottom)) + 6px);z-index:20}
-html.ios-app .nav{padding-bottom:calc(max(34px, env(safe-area-inset-bottom)) + 14px)}
+.nav{position:fixed;left:14px;right:14px;bottom:calc(max(14px, env(safe-area-inset-bottom)) + 2px);display:flex;gap:10px;align-items:center;z-index:20;max-width:560px;margin:0 auto;pointer-events:none}
+html.ios-app .nav{bottom:max(28px, env(safe-area-inset-bottom))}
 html.ios-app .app{padding-bottom:150px}
-html.ios-app .toast{bottom:130px}
-.nav button{min-height:50px;justify-content:center;display:flex;flex-direction:column;align-items:center;gap:5px;font-size:11.5px;font-weight:600;color:var(--mut);width:64px}
-.nav button.on{color:var(--ink)}
-.nav .fab{width:56px;height:56px;border-radius:18px;background:var(--acc);color:#fff;display:grid;place-items:center;margin-top:-22px;box-shadow:0 10px 22px rgba(79,70,229,.4)}
+html.ios-app .toast{bottom:124px}
+.glass{background:rgba(255,255,255,.66);-webkit-backdrop-filter:blur(24px) saturate(190%);backdrop-filter:blur(24px) saturate(190%);border:.5px solid rgba(255,255,255,.75);box-shadow:0 10px 30px rgba(14,19,37,.14),0 1px 2px rgba(14,19,37,.06),inset 0 1px 0 rgba(255,255,255,.7)}
+.nav .tabsg{flex:1;height:64px;border-radius:32px;display:flex;padding:5px;pointer-events:auto}
+.nav .tabsg button{flex:1;border-radius:27px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-size:10.5px;font-weight:600;color:var(--ink2);transition:background .25s,color .25s}
+.nav .tabsg button svg{width:24px;height:24px}
+.nav .tabsg button.on{background:rgba(14,19,37,.07);color:var(--acc)}
+.nav .tabsg button:active{transform:scale(.96)}
+.nav .fabw{width:64px;height:64px;border-radius:50%;background:var(--acc);color:#fff;display:grid;place-items:center;flex:none;pointer-events:auto;box-shadow:0 10px 26px rgba(79,70,229,.42),inset 0 1px 0 rgba(255,255,255,.35);transition:transform .2s}
+.nav .fabw:active{transform:scale(.92)}
+/* compact header that fades in on scroll */
+#mini{position:fixed;top:0;left:0;right:0;height:calc(env(safe-area-inset-top) + 46px);padding-top:env(safe-area-inset-top);display:flex;align-items:center;justify-content:center;z-index:18;opacity:0;pointer-events:none;transition:opacity .2s;border-bottom:.5px solid rgba(14,19,37,.08);border-left:0;border-right:0;border-top:0;border-radius:0;box-shadow:none}
+#mini.on{opacity:1;pointer-events:auto}
+#mini b{font-size:17px;font-weight:650;letter-spacing:-.01em;max-width:60%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#mini .mback{position:absolute;left:6px;bottom:0;height:46px;display:flex;align-items:center;gap:2px;color:var(--acc);font-weight:600;font-size:16px;padding:0 10px}
+@media (min-width:900px){#mini{display:none}}
+/* page transitions */
+.app{position:relative;background:var(--bg);min-height:100vh}
+.ghost{position:fixed;inset:0;overflow:hidden;background:var(--bg);pointer-events:none}
+.ghost .gd{position:absolute;inset:0;background:#000;opacity:0}
 
 /* sheet */
 .scrim{position:fixed;inset:0;top:env(safe-area-inset-top);background:rgba(14,19,37,.42);opacity:0;visibility:hidden;pointer-events:none;transition:opacity .22s,visibility 0s .22s;z-index:40}
@@ -205,6 +220,9 @@ textarea.inp{height:76px;padding:12px 15px;resize:none}
 .demo{font-size:12.5px;color:var(--mut);text-align:center;margin-top:28px}
 
 @media (prefers-color-scheme:dark){
+  .glass{background:rgba(36,38,52,.6);border-color:rgba(255,255,255,.1);box-shadow:0 10px 30px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.08)}
+  .nav .tabsg button.on{background:rgba(255,255,255,.1)}
+  #mini{border-bottom-color:rgba(255,255,255,.08)}
   :root{--bg:#0B0D14;--card:#151824;--ink:#F2F4FA;--ink2:#C9CDDB;--mut:#8C92A8;--line:#252A3A;--soft:#1D2131;--soft2:#191C29;
     --acc:#7C83FF;--acc-s:#23264A;--pay:#FF6369;--pay-s:#3A1D22;--ok:#3DD68C;--ok-s:#15301F;--warn:#F5B544;--warn-s:#33270F;
     --nav:rgba(21,24,36,.9);--field:#11141E;--pop:#1B1F2E;--hl:#5B4A12;--sh:0 1px 2px rgba(0,0,0,.3),0 8px 24px rgba(0,0,0,.25)}
@@ -231,6 +249,7 @@ textarea.inp{height:76px;padding:12px 15px;resize:none}
 <body>
 <div class="app" id="app"></div>
 <nav class="nav" id="nav"></nav>
+<div id="mini" class="glass"></div>
 <div class="scrim" id="scrim"></div>
 <div class="sheet" id="sheet"></div>
 <div class="toast" id="toast"></div>
@@ -238,7 +257,7 @@ textarea.inp{height:76px;padding:12px 15px;resize:none}
 <script>
 function hideToast(){const t=document.getElementById("toast");if(t)t.classList.remove("on")}
 if(window.navigator.standalone===true||matchMedia("(display-mode: standalone)").matches)document.documentElement.classList.add("ios-app");
-const APP_VERSION="2.3";
+const APP_VERSION="2.4";
 /* ============ data layer ============ */
 const TABLES=["clients","sites","workers","rates","entries","income"];
 const EMPTY=()=>({clients:[],sites:[],workers:[],rates:[],entries:[],income:[]});
@@ -404,11 +423,17 @@ function problems(){
 }
 
 /* ============ state & router ============ */
-let state={tab:"home",month:null,person:null,q:"",filter:"all",siteFocus:null};
-function go(tab,extra={}){hideToast();state={...state,tab,person:null,...extra};render();window.scrollTo({top:0,behavior:"instant"})}
+let state={tab:"home",month:null,person:null,pstack:[],q:"",filter:"all",siteFocus:null};
+const scrolls=[];let navAnim=false;
+function go(tab,extra={}){hideToast();state={...state,tab,person:null,pstack:[],...extra};scrolls.length=0;render();window.scrollTo({top:0,behavior:"instant"})}
 
 function render(){
-  const app=$("#app");
+  $("#app").innerHTML=buildApp();
+  $("#nav").innerHTML=`<div class="tabsg glass">${[["home","Home",ICON.home],["people","People",ICON.people],["sites","Clients",ICON.sites],["more","More",ICON.more]].map(navBtn).join("")}</div><button class="fabw" onclick="openAdd()" aria-label="Add">${ICON.plus}</button>`;
+  const si=$("#q"); if(si&&state.focusSearch){si.focus();si.setSelectionRange(si.value.length,si.value.length)}
+  miniUpdate(true);
+}
+function buildApp(){
   const titles={home:"Overview",people:"People",sites:"Clients",more:"More"};
   const showMonth=(state.tab==="home"||state.tab==="sites")&&!state.person&&DB.workers.length;
   const bare=state.person||(state.tab==="home"&&!DB.workers.length);
@@ -427,13 +452,49 @@ function render(){
   else if(state.tab==="people") body=peoplePage();
   else if(state.tab==="sites") body=sitesPage();
   else if(state.tab==="more") body=morePage();
-  app.innerHTML=top+body;
-  $("#nav").innerHTML=[["home","Home",ICON.home],["people","People",ICON.people]].map(navBtn).join("")+
-    `<button onclick="openAdd()" aria-label="Add"><div class="fab">${ICON.plus}</div></button>`+
-    [["sites","Clients",ICON.sites],["more","More",ICON.more]].map(navBtn).join("");
-  const si=$("#q"); if(si&&state.focusSearch){si.focus();si.setSelectionRange(si.value.length,si.value.length)}
+  return top+body;
 }
-const navBtn=([k,l,i])=>`<button class="${state.tab===k&&!state.person?"on":""}" onclick="go('${k}')">${i}${l}</button>`;
+const TITLES={home:"Overview",people:"People",sites:"Clients",more:"More"};
+function miniUpdate(content){const m=$("#mini");if(!m)return;
+  if(content)m.innerHTML=(state.person?`<button class="mback" onclick="goBack()">${ICON.back}Back</button>`:"")+`<b>${esc(state.person?W(state.person).name:(DB.workers.length||state.tab!=="home"?TITLES[state.tab]:""))}</b>`;
+  const th=state.person?96:(DB.workers.length||state.tab!=="home"?44:9999);m.classList.toggle("on",window.scrollY>th)}
+window.addEventListener("scroll",()=>miniUpdate(false),{passive:true});
+const EASE="cubic-bezier(.32,.72,0,1)",RM=matchMedia("(prefers-reduced-motion: reduce)").matches;
+function slide(dir,change,toY){
+  if(navAnim)return;hideToast();
+  if(RM||!document.body.animate){change();window.scrollTo(0,toY||0);return}
+  navAnim=true;const app=$("#app"),y=window.scrollY;
+  const g=document.createElement("div");g.className="ghost";g.innerHTML=`<div class="app" style="margin-top:${-y}px">${app.innerHTML}</div><div class="gd"></div>`;
+  g.style.zIndex=dir==="push"?"1":"15";app.style.zIndex=dir==="push"?"10":"1";document.body.appendChild(g);
+  change();window.scrollTo(0,toY||0);
+  const o={duration:dir==="push"?440:380,easing:EASE,fill:"forwards"};
+  if(dir==="push"){app.style.boxShadow="-12px 0 30px rgba(0,0,0,.12)";
+    app.animate([{transform:"translateX(100%)"},{transform:"translateX(0)"}],o);
+    g.animate([{transform:"translateX(0)"},{transform:"translateX(-28%)"}],o);g.querySelector(".gd").animate([{opacity:0},{opacity:.12}],o);
+  }else{g.style.boxShadow="-12px 0 30px rgba(0,0,0,.12)";
+    g.animate([{transform:"translateX(0)"},{transform:"translateX(100%)"}],o);
+    const a=app.animate([{transform:"translateX(-28%)"},{transform:"translateX(0)"}],o);
+  }
+  setTimeout(()=>{g.remove();app.getAnimations().forEach(a=>a.cancel());app.style.boxShadow="";app.style.zIndex="";navAnim=false},o.duration+30);
+}
+function openPerson(id){if(navAnim)return;scrolls.push(window.scrollY);slide("push",()=>{state.pstack.push(id);state.person=id;state.focusSearch=false;render()},0)}
+function goBack(){if(navAnim||!state.person)return;const y=scrolls.pop()||0;slide("pop",()=>{state.pstack.pop();state.person=state.pstack[state.pstack.length-1]||null;render()},y)}
+/* swipe from the left edge to go back */
+(function(){let x0=null,y0=0,dx=0,t0=0,lock=false,u=null,py=0;
+  document.addEventListener("touchstart",e=>{const t=e.touches[0];if(!state.person||navAnim||t.clientX>24||document.querySelector(".sheet.on,.lock"))return;x0=t.clientX;y0=t.clientY;dx=0;t0=Date.now();lock=false;u=null},{passive:true});
+  document.addEventListener("touchmove",e=>{if(x0==null)return;const t=e.touches[0];dx=Math.max(0,t.clientX-x0);
+    if(!lock){if(Math.abs(t.clientY-y0)>dx){x0=null;return}if(dx<6)return;lock=true;
+      const keep={...state,pstack:[...state.pstack]};state.pstack.pop();state.person=state.pstack[state.pstack.length-1]||null;const html=buildApp();Object.assign(state,keep);
+      py=scrolls[scrolls.length-1]||0;u=document.createElement("div");u.className="ghost";u.style.zIndex="1";u.innerHTML=`<div class="app" style="margin-top:${-py}px">${html}</div><div class="gd" style="opacity:.12"></div>`;document.body.appendChild(u);
+      const a=$("#app");a.style.zIndex="10";a.style.boxShadow="-12px 0 30px rgba(0,0,0,.12)"}
+    const w=innerWidth,p=Math.min(1,dx/w);$("#app").style.transform=`translateX(${dx}px)`;u.firstChild.style.transform=`translateX(${-28+28*p}%)`;u.querySelector(".gd").style.opacity=String(.12*(1-p))},{passive:true});
+  document.addEventListener("touchend",()=>{if(x0==null)return;x0=null;if(!u)return;const a=$("#app"),w=innerWidth,v=dx/Math.max(1,Date.now()-t0),done=dx>w*.33||v>.45,o={duration:260,easing:EASE,fill:"forwards"};navAnim=true;
+    a.animate([{transform:`translateX(${dx}px)`},{transform:`translateX(${done?w:0}px)`}],o);u.firstChild.animate([{transform:u.firstChild.style.transform},{transform:done?"translateX(0)":"translateX(-28%)"}],o);
+    setTimeout(()=>{a.getAnimations().forEach(x=>x.cancel());a.style.transform="";a.style.zIndex="";a.style.boxShadow="";
+      if(done){scrolls.pop();state.pstack.pop();state.person=state.pstack[state.pstack.length-1]||null;render();window.scrollTo(0,py)}
+      u.remove();u=null;navAnim=false},280)});
+})();
+const navBtn=([k,l,i])=>`<button class="${state.tab===k?"on":""}" onclick="go('${k}')">${i}<span>${l}</span></button>`;
 function monthSwitch(){return `<div class="month"><button onclick="state.month=addM(state.month,-1);render()" aria-label="Previous month">‹</button><span>${mLabel(state.month)}</span><button onclick="state.month=addM(state.month,1);render()" aria-label="Next month">›</button></div>`}
 
 /* ---------- Home ---------- */
@@ -502,7 +563,7 @@ function peoplePage(){
 }
 function hl(text,q){const t=esc(text); if(!q)return t; const i=text.toLowerCase().indexOf(q); if(i<0)return t; return esc(text.slice(0,i))+`<mark style="background:var(--hl);color:inherit;border-radius:3px">${esc(text.slice(i,i+q.length))}</mark>`+esc(text.slice(i+q.length))}
 
-function openPerson(id){state.person=id;state.focusSearch=false;render();window.scrollTo({top:0,behavior:"instant"})}
+
 function personPage(id){
   const w=W(id); const es=DB.entries.filter(e=>e.workerId===id).sort((a,b)=>b.month.localeCompare(a.month));
   const hours=es.reduce((s,e)=>s+ +e.hours,0), total=es.reduce((s,e)=>s+wage(e),0), owe=es.filter(e=>!e.paid).reduce((s,e)=>s+wage(e),0);
@@ -510,7 +571,7 @@ function personPage(id){
   const pr=problems().filter(p=>p.e.workerId===id);
   const byM={}; es.forEach(e=>(byM[e.month]=byM[e.month]||[]).push(e));
   return `
-    <div style="display:flex;justify-content:space-between;align-items:center"><button class="back" onclick="hideToast();state.person=null;render()">${ICON.back}Back</button><button class="link" style="display:flex;gap:6px;align-items:center;padding:6px 2px 14px" onclick="editWorker('${id}')">${ICON.edit}Edit</button></div>
+    <div style="display:flex;justify-content:space-between;align-items:center"><button class="back" onclick="goBack()">${ICON.back}Back</button><button class="link" style="display:flex;gap:6px;align-items:center;padding:6px 2px 14px" onclick="editWorker('${id}')">${ICON.edit}Edit</button></div>
     <div class="ph">${av(w.name)}<div style="flex:1;min-width:0"><h1>${esc(w.name)}${w.active===false?' <span class="tag mut" style="vertical-align:middle">Left</span>':""}</h1><div class="t2">${rates.length?rates.map(r=>esc(Sx(r.siteId).name)).join(" · "):"No site yet"}</div></div></div>
     <div class="mini">${stat("Hours",hours.toLocaleString(),"#4F46E5")}${stat("Earned",money(total),"#12A150")}${stat("To pay",money(owe),owe?"#E5484D":"#C7CAD9")}</div>
     ${owe?`<button class="btn red" style="margin-top:14px" onclick="openPay('${id}')">Pay ${money(owe)}</button>`:""}
