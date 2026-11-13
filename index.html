@@ -273,7 +273,7 @@ textarea.inp{height:76px;padding:12px 15px;resize:none}
 <script>
 function hideToast(){const t=document.getElementById("toast");if(t)t.classList.remove("on")}
 if(window.navigator.standalone===true||matchMedia("(display-mode: standalone)").matches)document.documentElement.classList.add("ios-app");
-const APP_VERSION="2.11";
+const APP_VERSION="2.12";
 /* ============ data layer ============ */
 const TABLES=["clients","sites","workers","rates","entries","income"];
 const EMPTY=()=>({clients:[],sites:[],workers:[],rates:[],entries:[],income:[]});
@@ -701,11 +701,11 @@ function drawAdd(){
   drawAdd.last=F.kind;
   const seg=sh.querySelector(".seg"),on=seg.querySelector("button.on"),ind=seg.querySelector(".ind");seg.scrollLeft=sl;
   const place=(x)=>{ind.style.left=x.l+"px";ind.style.width=x.w+"px"};
-  if(changed&&from&&!RM){ind.style.transition="none";place(from);ind.getBoundingClientRect();ind.style.transition="";place({l:on.offsetLeft,w:on.offsetWidth});}
+  if(changed&&from){ind.style.transition="none";place(from);ind.getBoundingClientRect();ind.style.transition="";place({l:on.offsetLeft,w:on.offsetWidth});}
   else place({l:on.offsetLeft,w:on.offsetWidth});
-  if(!changed||RM)return;
+  if(!changed)return;
   const dir=order.indexOf(F.kind)>order.indexOf(prevKind)?1:-1;
-  sh.querySelector(".fbody").animate([{transform:`translateX(${dir*36}px)`,opacity:0},{transform:"translateX(0)",opacity:1}],{duration:320,easing:EASE});
+  sh.querySelector(".fbody").animate([{transform:`translateX(${RM?0:dir*36}px)`,opacity:0},{transform:"translateX(0)",opacity:1}],{duration:320,easing:EASE});
   const h1=sh.offsetHeight;if(Math.abs(h1-h0)<2)return;
   sh.style.overflow="hidden";const an=sh.animate([{height:h0+"px"},{height:h1+"px"}],{duration:380,easing:EASE});
   an.onfinish=an.oncancel=()=>{sh.style.overflow=""};
