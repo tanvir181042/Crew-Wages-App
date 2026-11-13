@@ -34,6 +34,19 @@ button{border:0;background:none;cursor:pointer}
 .tabs button{padding:9px 16px;border-radius:10px;font-weight:600;font-size:14.5px;color:var(--mut)}
 .tabs button.on{background:var(--ink);color:var(--bg)}
 .spacer{flex:1}
+.syncb{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;color:var(--mut);cursor:pointer;white-space:nowrap}
+.syncb i{width:8px;height:8px;border-radius:50%;display:inline-block}
+.top .syncb{display:none}
+.hero .syncb{color:#C9CDE3}
+@media (min-width:900px){.top .syncb{display:inline-flex}}
+.lock{position:fixed;inset:0;background:var(--bg);z-index:100;display:grid;place-items:center;padding:env(safe-area-inset-top) 20px env(safe-area-inset-bottom)}
+.lk-in{text-align:center;width:100%;max-width:320px}
+.lk-t{font-size:22px;font-weight:760;letter-spacing:-.02em}.lk-s{color:var(--mut);font-size:14.5px;margin-top:4px}
+.dots{display:flex;gap:18px;justify-content:center;margin:28px 0 30px}.dots i{width:14px;height:14px;border-radius:50%;border:2px solid var(--ink2)}.dots i.on{background:var(--ink)}
+.dots.shake{animation:sh .35s}@keyframes sh{20%,60%{transform:translateX(-9px)}40%,80%{transform:translateX(9px)}}
+.pad{display:grid;grid-template-columns:repeat(3,76px);gap:16px 26px;justify-content:center}
+.pad button{width:76px;height:76px;border-radius:50%;background:var(--card);box-shadow:var(--sh);font-size:28px;font-weight:500}
+.pad button:active{background:var(--soft)}
 .ptitle{font-size:30px;font-weight:780;letter-spacing:-.03em;display:none}
 @media (max-width:899px){.brand{display:none}.top .gear{display:none}.ptitle{display:block}.top{min-height:52px}.top.bare{display:none}}
 button,.row.tap,.chip,.opt,.nav{-webkit-user-select:none;user-select:none;touch-action:manipulation}
@@ -221,35 +234,77 @@ textarea.inp{height:76px;padding:12px 15px;resize:none}
 <script>
 function hideToast(){const t=document.getElementById("toast");if(t)t.classList.remove("on")}
 if(window.navigator.standalone===true||matchMedia("(display-mode: standalone)").matches)document.documentElement.classList.add("ios-app");
-const APP_VERSION="1.7";
+const APP_VERSION="2.0";
 /* ============ data layer ============ */
 const TABLES=["clients","sites","workers","rates","entries","income"];
-const isGAS = typeof google!=="undefined" && google.script && google.script.run;
-let SHEET_URL="";
-let DB={clients:[],sites:[],workers:[],rates:[],entries:[],income:[]};
-const KEY="crewwages_v2";
+const EMPTY=()=>({clients:[],sites:[],workers:[],rates:[],entries:[],income:[]});
+let DB=EMPTY();
+const KEY="crewwages_v2", K_CONN="cw_conn", K_CACHE="cw_cache", K_OUT="cw_outbox", K_PIN="cw_pin";
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+const ls={get(k,d){try{const v=localStorage.getItem(k);return v==null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}},del(k){try{localStorage.removeItem(k)}catch(e){}}};
+let CONN=ls.get(K_CONN,null);            // {u: web app url, k: key, s: sheet url}
+let OUT=ls.get(K_OUT,[]);                // queued changes waiting to reach the Sheet
+let SYNC={state:"idle",at:null};          // idle | syncing | offline | error
+const online=()=>!!CONN;
+function saveLocal(){ if(online()) ls.set(K_CACHE,DB); else ls.set(KEY,DB) }
 
-function gas(fn,...args){return new Promise((res,rej)=>google.script.run.withSuccessHandler(res).withFailureHandler(rej)[fn](...args))}
-function saveLocal(){try{localStorage.setItem(KEY,JSON.stringify(DB))}catch(e){}}
-async function load(){
-  if(isGAS){const r=await gas("getAll");SHEET_URL=r.sheetUrl;delete r.sheetUrl;DB=r;return}
-  try{const s=localStorage.getItem(KEY); if(s){DB=JSON.parse(s);return}}catch(e){}
-  DB={clients:[],sites:[],workers:[],rates:[],entries:[],income:[]}; saveLocal();
+async function api(action,payload={}){
+  const r=await fetch(CONN.u,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({key:CONN.k,action,...payload}),redirect:"follow"});
+  const j=await r.json();
+  if(!j.ok){const e=new Error(j.error||"Failed");e.server=true;throw e}
+  return j.data;
 }
-async function put(table,row){ // insert or update
+async function load(){
+  if(online()){DB=ls.get(K_CACHE,null)||EMPTY();return}
+  DB=ls.get(KEY,null)||EMPTY();
+}
+function queue(op){OUT.push(op);ls.set(K_OUT,OUT);flush()}
+let flushing=false;
+async function flush(){
+  if(!online()||flushing)return; flushing=true; setSync("syncing");
+  try{
+    while(OUT.length){
+      const op=OUT[0];
+      await api(op.action,op);
+      OUT.shift(); ls.set(K_OUT,OUT);
+    }
+    setSync("idle");
+  }catch(e){
+    if(e.server&&/key/i.test(e.message)){setSync("error");toast("This device was disconnected from the Sheet");}
+    else setSync("offline");
+  }finally{flushing=false}
+}
+async function pull(){
+  if(!online())return;
+  await flush(); if(OUT.length)return;
+  setSync("syncing");
+  try{const d=await api("getAll"); if(d.sheetUrl){CONN.s=d.sheetUrl;ls.set(K_CONN,CONN)} delete d.sheetUrl;
+      if(!OUT.length){DB=d;saveLocal();render()} setSync("idle");}
+  catch(e){setSync(e.server?"error":"offline")}
+}
+function setSync(s){SYNC.state=s;if(s==="idle")SYNC.at=new Date();const el=document.getElementById("sync");if(el)el.outerHTML=syncBadge()}
+function syncBadge(){
+  if(!online())return `<span id="sync"></span>`;
+  const n=OUT.length, st=SYNC.state;
+  const [c,t]= st==="syncing"?["var(--mut)","Syncing…"]: (st==="offline"||n)?["var(--warn)",n?`Waiting to sync · ${n}`:"Offline"]: st==="error"?["var(--pay)","Not connected"]:["var(--ok)","Synced"];
+  return `<span id="sync" class="syncb" onclick="pull()"><i style="background:${c}"></i>${t}</span>`;
+}
+async function put(table,row){
   const arr=DB[table]; const i=arr.findIndex(r=>r.id===row.id);
   if(i>=0)arr[i]=row; else arr.push(row);
-  if(isGAS){try{await gas("upsert",table,row)}catch(e){toast("Couldn't save — check internet")}} else saveLocal();
+  saveLocal(); if(online())queue({action:"upsertMany",table,rows:[row]});
 }
 async function del(table,id){
   DB[table]=DB[table].filter(r=>r.id!==id);
-  if(isGAS){try{await gas("remove",table,id)}catch(e){toast("Couldn't save — check internet")}} else saveLocal();
+  saveLocal(); if(online())queue({action:"remove",table,id});
 }
 async function putMany(table,rows){
   for(const row of rows){const i=DB[table].findIndex(r=>r.id===row.id); if(i>=0)DB[table][i]=row; else DB[table].push(row)}
-  if(isGAS){try{await gas("upsertMany",table,rows)}catch(e){toast("Couldn't save — check internet")}} else saveLocal();
+  saveLocal(); if(online())queue({action:"upsertMany",table,rows});
 }
+async function replaceAll(d){DB=d;saveLocal();if(online()){OUT=[];queue({action:"replaceAll",db:d})}}
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")pull()});
+window.addEventListener("online",()=>flush());
 
 function seed(){
   const d={clients:[],sites:[],workers:[],rates:[],entries:[],income:[]};
@@ -314,6 +369,7 @@ const ICON={
   party:'<svg width="34" height="34" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.7 2.7L16.5 9"/></svg>',
   find:'<svg width="34" height="34" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>',
   edit:'<svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16z"/></svg>',
+  sheet:'<svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2.5"/><path d="M4 9h16M4 15h16M10 9v12"/></svg>',
   chev:'<svg width="18" height="18" fill="none" stroke="#B4B9C9" stroke-width="2.4" stroke-linecap="round" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg>',
 };
 
@@ -354,10 +410,10 @@ function render(){
   const bare=state.person||(state.tab==="home"&&!DB.workers.length);
   const top=`<div class="top${bare?" bare":""}">
     <div class="brand"><div class="logo">C</div><span class="bt">Crew Wages</span></div>
-    <h1 class="ptitle">${state.person?"":(DB.workers.length||state.tab!=="home"?titles[state.tab]:"")}</h1>
+    <h1 class="ptitle" style="display:flex;align-items:baseline;gap:10px">${state.person?"":(DB.workers.length||state.tab!=="home"?titles[state.tab]:"")}</h1>
     <div class="tabs">${[["home","Home"],["people","People"],["sites","Clients & Sites"]].map(([k,l])=>`<button class="${state.tab===k?"on":""}" onclick="go('${k}')">${l}</button>`).join("")}</div>
     <div class="spacer"></div>
-    ${showMonth?monthSwitch():""}
+    ${online()&&!state.person?syncBadge():""}${showMonth?monthSwitch():""}
     <button class="add-top" onclick="openAdd()">${ICON.plus.replace('width="24" height="24"','width="18" height="18"')}Add</button>
     <button class="icon-btn gear" onclick="go('more')" aria-label="Settings">${ICON.more.replace('width="24" height="24"','width="20" height="20"')}</button>
   </div>`;
@@ -384,7 +440,7 @@ function homePage(){
   const paidTotal=paidThis.reduce((s,e)=>s+wage(e),0);
   const left=`
     <div class="hero">
-      <div class="lbl">Still to pay</div>
+      <div class="lbl" style="display:flex;justify-content:space-between;position:relative;z-index:1">Still to pay ${online()?syncBadge():""}</div>
       <div class="big num">${money(total)}</div>
       <div class="sub">${owed.length?`${plural(owed.length,"person")} waiting · all months`:"Everyone is paid up"}</div>
       <div class="row"><div class="pill">${mShort(state.month)} work paid <b class="num">${money(paidTotal)}</b></div><div class="pill">${plural(paidThis.length,"entry")}</div></div>
@@ -495,18 +551,24 @@ function sitesPage(){
 /* ---------- More ---------- */
 function morePage(){
   return `
+  ${online()?`<div class="list settings" style="margin-bottom:22px">
+    <div class="row" style="cursor:default"><div class="av" style="background:var(--ok-s);color:var(--ok)">${ICON.sheet}</div><div class="main"><div class="t1">Google Sheet</div><div class="t2">${syncBadge()}</div></div><button class="link" onclick="pull()">Sync now</button></div>
+    ${CONN.s?`<div class="row" onclick="window.open('${CONN.s}','_blank')"><div class="main"><div class="t1">Open my Google Sheet</div><div class="t2">See or download everything as Excel</div></div>${ICON.chev}</div>`:""}
+    <div class="row" onclick="showConnectQR()"><div class="main"><div class="t1">Connect another device</div><div class="t2">Show a QR code for your phone or laptop</div></div>${ICON.chev}</div>
+    <div class="row" onclick="setPin(()=>toast('✓ PIN changed'))"><div class="main"><div class="t1">Change PIN</div></div>${ICON.chev}</div>
+    <div class="row" onclick="disconnect()"><div class="main"><div class="t1" style="color:var(--pay)">Disconnect this device</div><div class="t2">Your data stays in the Sheet</div></div>${ICON.chev}</div>
+  </div>`:`<div class="list settings" style="margin-bottom:22px"><div class="row" onclick="openConnect()"><div class="av" style="background:var(--acc-s);color:var(--acc)">${ICON.sheet}</div><div class="main"><div class="t1">Connect to Google Sheet</div><div class="t2">Save to your own Sheet · use on phone and laptop</div></div>${ICON.chev}</div></div>`}
   <div class="list settings">
-    ${isGAS?`<div class="row" onclick="window.open('${SHEET_URL}','_blank')"><div class="main"><div class="t1">Open my Google Sheet</div><div class="t2">All data lives here · File → Download → Excel</div></div>${ICON.chev}</div>`:""}
     <div class="row" onclick="exportCSV()"><div class="main"><div class="t1">Download for Excel</div><div class="t2">All hours as a spreadsheet file</div></div>${ICON.chev}</div>
     <div class="row" onclick="backup()"><div class="main"><div class="t1">Download a backup</div><div class="t2">One file with everything</div></div>${ICON.chev}</div>
     <div class="row" onclick="$('#restore').click()"><div class="main"><div class="t1">Restore a backup</div><div class="t2">Replace everything with a backup file</div></div>${ICON.chev}</div>
-    ${isGAS?"":`<div class="row" onclick="resetDemo(true)"><div class="main"><div class="t1">Load sample data</div><div class="t2">Try the app with example workers</div></div>${ICON.chev}</div>
+    ${online()?"":`<div class="row" onclick="resetDemo(true)"><div class="main"><div class="t1">Load sample data</div><div class="t2">Try the app with example workers</div></div>${ICON.chev}</div>
     <div class="row" onclick="resetDemo(false)"><div class="main"><div class="t1" style="color:var(--pay)">Clear all data</div><div class="t2">Start empty</div></div>${ICON.chev}</div>`}
   </div>
   <input type="file" id="restore" accept=".json" hidden onchange="restore(this.files[0])">
   <div class="sec"><h2>Workers</h2><button class="link" onclick="openAdd('worker')">+ New worker</button></div>
   <div class="list">${DB.workers.slice().sort((a,b)=>a.name.localeCompare(b.name)).map(w=>`<div class="row tap" onclick="openPerson('${w.id}')">${av(w.name)}<div class="main"><div class="t1">${esc(w.name)}</div></div>${w.active===false?'<span class="tag mut">Left</span>':""}${ICON.chev}</div>`).join("")}</div>
-  <div class="demo">${isGAS?"Saved to your Google Sheet":"Test version — data is saved on this device only"} · v${APP_VERSION}</div>`;
+  <div class="demo">${online()?"Saved to your Google Sheet":"Not connected — data is saved on this device only"} · v${APP_VERSION}</div>`;
 }
 
 /* ============ sheets ============ */
@@ -706,8 +768,114 @@ function moneyList(cid){hideToast();const m=state.month;
   $("#ma").onclick=()=>openAdd("money",cid)};
   draw()}
 
+/* ============ connect · PIN · QR ============ */
+const CDN_QR="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js";
+const CDN_SCAN="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js";
+function loadScript(src){return new Promise((res,rej)=>{if(document.querySelector(`script[src="${src}"]`)){res();return}const s=document.createElement("script");s.src=src;s.onload=res;s.onerror=()=>rej(new Error("load"));document.head.appendChild(s)})}
+const b64u={enc:s=>btoa(unescape(encodeURIComponent(s))).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,""),dec:s=>decodeURIComponent(escape(atob(s.replace(/-/g,"+").replace(/_/g,"/"))))};
+function makeCode(c){return "CW1."+b64u.enc(JSON.stringify({u:c.u,k:c.k}))}
+function readCode(t){t=(t||"").trim().replace(/\s+/g,"");const i=t.indexOf("CW1.");if(i<0)return null;try{const o=JSON.parse(b64u.dec(t.slice(i+4)));return o.u&&o.k?o:null}catch(e){return null}}
+
+function openConnect(){hideToast();
+  showSheet(`<h3>Connect to Google Sheet</h3><div class="lead">Your data will be saved in your own Google Sheet and shared between your phone and laptop.</div>
+  <button class="btn" id="cq">Scan QR code</button>
+  <div class="grp" style="text-align:center;padding:16px 0 8px">or paste the connect code</div>
+  <div class="f"><textarea class="inp" id="cc" placeholder="CW1.…" style="height:90px;font-size:14px" autocapitalize="off" autocorrect="off" spellcheck="false"></textarea></div>
+  <div id="cerr"></div>
+  <button class="btn ghost" id="cp" style="margin-top:0">Connect with this code</button>
+  <div class="hint" style="margin-top:14px">Get the code from your Google Sheet: <b>Crew Wages → Connect a device</b>.</div>`);
+  $("#cq").onclick=()=>scanQR(code=>tryConnect(code));
+  $("#cp").onclick=()=>tryConnect($("#cc").value);
+}
+async function tryConnect(text){
+  const c=readCode(text); const err=m=>{const e=$("#cerr");if(e)e.innerHTML=`<div class="err">${m}</div>`;else toast(m)};
+  if(!c)return err("That isn't a Crew Wages connect code.");
+  showSheet(`<div class="empty" style="padding:40px 0">Connecting…</div>`);
+  let data;
+  try{const prev=CONN;CONN=c;data=await api("getAll");CONN=prev}
+  catch(e){CONN=null;showSheet(`<h3>Couldn't connect</h3><div class="lead">${e.server?esc(e.message):"No answer from Google. Check the internet, and that the script is deployed with access set to “Anyone”."}</div><button class="btn" onclick="openConnect()">Try again</button>`);return}
+  const sheetUrl=data.sheetUrl; delete data.sheetUrl;
+  setPin(async()=>{
+    CONN={...c,s:sheetUrl}; ls.set(K_CONN,CONN); OUT=[]; ls.set(K_OUT,OUT);
+    const sheetEmpty=!data.workers.length&&!data.entries.length&&!data.clients.length;
+    const local=ls.get(KEY,null); const hasLocal=local&&(local.workers.length||local.clients.length);
+    if(sheetEmpty&&hasLocal){
+      showSheet(`<h3>Connected ✓</h3><div class="lead">Your Sheet is empty. Copy what's on this device into it?</div>
+      <button class="btn" id="cy">Copy my data to the Sheet</button><button class="btn ghost" id="cn">Start with an empty Sheet</button>`);
+      $("#cy").onclick=async()=>{closeSheet();await replaceAll(local);afterConnect()};
+      $("#cn").onclick=()=>{DB=data;saveLocal();closeSheet();afterConnect()};
+    } else {DB=data;saveLocal();closeSheet();afterConnect()}
+  });
+}
+function afterConnect(){SYNC.at=new Date();setSync("idle");const ms=DB.entries.map(e=>e.month).sort();state.month=nowM();go("home");toast("✓ Connected to your Google Sheet")}
+function disconnect(){if(!confirmBox("Disconnect this device? Your data stays safe in the Google Sheet."))return;
+  CONN=null;[K_CONN,K_CACHE,K_OUT,K_PIN].forEach(k=>ls.del(k));OUT=[];DB=ls.get(KEY,null)||EMPTY();go("more");toast("Disconnected")}
+
+async function showConnectQR(){hideToast();const code=makeCode(CONN);
+  showSheet(`<h3>Connect another device</h3><div class="lead">On the other device open Crew Wages → More → Connect to Google Sheet → Scan QR code.</div>
+  <div id="qrbox" style="background:#fff;border-radius:18px;padding:16px;display:grid;place-items:center;min-height:260px">Loading…</div>
+  <div class="hint" style="margin-top:12px">Keep this code private — it opens your data.</div>
+  <button class="btn ghost" id="cpy">Copy code instead</button>`);
+  $("#cpy").onclick=async()=>{try{await navigator.clipboard.writeText(code);toast("✓ Code copied")}catch(e){toast("Couldn't copy")}};
+  try{await loadScript(CDN_QR);const q=qrcode(0,"M");q.addData(code);q.make();$("#qrbox").innerHTML=q.createSvgTag({cellSize:5,margin:2,scalable:true});const sv=$("#qrbox svg");if(sv){sv.style.width="240px";sv.style.height="240px"}}
+  catch(e){$("#qrbox").textContent="Couldn't draw the QR — use Copy code."}
+}
+
+let scanStop=null;
+async function scanQR(onCode){
+  showSheet(`<h3>Scan QR code</h3><div class="lead">Point the camera at the QR on your laptop.</div>
+  <div style="position:relative;border-radius:18px;overflow:hidden;background:#000;aspect-ratio:1"><video id="qv" playsinline muted style="width:100%;height:100%;object-fit:cover"></video>
+  <div style="position:absolute;inset:18%;border:3px solid rgba(255,255,255,.85);border-radius:18px"></div></div>
+  <div id="qerr"></div><button class="btn ghost" id="qc">Cancel</button>`);
+  const stop=()=>{if(scanStop)scanStop();scanStop=null};
+  $("#qc").onclick=()=>{stop();openConnect()};
+  try{
+    await loadScript(CDN_SCAN);
+    const st=await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"},audio:false});
+    const v=$("#qv");v.srcObject=st;await v.play();
+    const cv=document.createElement("canvas"),cx=cv.getContext("2d",{willReadFrequently:true});let live=true;
+    scanStop=()=>{live=false;st.getTracks().forEach(t=>t.stop())};
+    const tick=()=>{if(!live)return;if(v.videoWidth){cv.width=v.videoWidth;cv.height=v.videoHeight;cx.drawImage(v,0,0);
+      const r=jsQR(cx.getImageData(0,0,cv.width,cv.height).data,cv.width,cv.height,{inversionAttempts:"dontInvert"});
+      if(r&&r.data&&r.data.includes("CW1.")){stop();onCode(r.data);return}}requestAnimationFrame(tick)};tick();
+  }catch(e){stop();$("#qerr").innerHTML=`<div class="err" style="margin-top:12px">Camera not available. Allow camera access, or go back and paste the code.</div>`}
+}
+
+/* ---- PIN ---- */
+async function hashPin(pin,salt){try{const b=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(salt+":"+pin));return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,"0")).join("")}catch(e){let h=0;for(const c of salt+pin)h=(h*31+c.charCodeAt(0))>>>0;return "x"+h}}
+function pinPad(title,sub,onDone,opts={}){
+  let v="";const el=document.createElement("div");el.className="lock";document.body.appendChild(el);
+  const draw=(shake)=>{el.innerHTML=`<div class="lk-in"><div class="logo" style="width:56px;height:56px;font-size:24px;border-radius:17px;margin:0 auto 18px">C</div>
+    <div class="lk-t">${title}</div><div class="lk-s">${sub}</div>
+    <div class="dots${shake?" shake":""}">${[0,1,2,3].map(i=>`<i class="${i<v.length?"on":""}"></i>`).join("")}</div>
+    <div class="pad">${[1,2,3,4,5,6,7,8,9,"",0,"⌫"].map(k=>k===""?"<span></span>":`<button data-k="${k}">${k}</button>`).join("")}</div>
+    ${opts.cancel?`<button class="link" id="lkc" style="margin-top:10px">Cancel</button>`:""}</div>`;
+    el.querySelectorAll(".pad button").forEach(b=>b.onclick=async()=>{const k=b.dataset.k;if(k==="⌫")v=v.slice(0,-1);else if(v.length<4)v+=k;draw();
+      if(v.length===4){const ok=await onDone(v);if(ok===false){v="";setTimeout(()=>draw(true),120)}else el.remove()}});
+    const c=el.querySelector("#lkc");if(c)c.onclick=()=>{el.remove();opts.cancel()}};
+  draw();
+}
+function setPin(done){closeSheet();
+  pinPad("Create a PIN","4 digits to open the app",first=>{
+    setTimeout(()=>pinPad("Repeat your PIN","Type the same 4 digits again",async second=>{
+      if(second!==first){toast("PINs didn't match — try again");setTimeout(()=>setPin(done),50);return true}
+      const salt=uid();ls.set(K_PIN,{salt,h:await hashPin(first,salt),bad:0});done();return true}),10);return true});
+}
+let unlocked=false;
+function lockIfNeeded(){
+  const p=ls.get(K_PIN,null); if(!online()||!p){unlocked=true;return}
+  unlocked=false;
+  pinPad("Enter PIN","Crew Wages is locked",async v=>{
+    const p2=ls.get(K_PIN,null); if(await hashPin(v,p2.salt)===p2.h){p2.bad=0;ls.set(K_PIN,p2);unlocked=true;pull();return true}
+    p2.bad=(p2.bad||0)+1;ls.set(K_PIN,p2);
+    if(p2.bad>=5){CONN=null;[K_CONN,K_CACHE,K_OUT,K_PIN].forEach(k=>ls.del(k));OUT=[];DB=ls.get(KEY,null)||EMPTY();render();toast("Too many wrong PINs — this device was disconnected");return true}
+    toast(`Wrong PIN · ${5-p2.bad} ${5-p2.bad===1?"try":"tries"} left`);return false});
+}
+let hiddenAt=0;
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="hidden")hiddenAt=Date.now();else if(online()&&unlocked&&hiddenAt&&Date.now()-hiddenAt>5*60*1000&&!document.querySelector(".lock"))lockIfNeeded()});
+
 /* ---- export / backup ---- */
-function download(name,text,type){if(!isGAS&&location.hostname.includes("claude")){toast("Downloads work in the real app");throw 0}const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([text],{type}));a.download=name;document.body.appendChild(a);a.click();a.remove()}
+function download(name,text,type){if(location.hostname.includes("claude")){toast("Downloads work in the real app");throw 0}const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([text],{type}));a.download=name;document.body.appendChild(a);a.click();a.remove()}
 function exportCSV(){try{exportCSV_()}catch(e){}}
 function exportCSV_(){
   const q=v=>`"${String(v??"").replace(/"/g,'""')}"`;
@@ -718,7 +886,7 @@ function exportCSV_(){
 }
 function backup(){try{download(`Crew_Wages_backup_${new Date().toISOString().slice(0,10)}.json`,JSON.stringify(DB),"application/json");toast("✓ Backup downloaded")}catch(e){}}
 function restore(file){if(!file)return;const r=new FileReader();r.onload=async()=>{try{const d=JSON.parse(r.result);if(!TABLES.every(t=>Array.isArray(d[t])))throw 0;
-  if(!confirmBox("Replace everything with this backup?"))return; DB=d; if(isGAS)await gas("replaceAll",DB); else saveLocal(); render(); toast("✓ Backup restored")}catch(e){toast("That file isn't a Crew Wages backup")}};r.readAsText(file)}
+  if(!confirmBox("Replace everything with this backup?"))return; await replaceAll(d); render(); toast("✓ Backup restored")}catch(e){toast("That file isn't a Crew Wages backup")}};r.readAsText(file)}
 function confirmBox(m){try{return window.confirm(m)}catch(e){return true}}
 function resetDemo(sample,quiet){if(!quiet&&!confirmBox(sample?"Replace everything with sample data?":"Delete all data on this device?"))return;DB=sample?seed():{clients:[],sites:[],workers:[],rates:[],entries:[],income:[]};saveLocal();state.person=null;if(sample)state.month="2026-11";go("home");toast(sample?"Sample data loaded":"All data cleared")}
 
@@ -726,8 +894,8 @@ function resetDemo(sample,quiet){if(!quiet&&!confirmBox(sample?"Replace everythi
 (async()=>{
   $("#app").innerHTML=`<div class="empty" style="padding-top:40vh">Loading…</div>`;
   try{await load()}catch(e){$("#app").innerHTML=`<div class="empty" style="padding-top:35vh">Couldn't load your data.<br>Check the internet and refresh.</div>`;return}
-  const ms=DB.entries.map(e=>e.month).sort(); state.month=isGAS?nowM():(ms[ms.length-1]||nowM());
-  render();
+  const ms=DB.entries.map(e=>e.month).sort(); state.month=online()?nowM():(ms[ms.length-1]||nowM());
+  render(); lockIfNeeded(); if(online()&&!ls.get(K_PIN,null))unlocked=true; if(unlocked)pull();
 })();
 if("serviceWorker" in navigator&&location.protocol==="https:")navigator.serviceWorker.register("sw.js").catch(()=>{});
 </script>
