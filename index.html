@@ -147,8 +147,8 @@ html.ios-app .toast{bottom:124px}
 @media (min-width:900px){#mini{display:none}}
 /* page transitions */
 .app{position:relative;background:var(--bg);min-height:100vh}
-.ghost{position:fixed;inset:0;overflow:hidden;background:var(--bg);pointer-events:none}
-.ghost .gd{position:absolute;inset:0;background:#000;opacity:0}
+.pghost{position:fixed;inset:0;overflow:hidden;background:var(--bg);pointer-events:none}
+.pghost .gd{position:absolute;inset:0;background:#000;opacity:0}
 
 /* sheet */
 .scrim{position:fixed;inset:0;top:env(safe-area-inset-top);background:rgba(14,19,37,.42);opacity:0;visibility:hidden;pointer-events:none;transition:opacity .22s,visibility 0s .22s;z-index:40}
@@ -464,7 +464,7 @@ function slide(dir,change,toY){
   if(navAnim)return;hideToast();
   if(RM||!document.body.animate){change();window.scrollTo(0,toY||0);return}
   navAnim=true;const app=$("#app"),y=window.scrollY;
-  const g=document.createElement("div");g.className="ghost";g.innerHTML=`<div class="app" style="margin-top:${-y}px">${app.innerHTML}</div><div class="gd"></div>`;
+  const g=document.createElement("div");g.className="pghost";g.innerHTML=`<div class="app" style="margin-top:${-y}px">${app.innerHTML}</div><div class="gd"></div>`;
   g.style.zIndex=dir==="push"?"1":"15";app.style.zIndex=dir==="push"?"10":"1";document.body.appendChild(g);
   change();window.scrollTo(0,toY||0);
   const o={duration:dir==="push"?440:380,easing:EASE,fill:"forwards"};
@@ -485,7 +485,7 @@ function goBack(){if(navAnim||!state.person)return;const y=scrolls.pop()||0;slid
   document.addEventListener("touchmove",e=>{if(x0==null)return;const t=e.touches[0];dx=Math.max(0,t.clientX-x0);
     if(!lock){if(Math.abs(t.clientY-y0)>dx){x0=null;return}if(dx<6)return;lock=true;
       const keep={...state,pstack:[...state.pstack]};state.pstack.pop();state.person=state.pstack[state.pstack.length-1]||null;const html=buildApp();Object.assign(state,keep);
-      py=scrolls[scrolls.length-1]||0;u=document.createElement("div");u.className="ghost";u.style.zIndex="1";u.innerHTML=`<div class="app" style="margin-top:${-py}px">${html}</div><div class="gd" style="opacity:.12"></div>`;document.body.appendChild(u);
+      py=scrolls[scrolls.length-1]||0;u=document.createElement("div");u.className="pghost";u.style.zIndex="1";u.innerHTML=`<div class="app" style="margin-top:${-py}px">${html}</div><div class="gd" style="opacity:.12"></div>`;document.body.appendChild(u);
       const a=$("#app");a.style.zIndex="10";a.style.boxShadow="-12px 0 30px rgba(0,0,0,.12)"}
     const w=innerWidth,p=Math.min(1,dx/w);$("#app").style.transform=`translateX(${dx}px)`;u.firstChild.style.transform=`translateX(${-28+28*p}%)`;u.querySelector(".gd").style.opacity=String(.12*(1-p))},{passive:true});
   document.addEventListener("touchend",()=>{if(x0==null)return;x0=null;if(!u)return;const a=$("#app"),w=innerWidth,v=dx/Math.max(1,Date.now()-t0),done=dx>w*.33||v>.45,o={duration:260,easing:EASE,fill:"forwards"};navAnim=true;
