@@ -66,6 +66,8 @@ input,textarea{-webkit-user-select:text;user-select:text}
 .h .count{background:var(--soft);color:var(--ink2);border-radius:20px;padding:1px 8px;font-size:12px}
 .sec{display:flex;align-items:center;justify-content:space-between;margin:26px 4px 10px}
 .sec-first{margin-top:26px}
+.recv{display:flex;justify-content:space-between;gap:10px;width:100%;margin-top:12px;padding:11px 12px;border-radius:12px;background:var(--soft);font-size:13.5px;color:var(--ink2);text-align:left}
+.recv b{font-weight:700;color:var(--ink)}
 .wkgrid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
 .f .wkd{display:flex;flex-direction:column;align-items:center;gap:1px;font-size:12px;font-weight:650;color:var(--mut);margin:0!important}
 .f .wkd small{font-size:11px;font-weight:550;margin-bottom:4px}
@@ -284,7 +286,7 @@ textarea.inp{height:76px;padding:12px 15px;resize:none}
 <script>
 function hideToast(){const t=document.getElementById("toast");if(t)t.classList.remove("on")}
 if(window.navigator.standalone===true||matchMedia("(display-mode: standalone)").matches)document.documentElement.classList.add("ios-app");
-const APP_VERSION="2.14";
+const APP_VERSION="2.15";
 /* ============ data layer ============ */
 const TABLES=["clients","sites","workers","rates","entries","income"];
 const EMPTY=()=>({clients:[],sites:[],workers:[],rates:[],entries:[],income:[]});
@@ -360,8 +362,8 @@ function seed(){
   const d={clients:[],sites:[],workers:[],rates:[],entries:[],income:[]};
   const ken={id:"c1",name:"Ken"}, bupa={id:"c2",name:"Bupa"}; d.clients.push(ken,bupa);
   const siteNames=["Marrickville","N Ryde","NRMA","Chatswood","St Ives","Tavern","Edmonton Park","Liverpool","Hornsby","Mascot","Townhall","Blacktown","Greystanes"];
-  siteNames.forEach((n,i)=>d.sites.push({id:"s"+i,name:n,clientId:"c1"}));
-  d.sites.push({id:"s13",name:"Bupa Parramatta",clientId:"c2"});
+  siteNames.forEach((n,i)=>d.sites.push({id:"s"+i,name:n,clientId:"c1",address:["Marrickville Rd, Marrickville","Lane Cove Rd, North Ryde","","Victoria Ave, Chatswood","","","","","","","George St, Sydney","",""][i],billType:"hourly",charge:i===4?0:[34,36,38,24,0,35,33,36,36,33,32,36,36][i],fixed:0}));
+  d.sites.push({id:"s13",name:"Bupa Parramatta",clientId:"c2",address:"Church St, Parramatta",billType:"fixed",charge:0,fixed:1500});
   const S=n=>d.sites.find(s=>s.name===n).id;
   const W=[["Akash","Marrickville",22],["Anish","N Ryde",22],["Anish","NRMA",25],["Anish","Chatswood",20],["Anish","St Ives",25],["Ankit Sharma","Tavern",25],["Ankit Sharma","Marrickville",25],
   ["Bhawana","Edmonton Park",22],["Bhawana","Liverpool",25],["Binita","Hornsby",25],["Bishal Pradhan","Mascot",22],["Bishal Pradhan","Marrickville",25],["Gugun","Tavern",23],["Kiran Ghimire","Tavern",22],
@@ -453,6 +455,12 @@ function perStats(p){const es=DB.entries.filter(e=>inPer(e,p));const hours=es.re
   const hidden=p.mode==="day"||p.mode==="week"?DB.entries.filter(e=>!e.date&&(e.month===p.d.slice(0,7)||e.month===addD(weekStart(p.d),6).slice(0,7))).length:0;
   return {es,hours,wages,income,profit:income-wages,people:new Set(es.map(e=>e.workerId)).size,hidden}}
 
+const hasBill=x=>x.billType==="fixed"?(+x.fixed>0):(+x.charge>0);
+const siteBilled=(x,hours)=>x.billType==="fixed"?(+x.fixed||0):hours*(+x.charge||0);
+function billFields(o,redraw){return `<div class="f"><label>Address <span style="color:var(--mut);font-weight:500">(optional)</span></label><input class="inp" placeholder="e.g. 12 George St, Parramatta" autocomplete="off" value="${esc(o.address||"")}" oninput="${redraw.obj}.address=this.value"></div>
+  <div class="f"><label>How the client pays for this site</label><div class="pseg" style="margin:0 0 10px">${[["hourly","Per hour"],["fixed","Fixed per month"]].map(([k,l])=>`<button class="${(o.billType||"hourly")===k?"on":""}" onclick="${redraw.obj}.billType='${k}';${redraw.fn}">${l}</button>`).join("")}</div>
+  <input class="inp num" inputmode="decimal" placeholder="${(o.billType||"hourly")==="fixed"?"Amount per month, e.g. 4000":"Charge rate per hour, e.g. 35"}" value="${esc(o.billAmt||"")}" oninput="${redraw.obj}.billAmt=this.value"></div>
+  <div class="hint">Used to work out money coming in and profit for this site. Leave empty if you don't know yet.</div>`}
 function owedByWorker(){ // all months
   const map={};
   DB.entries.filter(e=>!e.paid && e.hours>0 && e.rate>0).forEach(e=>{
@@ -677,15 +685,23 @@ function sitesPage(){
   <div class="cols">${DB.clients.map(c=>{
     const sites=DB.sites.filter(s=>s.clientId===c.id);
     const es=DB.entries.filter(e=>e.month===m&&sites.some(s=>s.id===e.siteId));
+    const st=sites.map(x=>{const se=es.filter(e=>e.siteId===x.id),h=se.reduce((a,e)=>a+ +e.hours,0),w=se.reduce((a,e)=>a+wage(e),0),b=hasBill(x)?siteBilled(x,h):null;return {x,h,w,b,p:b==null?null:b-w}});
     const wages=es.reduce((s,e)=>s+wage(e),0), inc=DB.income.filter(i=>i.clientId===c.id&&i.month===m).reduce((s,i)=>s+ +i.amount,0);
-    const pct=inc?Math.min(100,wages/inc*100):0;
+    const billing=st.some(r=>r.b!=null), billed=st.reduce((a,r)=>a+(r.b||0),0), noRate=st.filter(r=>r.b==null&&r.h>0).length;
+    const top=billing?billed:inc, profit=top-wages, pct=top?Math.min(100,wages/top*100):0;
+    const ord=st.slice().sort((a,b)=>(b.p??-1e9)-(a.p??-1e9)||b.h-a.h||a.x.name.localeCompare(b.x.name)), open=(state.openC||{})[c.id];
     return `<div class="card client">
       <div class="top2"><button style="text-align:left" onclick="editClient('${c.id}')"><div class="nm">${esc(c.name)}</div><div class="t2">${plural(sites.length,"site")} · <span style="color:var(--acc)">edit</span></div></button><button class="link" onclick="openAdd('money','${c.id}')">+ Money in</button></div>
-      <div class="kv"><div onclick="moneyList('${c.id}')" style="cursor:pointer"><b class="num">${money(inc)}</b><span>Money in ›</span></div><div><b class="num">${money(wages)}</b><span>Wages</span></div><div><b class="num" style="color:${inc-wages>=0?"var(--ok)":"var(--pay)"}">${money(inc-wages)}</b><span>Profit</span></div></div>
-      ${inc?`<div class="bar"><i style="width:${pct}%"></i></div><div class="t2" style="margin-top:6px">${Math.round(pct)}% of money in goes on wages</div>`:""}
-      <div style="margin-top:12px">${(()=>{const hrs=x=>es.filter(e=>e.siteId===x.id).reduce((a,e)=>a+ +e.hours,0);const ord=sites.slice().sort((a,b)=>hrs(b)-hrs(a)||a.name.localeCompare(b.name));const open=(state.openC||{})[c.id];return ord.slice(0,open?999:4)})().map(s=>{const ws=[...new Set(DB.rates.filter(r=>r.siteId===s.id).map(r=>r.workerId))];const h=es.filter(e=>e.siteId===s.id).reduce((a,e)=>a+ +e.hours,0);
-        return `<div class="site"><div style="flex:1"><button class="t1" style="text-align:left" onclick="editSite('${s.id}')">${esc(s.name)}</button><div class="people">${ws.length?ws.map(id=>`<span onclick="openPerson('${id}')">${esc(W(id).name)}</span>`).join(""):`<span style="cursor:default;color:var(--mut)">No one yet</span>`}</div></div><div class="amt num">${h}<small>hrs</small></div></div>`}).join("")||`<div class="empty">No sites yet</div>`}</div>
-      ${sites.length>4?`<button class="link" style="width:100%;text-align:center;padding-top:12px" onclick="state.openC=state.openC||{};state.openC['${c.id}']=!state.openC['${c.id}'];render()">${(state.openC||{})[c.id]?"Show fewer sites":`Show all ${sites.length} sites`}</button>`:""}
+      <div class="kv"><div ${billing?"":`onclick="moneyList('${c.id}')" style="cursor:pointer"`}><b class="num">${money(top)}</b><span>${billing?"Billed":"Money in ›"}</span></div><div><b class="num">${money(wages)}</b><span>Wages</span></div><div><b class="num" style="color:${profit>=0?"var(--ok)":"var(--pay)"}">${money(profit)}</b><span>Profit</span></div></div>
+      ${top?`<div class="bar"><i style="width:${pct}%"></i></div><div class="t2" style="margin-top:6px">${Math.round(pct)}% of ${billing?"what you bill":"money in"} goes on wages</div>`:""}
+      ${billing?`<button class="recv" onclick="moneyList('${c.id}')"><span>Received <b class="num">${money(inc)}</b></span><span>${billed-inc>0?`Still owed to you <b class="num" style="color:var(--warn)">${money(billed-inc)}</b>`:"Fully paid"} ›</span></button>`:""}
+      ${noRate?`<div class="t2" style="margin-top:8px;color:var(--warn);white-space:normal">${plural(noRate,"site")} with hours ${noRate===1?"has":"have"} no charge rate — tap the site to add it.</div>`:""}
+      <div style="margin-top:12px">${ord.slice(0,open?999:4).map(r=>{const s=r.x,ws=[...new Set(DB.rates.filter(q=>q.siteId===s.id).map(q=>q.workerId))];
+        return `<div class="site"><div style="flex:1;min-width:0"><button class="t1" style="text-align:left;max-width:100%" onclick="editSite('${s.id}')">${esc(s.name)}</button>${s.address?`<div class="t2">${esc(s.address)}</div>`:""}
+          <div class="people">${ws.length?ws.map(id=>`<span onclick="openPerson('${id}')">${esc(W(id).name)}</span>`).join(""):`<span style="cursor:default;color:var(--mut)">No one yet</span>`}</div>
+          ${r.b!=null?`<div class="t2 num" style="margin-top:6px">${r.h} hrs · in ${money(r.b)} · wages ${money(r.w)}</div>`:""}</div>
+          ${r.b!=null?`<div class="amt num" style="color:${r.p>=0?"var(--ok)":"var(--pay)"}">${money(r.p)}<small>profit</small></div>`:`<div class="amt num">${r.h}<small>hrs</small></div>`}</div>`}).join("")||`<div class="empty">No sites yet</div>`}</div>
+      ${sites.length>4?`<button class="link" style="width:100%;text-align:center;padding-top:12px" onclick="state.openC=state.openC||{};state.openC['${c.id}']=!state.openC['${c.id}'];render()">${open?"Show fewer sites":`Show all ${sites.length} sites`}</button>`:""}
     </div>`}).join("")}</div>
   ${DB.clients.length?"":`<div class="card empty">No clients yet</div>`}
   <div class="two" style="margin-top:4px"><button class="btn ghost" style="margin-top:0" onclick="openAdd('client')">+ New client</button><button class="btn ghost" style="margin-top:0" onclick="openAdd('site')">+ New site</button></div>`;
@@ -851,12 +867,14 @@ async function saveWorker(){
 function formSite(){
   return `<div class="f"><label>Site name</label><input class="inp" placeholder="e.g. Parramatta" autocapitalize="words" autocomplete="off" value="${esc(F.name)}" oninput="F.name=this.value"></div>
   <div class="f"><label>Client</label><div class="opts">${DB.clients.map(c=>`<button class="opt ${F.clientId===c.id?"on":""}" onclick="F.clientId='${c.id}';drawAdd()">${esc(c.name)}</button>`).join("")}<button class="opt" onclick="F.kind='client';drawAdd()">+ New client</button></div></div>
+  ${billFields(F,{obj:"F",fn:"drawAdd()"})}
   ${F.err?`<div class="err">${F.err}</div>`:""}<button class="btn" onclick="saveSite()">Save site</button>`;
 }
 async function saveSite(){
   const name=F.name.trim(); if(!name)return F.err="Type a site name",drawAdd(); if(!F.clientId)return F.err="Pick a client",drawAdd();
   if(DB.sites.some(s=>s.name.toLowerCase()===name.toLowerCase()))return F.err="That site already exists",drawAdd();
-  await put("sites",{id:uid(),name,clientId:F.clientId}); closeSheet(); render(); toast(`✓ Site added · ${esc(name)}`);
+  const amt=parseFloat(F.billAmt)||0,bt=F.billType||"hourly";
+  await put("sites",{id:uid(),name,clientId:F.clientId,address:(F.address||"").trim(),billType:bt,charge:bt==="hourly"?amt:0,fixed:bt==="fixed"?amt:0}); closeSheet(); render(); toast(`✓ Site added · ${esc(name)}`);
 }
 function formClient(){
   return `<div class="f"><label>Client name</label><input class="inp" placeholder="e.g. Bupa" autocapitalize="words" autocomplete="off" value="${esc(F.name)}" oninput="F.name=this.value"></div>
@@ -944,15 +962,16 @@ function editClient(cid){hideToast();const c=C(cid);let name=c.name;const used=D
   $("#cn").oninput=e=>name=e.target.value;
   $("#cs").onclick=async()=>{if(!name.trim())return;await put("clients",{...c,name:name.trim()});closeSheet();render();toast("✓ Saved")};
   if(!used)$("#cd").onclick=async()=>{await del("clients",cid);closeSheet();render();toast("Client deleted",async()=>{await put("clients",c);render()})}}
-function editSite(sid){hideToast();const s0=Sx(sid);let name=s0.name,cl=s0.clientId;const used=DB.entries.some(e=>e.siteId===sid);
-  const draw=()=>{showSheet(`<h3>Edit site</h3><div class="f" style="margin-top:12px"><label>Site name</label><input class="inp" id="sn" value="${esc(name)}"></div>
-  <div class="f"><label>Client</label><div class="opts">${DB.clients.map(c=>`<button class="opt ${cl===c.id?"on":""}" data-c="${c.id}">${esc(c.name)}</button>`).join("")}</div></div>
+let ES={};
+function editSite(sid){hideToast();const s0=Sx(sid);const used=DB.entries.some(e=>e.siteId===sid);
+  ES={name:s0.name,cl:s0.clientId,address:s0.address||"",billType:s0.billType||"hourly",billAmt:String((s0.billType==="fixed"?s0.fixed:s0.charge)||"")};
+  window.drawES=()=>{showSheet(`<h3>Edit site</h3><div class="f" style="margin-top:12px"><label>Site name</label><input class="inp" id="sn" value="${esc(ES.name)}" oninput="ES.name=this.value"></div>
+  <div class="f"><label>Client</label><div class="opts">${DB.clients.map(c=>`<button class="opt ${ES.cl===c.id?"on":""}" onclick="ES.cl='${c.id}';drawES()">${esc(c.name)}</button>`).join("")}</div></div>
+  ${billFields(ES,{obj:"ES",fn:"drawES()"})}
   <button class="btn" id="ss">Save</button>${used?`<div class="hint" style="margin-top:12px;text-align:center">This site has hours saved, so it can't be deleted.</div>`:`<button class="btn ghost" id="sd" style="color:var(--pay)">Delete site</button>`}`);
-  $("#sn").oninput=e=>name=e.target.value;
-  document.querySelectorAll("#sheet .opt").forEach(b=>b.onclick=()=>{cl=b.dataset.c;draw()});
-  $("#ss").onclick=async()=>{if(!name.trim())return;await put("sites",{...s0,name:name.trim(),clientId:cl});closeSheet();render();toast("✓ Saved")};
+  $("#ss").onclick=async()=>{if(!ES.name.trim())return;const amt=parseFloat(ES.billAmt)||0;await put("sites",{...s0,name:ES.name.trim(),clientId:ES.cl,address:ES.address.trim(),billType:ES.billType,charge:ES.billType==="hourly"?amt:0,fixed:ES.billType==="fixed"?amt:0});closeSheet();render();toast("✓ Saved")};
   if(!used)$("#sd").onclick=async()=>{const rs=DB.rates.filter(r=>r.siteId===sid);for(const r of rs)await del("rates",r.id);await del("sites",sid);closeSheet();render();toast("Site deleted")}};
-  draw()}
+  drawES()}
 function moneyList(cid){hideToast();const m=state.month;
   const draw=()=>{const items=DB.income.filter(i=>i.clientId===cid&&i.month===m);
   showSheet(`<h3>Money in · ${esc(C(cid).name)}</h3><div class="lead">${mLabel(m)}</div>
