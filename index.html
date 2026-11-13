@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#F5F6FA" media="(prefers-color-scheme: light)">
-<meta name="theme-color" content="#0B0D14" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#F2F2F7" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
 <title>Crew Wages</title>
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-180.png">
@@ -14,232 +14,231 @@
 <meta name="apple-mobile-web-app-title" content="Crew Wages">
 <style>
 :root{
-  --bg:#F5F6FA; --card:#FFFFFF; --ink:#0E1325; --ink2:#3B4256; --mut:#5F6780; --line:#E9EBF2; --soft:#F0F1F6;
-  --acc:#4F46E5; --acc-s:#EEF0FF; --pay:#D1343A; --pay-s:#FFF0F0; --ok:#0B7A3B; --ok-s:#EAF8EF; --warn:#935B00; --warn-s:#FFF6E5;
-  --soft2:#FAFAFC; --nav:rgba(255,255,255,.92); --field:#FBFBFD; --pop:#FFFFFF; --hl:#FFF1B8; --r:20px; --sh:0 1px 2px rgba(14,19,37,.04),0 8px 24px rgba(14,19,37,.06);
-  --font:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,Inter,"Helvetica Neue",Arial,sans-serif;
+  --bg:#F2F2F7; --grp:#FFFFFF; --modal:#F2F2F7; --label:#000000; --label2:#6C6C70; --label3:#AEAEB2; --sep:#C6C6C8; --fill:#E9E9EE; --press:#D1D1D6;
+  --tint:#5856D6; --tint-s:rgba(88,86,214,.12);
+  --red:#D70015; --red-f:#FF3B30; --red-s:rgba(255,59,48,.12);
+  --green:#248A3D; --green-f:#34C759; --green-s:rgba(52,199,89,.14);
+  --orange:#C93400; --orange-f:#FF9500; --orange-s:rgba(255,149,0,.14);
+  --bar:rgba(249,249,249,.86); --chev:#C4C4C7;
+  --font:-apple-system,BlinkMacSystemFont,"SF Pro Text","SF Pro Display","Helvetica Neue",Inter,Roboto,Arial,sans-serif;
+  --ease:cubic-bezier(.32,.72,0,1);
+  --st:env(safe-area-inset-top); --sb:env(safe-area-inset-bottom);
+}
+@media (prefers-color-scheme:dark){
+  :root{--bg:#000000;--grp:#1C1C1E;--modal:#1C1C1E;--label:#FFFFFF;--label2:#98989F;--label3:#5A5A5F;--sep:#38383A;--fill:#2C2C2E;--press:#3A3A3C;
+    --tint:#7D7AFF;--tint-s:rgba(125,122,255,.18);--red:#FF6961;--red-f:#FF453A;--red-s:rgba(255,69,58,.18);--green:#30DB5B;--green-f:#30D158;--green-s:rgba(48,209,88,.18);
+    --orange:#FFB340;--orange-f:#FF9F0A;--orange-s:rgba(255,159,10,.18);--bar:rgba(22,22,24,.82);--chev:#5A5A5F}
+  .modal .grp{background:#2C2C2E}
 }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-html,body{background:var(--bg);color:var(--ink);font-family:var(--font);font-size:16px;-webkit-font-smoothing:antialiased}
-button,input,select,textarea{font:inherit;color:inherit}
-button{border:0;background:none;cursor:pointer}
-.num{font-variant-numeric:tabular-nums}
-.app{max-width:1120px;margin:0 auto;padding:calc(12px + env(safe-area-inset-top)) 16px calc(110px + env(safe-area-inset-bottom))}
-
-/* top bar */
-.top{display:flex;align-items:center;gap:12px;padding:6px 2px 14px}
-.brand{white-space:nowrap;display:flex;align-items:center;gap:10px;font-weight:750;font-size:19px;letter-spacing:-.02em}
-.logo{width:34px;height:34px;border-radius:11px;background:linear-gradient(135deg,#6366F1,#4338CA);display:grid;place-items:center;color:#fff;font-size:16px;font-weight:800;box-shadow:0 4px 12px rgba(79,70,229,.35)}
-.tabs{display:none;margin-left:28px;gap:4px;background:var(--card);padding:5px;border-radius:14px;box-shadow:var(--sh)}
-.tabs button{padding:9px 16px;border-radius:10px;font-weight:600;font-size:14.5px;color:var(--mut)}
-.tabs button.on{background:var(--ink);color:var(--bg)}
-.spacer{flex:1}
-.syncb{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;color:var(--mut);cursor:pointer;white-space:nowrap}
-.syncb i{width:8px;height:8px;border-radius:50%;display:inline-block}
-.top .syncb{display:none}
-.hero .syncb{color:#C9CDE3}
-@media (min-width:900px){.top .syncb{display:inline-flex}}
-.lock{position:fixed;inset:0;background:var(--bg);z-index:100;display:grid;place-items:center;padding:env(safe-area-inset-top) 20px env(safe-area-inset-bottom)}
-.lk-in{text-align:center;width:100%;max-width:320px}
-.lk-t{font-size:22px;font-weight:760;letter-spacing:-.02em}.lk-s{color:var(--mut);font-size:14.5px;margin-top:4px}
-.dots{display:flex;gap:18px;justify-content:center;margin:28px 0 30px}.dots i{width:14px;height:14px;border-radius:50%;border:2px solid var(--ink2)}.dots i.on{background:var(--ink)}
-.dots.shake{animation:sh .35s}@keyframes sh{20%,60%{transform:translateX(-9px)}40%,80%{transform:translateX(9px)}}
-.pad{display:grid;grid-template-columns:repeat(3,76px);gap:16px 26px;justify-content:center}
-.pad button{width:76px;height:76px;border-radius:50%;background:var(--card);box-shadow:var(--sh);font-size:28px;font-weight:500}
-.pad button:active{background:var(--soft)}
-.ptitle{font-size:30px;font-weight:780;letter-spacing:-.03em;display:none}
-@media (max-width:899px){.brand{display:none}.top .gear{display:none}.ptitle{display:block}.top{min-height:52px}.top.bare{display:none}}
-button,.row.tap,.chip,.opt,.nav{-webkit-user-select:none;user-select:none;touch-action:manipulation}
+html,body{height:100%;background:var(--bg);color:var(--label);font-family:var(--font);font-size:17px;letter-spacing:-.41px;-webkit-font-smoothing:antialiased;overflow:hidden;overscroll-behavior:none}
+button,input,textarea{font:inherit;color:inherit;letter-spacing:inherit;border:0;background:none;outline:0}
+button{cursor:pointer;-webkit-user-select:none;user-select:none;touch-action:manipulation}
 input,textarea{-webkit-user-select:text;user-select:text}
-.icon-btn{width:42px;height:42px;border-radius:13px;background:var(--card);box-shadow:var(--sh);display:grid;place-items:center;color:var(--ink2)}
-.add-top{display:none;height:42px;padding:0 18px;border-radius:13px;background:var(--acc);color:#fff;font-weight:650;font-size:15px;box-shadow:0 6px 16px rgba(79,70,229,.3);align-items:center;gap:8px}
+.num{font-variant-numeric:tabular-nums}
+svg{display:block;flex:none}
 
-/* month switch */
-.month{display:flex;align-items:center;gap:2px;background:var(--card);border-radius:13px;box-shadow:var(--sh);height:46px;padding:0 4px}
-.month button{width:44px;height:42px;border-radius:9px;color:var(--mut);font-size:18px}
-.month button:active{background:var(--soft)}
-.month span{font-weight:650;font-size:14.5px;min-width:78px;text-align:center}
+/* ---------- app frame ---------- */
+#app{position:fixed;inset:0;max-width:680px;margin:0 auto;overflow:hidden}
+@media (min-width:700px){#app{box-shadow:0 0 0 1px var(--sep)}}
+#stack{position:absolute;inset:0;bottom:calc(50px + var(--sb))}
+.scr{position:absolute;inset:0;background:var(--bg);will-change:transform}
+.scr.under{pointer-events:none}
+.shade{position:absolute;inset:0;background:#000;opacity:0;pointer-events:none;z-index:5}
+.sc{position:absolute;inset:0;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior-y:contain;padding:calc(var(--st) + 44px) 0 32px}
 
-/* cards */
-.card{background:var(--card);border-radius:var(--r);box-shadow:var(--sh);padding:18px}
-.h{font-size:13px;font-weight:650;color:var(--mut);letter-spacing:.02em;display:flex;align-items:center;gap:8px}
-.h .count{background:var(--soft);color:var(--ink2);border-radius:20px;padding:1px 8px;font-size:12px}
-.sec{display:flex;align-items:center;justify-content:space-between;margin:26px 4px 10px}
-.sec-first{margin-top:26px}
-@media (min-width:900px){.sec-first{margin-top:4px}}
-.sec h2{font-size:18px;font-weight:720;letter-spacing:-.01em}
-.link{color:var(--acc);font-weight:600;font-size:14.5px;padding:8px 0}
+/* nav bar */
+.nb{position:absolute;left:0;right:0;top:0;height:calc(var(--st) + 44px);padding-top:var(--st);display:flex;align-items:center;z-index:4;transition:background .2s,box-shadow .2s}
+.scr.scrolled .nb,.nb.solid{background:var(--bar);-webkit-backdrop-filter:saturate(180%) blur(20px);backdrop-filter:saturate(180%) blur(20px);box-shadow:0 .5px 0 var(--sep)}
+.nb-l,.nb-r{flex:1;display:flex;align-items:center;min-width:0}
+.nb-r{justify-content:flex-end;padding-right:8px;gap:4px}
+.nb-l{padding-left:8px}
+.nb-t{flex:0 1 auto;max-width:55%;font-size:17px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;opacity:0;transition:opacity .15s}
+.scr.scrolled .nb-t,.nb.solid .nb-t{opacity:1}
+.nbb{height:44px;min-width:44px;padding:0 8px;display:flex;align-items:center;justify-content:center;gap:2px;color:var(--tint);font-size:17px}
+.nbb:active{opacity:.35}
+.nbb.bold{font-weight:600}
+.nbb:disabled{color:var(--label3)}
+.lt{font-size:34px;font-weight:700;letter-spacing:.37px;line-height:41px;padding:2px 16px 8px}
 
-.hero{background:linear-gradient(150deg,#1B1F3B 0%,#0E1325 70%);color:#fff;border-radius:24px;padding:22px;position:relative;overflow:hidden}
-.hero:after{content:"";position:absolute;right:-60px;top:-80px;width:240px;height:240px;border-radius:50%;background:radial-gradient(circle,rgba(99,102,241,.55),transparent 70%)}
-.hero .lbl{font-size:14px;color:#AEB4D0;font-weight:550}
-.hero .big{font-size:44px;font-weight:780;letter-spacing:-.03em;margin:4px 0 2px}
-.hero .sub{font-size:14.5px;color:#C9CDE3}
-.hero .row{display:flex;gap:10px;margin-top:18px;position:relative;z-index:1}
-.pill{background:rgba(255,255,255,.1);border-radius:12px;padding:8px 12px;font-size:13.5px;color:#E3E6F5}
-.pill b{color:#fff}
+/* grouped lists */
+.sec{margin:0 16px 22px}
+.gh{font-size:13px;color:var(--label2);text-transform:uppercase;letter-spacing:-.08px;padding:0 16px 7px;line-height:18px}
+.gh.big{font-size:22px;font-weight:700;color:var(--label);text-transform:none;letter-spacing:.35px;padding:0 4px 8px;display:flex;justify-content:space-between;align-items:baseline}
+.gh.big small{font-size:15px;font-weight:400;color:var(--label2);letter-spacing:-.24px}
+.gf{font-size:13px;color:var(--label2);padding:7px 16px 0;line-height:18px;letter-spacing:-.08px}
+.gf.err{color:var(--red)}
+.grp{background:var(--grp);border-radius:10px;overflow:hidden}
+.cell{position:relative;display:flex;align-items:center;gap:12px;min-height:44px;padding:0 16px;width:100%;text-align:left}
+.cell+.cell:before,.cell+.sugbox:before,.sugbox .cell:before{content:"";position:absolute;top:0;right:0;left:var(--inset,16px);height:.5px;background:var(--sep)}
+.sugbox .cell:first-child:before{left:16px}
+.cell.av-row{--inset:68px;min-height:60px;padding-top:8px;padding-bottom:8px}
+button.cell:active,.cell.tap:active{background:var(--press)}
+.cell .ct{flex:1;min-width:0;padding:11px 0}
+.cell.av-row .ct{padding:0}
+.t1{font-size:17px;line-height:22px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.t2{font-size:15px;line-height:20px;color:var(--label2);letter-spacing:-.24px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rv{color:var(--label2);white-space:nowrap;text-align:right}
+.chev{width:8px;height:13px;color:var(--chev);margin-left:-2px}
+.blue{color:var(--tint)}
+.red{color:var(--red)}
+.green{color:var(--green)}
+.cell.action{color:var(--tint)}
+.cell.danger{color:var(--red);justify-content:center}
+.ic{width:29px;height:29px;border-radius:7px;display:grid;place-items:center;color:#fff;flex:none}
+.av{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;font-weight:600;font-size:15px;letter-spacing:0;flex:none;color:#fff}
+.amt{font-weight:600;white-space:nowrap}
+.pill{font-size:12px;font-weight:600;border-radius:6px;padding:2px 7px;white-space:nowrap;letter-spacing:0}
+.pill.r{background:var(--red-s);color:var(--red)}.pill.g{background:var(--green-s);color:var(--green)}.pill.o{background:var(--orange-s);color:var(--orange)}.pill.n{background:var(--fill);color:var(--label2)}
+.capsule{height:30px;padding:0 14px;border-radius:15px;font-size:15px;font-weight:600;letter-spacing:-.24px;white-space:nowrap;flex:none}
+.capsule.red{background:var(--red-s);color:var(--red)}
+.capsule:active{opacity:.5}
+mark{background:rgba(255,204,0,.35);color:inherit;border-radius:3px}
 
-.stats{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px}
-.stat{background:var(--card);border-radius:18px;box-shadow:var(--sh);padding:15px 16px}
-.stat .v{font-size:23px;font-weight:740;letter-spacing:-.02em;margin-top:6px}
-.stat .k{font-size:13px;color:var(--mut);font-weight:550;display:flex;align-items:center;gap:6px}
-.dot{width:8px;height:8px;border-radius:50%}
+/* summary card */
+.sum{padding:16px}
+.sum .cap{font-size:13px;font-weight:600;color:var(--label2);text-transform:uppercase;letter-spacing:-.08px;display:flex;justify-content:space-between;align-items:center}
+.sum .big{font-size:40px;font-weight:700;letter-spacing:.2px;line-height:1.15;margin-top:4px}
+.sum .sub{font-size:15px;color:var(--label2);letter-spacing:-.24px}
+.grid2{display:grid;grid-template-columns:1fr 1fr}
+.grid2>div{padding:12px 16px;position:relative}
+.grid2>div:nth-child(odd):after{content:"";position:absolute;right:0;top:12px;bottom:12px;width:.5px;background:var(--sep)}
+.grid2>div:nth-child(n+3):before{content:"";position:absolute;left:16px;right:0;top:0;height:.5px;background:var(--sep)}
+.grid2>div:nth-child(4):before{left:0;right:16px}
+.grid2 .k{font-size:13px;color:var(--label2);letter-spacing:-.08px}
+.grid2 .v{font-size:22px;font-weight:600;letter-spacing:.35px;margin-top:2px}
+.mstep{display:flex;align-items:center;justify-content:space-between;min-height:44px;padding:0 4px}
+.mstep b{font-size:17px;font-weight:600}
+.mstep button{width:44px;height:44px;display:grid;place-items:center;color:var(--tint)}
+.mstep button:active{opacity:.35}
+.bar{height:6px;border-radius:3px;background:var(--fill);overflow:hidden;margin:2px 16px 14px}
+.bar i{display:block;height:100%;border-radius:3px;background:var(--tint)}
 
-/* list rows */
-.list{background:var(--card);border-radius:var(--r);box-shadow:var(--sh);overflow:hidden}
-.row{display:flex;align-items:center;gap:13px;padding:13px 16px;border-top:1px solid var(--line)}
-.row:first-child{border-top:0}
-.row.tap{cursor:pointer}
-.row.tap:active{background:var(--soft)}
-.av{width:42px;height:42px;border-radius:14px;display:grid;place-items:center;font-weight:700;font-size:14.5px;flex:none}
-.main{flex:1;min-width:0}
-.t1{font-weight:640;font-size:15.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.t2{font-size:13.5px;color:var(--mut);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.amt{font-weight:720;font-size:16px;text-align:right}
-.amt small{display:block;font-size:12.5px;color:var(--mut);font-weight:550;margin-top:1px}
-.pay-btn{height:44px;padding:0 18px;border-radius:11px;background:var(--pay);color:#fff;font-weight:650;font-size:14px;flex:none;box-shadow:0 4px 10px rgba(229,72,77,.25)}
-.tag{font-size:12px;font-weight:650;border-radius:8px;padding:3px 8px;white-space:nowrap}
-.tag.ok{background:var(--ok-s);color:var(--ok)} .tag.pay{background:var(--pay-s);color:var(--pay)} .tag.warn{background:var(--warn-s);color:var(--warn)} .tag.mut{background:var(--soft);color:var(--mut)}
-.empty{padding:26px 16px;text-align:center;color:var(--mut);font-size:14.5px}
-.empty .e{font-size:30px;margin-bottom:6px}
-
-.problems{background:var(--warn-s);border-radius:var(--r);padding:14px 16px;margin-top:12px}
-.problems .pt{font-weight:700;color:var(--warn);font-size:14.5px;display:flex;gap:8px;align-items:center}
-.problems .pi{font-size:14px;color:#7A4D06;margin-top:8px;display:flex;gap:8px;cursor:pointer}
-.problems .pi:before{content:"•";color:var(--warn)}
-
-/* search */
-.search{display:flex;align-items:center;gap:10px;background:var(--card);border-radius:16px;box-shadow:var(--sh);padding:0 16px;height:52px}
-.search input{flex:1;border:0;outline:0;background:none;font-size:16px;-webkit-appearance:none;appearance:none;min-width:0}
+/* search + segmented */
+.search{margin:0 16px 10px;height:36px;border-radius:10px;background:var(--fill);display:flex;align-items:center;gap:6px;padding:0 8px;color:var(--label2)}
+.search input{flex:1;min-width:0;height:36px;font-size:17px;-webkit-appearance:none;appearance:none;color:var(--label)}
+.search input::placeholder{color:var(--label2)}
 .search input::-webkit-search-cancel-button{-webkit-appearance:none}
-.chips{display:flex;gap:8px;overflow-x:auto;padding:12px 2px 2px;scrollbar-width:none}
-.chips::-webkit-scrollbar{display:none}
-.chip{padding:11px 16px;border-radius:20px;background:var(--card);box-shadow:var(--sh);font-size:14px;font-weight:600;color:var(--ink2);white-space:nowrap}
-.chip.on{background:var(--ink);color:var(--bg)}
+.seg{margin:0 16px 16px;display:flex;background:var(--fill);border-radius:9px;padding:2px;gap:2px}
+.seg button{flex:1;height:28px;border-radius:7px;font-size:13px;font-weight:500;letter-spacing:-.08px}
+.seg button.on{background:var(--grp);box-shadow:0 3px 8px rgba(0,0,0,.12),0 3px 1px rgba(0,0,0,.04);font-weight:600}
+@media (prefers-color-scheme:dark){.seg button.on{background:#636366}}
 
-/* page header */
-.back{display:flex;align-items:center;gap:8px;color:var(--acc);font-weight:600;font-size:15px;padding:6px 2px 14px}
-.ph{display:flex;align-items:center;gap:14px;margin-bottom:14px}
-.ph .av{width:58px;height:58px;border-radius:19px;font-size:20px}
-.ph h1{font-size:25px;font-weight:760;letter-spacing:-.02em}
-.mini{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
-.mini .stat .v{font-size:19px}
-.grp{font-size:13px;font-weight:650;color:var(--mut);padding:16px 6px 8px}
+/* person header */
+.phead{text-align:center;padding:4px 16px 18px}
+.phead .av{width:84px;height:84px;font-size:32px;margin:0 auto 10px}
+.phead h1{font-size:28px;font-weight:700;letter-spacing:.36px;line-height:34px}
+.phead .t2{white-space:normal}
+.acts{display:flex;gap:8px;margin:0 16px 22px}
+.acts button{flex:1;background:var(--grp);border-radius:10px;padding:9px 4px 8px;display:flex;flex-direction:column;align-items:center;gap:4px;color:var(--tint);font-size:12px;font-weight:500;letter-spacing:0}
+.acts button:active{background:var(--press)}
+.acts button:disabled{color:var(--label3)}
+.acts button.r{color:var(--red)}
+.acts button.r:disabled{color:var(--label3)}
 
-/* bottom nav */
-.nav{position:fixed;left:0;right:0;bottom:0;background:var(--nav);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-top:1px solid var(--line);display:flex;justify-content:space-around;align-items:center;padding:10px 8px calc(max(14px, env(safe-area-inset-bottom)) + 6px);z-index:20}
-html.ios-app .nav{padding-bottom:calc(max(34px, env(safe-area-inset-bottom)) + 14px)}
-html.ios-app .app{padding-bottom:150px}
-html.ios-app .toast{bottom:130px}
-.nav button{min-height:50px;justify-content:center;display:flex;flex-direction:column;align-items:center;gap:5px;font-size:11.5px;font-weight:600;color:var(--mut);width:64px}
-.nav button.on{color:var(--ink)}
-.nav .fab{width:56px;height:56px;border-radius:18px;background:var(--acc);color:#fff;display:grid;place-items:center;margin-top:-22px;box-shadow:0 10px 22px rgba(79,70,229,.4)}
+/* empty */
+.empty{text-align:center;color:var(--label2);padding:28px 16px;font-size:15px;letter-spacing:-.24px}
+.empty svg{margin:0 auto 8px;color:var(--label3)}
+.hero{margin:6px 16px 22px;padding:28px 20px;border-radius:14px;background:linear-gradient(140deg,#6E6BE8,#4A47C9);color:#fff;text-align:center}
+.hero .logo{width:64px;height:64px;border-radius:15px;background:rgba(255,255,255,.18);display:grid;place-items:center;margin:0 auto 14px;font-size:30px;font-weight:700}
+.hero h2{font-size:28px;font-weight:700;letter-spacing:.36px}
+.hero p{font-size:15px;opacity:.85;margin-top:4px;letter-spacing:-.24px}
+.stepn{width:29px;height:29px;border-radius:50%;display:grid;place-items:center;font-size:15px;font-weight:600;flex:none;background:var(--tint-s);color:var(--tint)}
+.stepn.done{background:var(--green-f);color:#fff}
 
-/* sheet */
-.scrim{position:fixed;inset:0;background:rgba(14,19,37,.42);opacity:0;visibility:hidden;pointer-events:none;transition:opacity .22s,visibility 0s .22s;z-index:40}
-.scrim.on{opacity:1;visibility:visible;pointer-events:auto;transition:opacity .22s}
-.sheet{position:fixed;left:0;right:0;bottom:var(--kb,0px);overscroll-behavior:contain;-webkit-overflow-scrolling:touch;background:var(--card);border-radius:26px 26px 0 0;max-height:calc(var(--vvh,100vh) - env(safe-area-inset-top) - 24px);overflow:auto;transform:translateY(105%);visibility:hidden;transition:transform .28s cubic-bezier(.2,.8,.2,1),visibility 0s .28s;z-index:50;padding:10px 20px calc(22px + env(safe-area-inset-bottom))}
-.sheet.on{transform:none;visibility:visible;transition:transform .28s cubic-bezier(.2,.8,.2,1)}
-.grab{width:40px;height:5px;border-radius:3px;background:var(--line);margin:0 auto 12px;box-shadow:0 0 0 14px transparent}
-body.sheet-open{overflow:hidden}
-.sheet h3{font-size:21px;font-weight:760;letter-spacing:-.02em;margin-bottom:4px}
-.sheet .lead{color:var(--mut);font-size:14.5px;margin-bottom:16px}
-.seg{display:flex;background:var(--soft);border-radius:13px;padding:4px;gap:4px;margin-bottom:18px;overflow-x:auto;scrollbar-width:none}
-.seg button{flex:1;padding:12px 10px;border-radius:10px;font-size:14px;font-weight:620;color:var(--mut);white-space:nowrap}
-.seg button.on{background:var(--card);color:var(--ink);box-shadow:0 1px 3px rgba(14,19,37,.1)}
-.f{margin-bottom:14px;position:relative}
-.f label{display:block;font-size:13px;font-weight:650;color:var(--ink2);margin-bottom:7px}
-.inp{width:100%;height:52px;border-radius:14px;border:1.5px solid var(--line);background:var(--field);padding:0 15px;font-size:16.5px;outline:0;transition:border-color .15s,box-shadow .15s}
-.inp:focus{border-color:var(--acc);box-shadow:0 0 0 4px var(--acc-s);background:var(--pop)}
-textarea.inp{height:76px;padding:12px 15px;resize:none}
-.sug{position:absolute;left:0;right:0;top:82px;background:var(--pop);border-radius:14px;box-shadow:0 12px 32px rgba(14,19,37,.16);z-index:5;overflow:hidden;max-height:260px;overflow-y:auto}
-.sug button{display:flex;width:100%;align-items:center;gap:12px;padding:11px 14px;text-align:left;border-top:1px solid var(--line)}
-.sug button:first-child{border-top:0}
-.sug button:hover,.sug button.hl{background:var(--soft)}
-.sug .av{width:34px;height:34px;border-radius:11px;font-size:12.5px}
-.opts{display:flex;flex-wrap:wrap;gap:8px}
-.opt{padding:12px 15px;min-height:44px;border-radius:12px;border:1.5px solid var(--line);font-weight:600;font-size:14.5px;background:var(--pop)}
-.opt.on{border-color:var(--acc);background:var(--acc-s);color:var(--acc)}
-.opt small{color:var(--mut);font-weight:550;margin-left:4px}
-.opt.on small{color:var(--acc)}
-.two{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-.toggle{display:flex;align-items:center;justify-content:space-between;height:52px;border-radius:14px;border:1.5px solid var(--line);padding:0 8px 0 15px;font-weight:600;font-size:15px}
-.sw{width:50px;height:30px;border-radius:15px;background:#D5D8E3;position:relative;transition:background .2s}
-.sw:after{content:"";position:absolute;width:24px;height:24px;border-radius:50%;background:#fff;top:3px;left:3px;transition:left .2s;box-shadow:0 1px 3px rgba(0,0,0,.2)}
-.sw.on{background:var(--ok)} .sw.on:after{left:23px}
-.preview{border-radius:16px;background:var(--soft);padding:14px 16px;display:flex;align-items:center;justify-content:space-between;margin:4px 0 16px}
-.preview .pv{font-size:26px;font-weight:780;letter-spacing:-.02em}
-.preview .pl{font-size:13.5px;color:var(--mut)}
-.btn{width:100%;height:54px;border-radius:15px;background:var(--acc);color:#fff;font-weight:700;font-size:16.5px;box-shadow:0 8px 20px rgba(79,70,229,.3)}
-.btn:disabled{background:#C7CAD9;box-shadow:none}
-.sheet.scrolly .btn:not(.ghost){position:sticky;bottom:12px;z-index:3;box-shadow:0 14px 0 14px var(--card),0 -10px 18px 8px var(--card)}
-.btn.red{background:var(--pay);box-shadow:0 8px 20px rgba(229,72,77,.3)}
-.btn.ghost{background:var(--soft);color:var(--ink);box-shadow:none;margin-top:10px}
-.hint{font-size:13px;color:var(--mut);margin-top:-6px;margin-bottom:12px}
-.err{color:var(--pay);font-size:13.5px;font-weight:600;margin:-4px 0 12px}
+/* tab bar */
+#tabbar{position:absolute;left:0;right:0;bottom:0;height:calc(50px + var(--sb));padding-bottom:var(--sb);display:flex;background:var(--bar);-webkit-backdrop-filter:saturate(180%) blur(20px);backdrop-filter:saturate(180%) blur(20px);box-shadow:0 -.5px 0 var(--sep);z-index:20}
+#tabbar button{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;padding-top:6px;gap:2px;font-size:10px;font-weight:500;letter-spacing:.1px;color:#8E8E93}
+#tabbar button.on{color:var(--tint)}
+html.ios-app #tabbar{height:calc(54px + max(var(--sb),20px));padding-bottom:max(var(--sb),20px)}
+html.ios-app #stack{bottom:calc(54px + max(var(--sb),20px))}
 
-.check{display:flex;align-items:center;gap:12px;padding:12px 2px;border-top:1px solid var(--line);cursor:pointer}
-.check:first-of-type{border-top:0}
-.box{width:24px;height:24px;border-radius:8px;border:2px solid #C8CCDA;display:grid;place-items:center;flex:none;color:#fff}
-.box.on{background:var(--ok);border-color:var(--ok)}
+/* modal page sheet */
+#scrim{position:fixed;left:0;right:0;bottom:0;top:var(--st);background:rgba(0,0,0,.4);opacity:0;visibility:hidden;transition:opacity .35s var(--ease),visibility 0s .35s;z-index:40}
+#scrim.on{opacity:1;visibility:visible;transition:opacity .35s var(--ease)}
+.modal{position:fixed;left:0;right:0;margin:0 auto;max-width:680px;top:calc(var(--st) + 10px);bottom:var(--kb,0px);background:var(--modal);border-radius:12px 12px 0 0;z-index:50;display:flex;flex-direction:column;transform:translateY(105%);visibility:hidden;transition:transform .45s var(--ease),visibility 0s .45s;box-shadow:0 -1px 0 rgba(0,0,0,.04)}
+.modal.on{transform:none;visibility:visible;transition:transform .45s var(--ease)}
+.modal.on2{z-index:52}
+.mh{display:flex;align-items:center;height:56px;padding:6px 8px 0;flex:none;position:relative}
+.mh:before{content:"";position:absolute;top:5px;left:50%;width:36px;height:5px;margin-left:-18px;border-radius:3px;background:var(--label3);opacity:.5}
+.mh .nb-t{opacity:1}
+.mb{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding:10px 0 calc(24px + var(--sb))}
+.inp{flex:1;min-width:0;height:44px;font-size:17px;color:var(--label)}
+.inp::placeholder{color:var(--label3)}
+.inp.r{text-align:right}
+textarea.inp{height:88px;padding:11px 0;resize:none;font-size:16px}
+.sw{width:51px;height:31px;border-radius:16px;background:var(--fill);position:relative;transition:background .25s;flex:none}
+.sw:after{content:"";position:absolute;width:27px;height:27px;border-radius:50%;background:#fff;top:2px;left:2px;transition:transform .25s var(--ease);box-shadow:0 3px 8px rgba(0,0,0,.15),0 1px 1px rgba(0,0,0,.16)}
+.sw.on{background:var(--green-f)}.sw.on:after{transform:translateX(20px)}
+.chips{display:flex;gap:8px;padding:8px 16px 12px;flex-wrap:wrap}
+.chips button{height:32px;padding:0 14px;border-radius:16px;background:var(--tint-s);color:var(--tint);font-size:15px;font-weight:500;letter-spacing:-.24px}
+.chips button:active{opacity:.5}
+.check{color:var(--tint);width:20px;flex:none}
+.circ{width:24px;height:24px;border-radius:50%;border:1.5px solid var(--label3);display:grid;place-items:center;flex:none;color:#fff}
+.circ.on{background:var(--tint);border-color:var(--tint)}
+.bigbtn{display:block;width:calc(100% - 32px);margin:0 16px;height:50px;border-radius:12px;background:var(--tint);color:#fff;font-size:17px;font-weight:600}
+.bigbtn.red{background:var(--red-f)}
+.bigbtn:active{opacity:.7}
+.bigbtn:disabled{background:var(--fill);color:var(--label3)}
 
-.toast span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.toast{position:fixed;left:16px;right:16px;margin:0 auto;width:fit-content;bottom:calc(96px + env(safe-area-inset-bottom));transform:translateY(30px);background:var(--ink);color:#fff;border-radius:16px;padding:13px 16px;font-size:14.5px;font-weight:550;display:flex;align-items:center;gap:14px;opacity:0;pointer-events:none;transition:all .25s;z-index:60;max-width:92vw;box-shadow:0 12px 28px rgba(14,19,37,.3)}
-.toast.on{opacity:1;transform:none;pointer-events:auto}
-.toast button{color:#A5B4FC;font-weight:700}
+/* action sheet */
+#as{position:fixed;inset:0;z-index:70;visibility:hidden}
+#as.on{visibility:visible}
+#as .bk{position:absolute;inset:0;background:rgba(0,0,0,.4);opacity:0;transition:opacity .3s}
+#as.on .bk{opacity:1}
+#as .box{position:absolute;left:8px;right:8px;bottom:calc(8px + var(--sb));max-width:560px;margin:0 auto;transform:translateY(120%);transition:transform .4s var(--ease)}
+#as.on .box{transform:none}
+#as .g{background:var(--bar);-webkit-backdrop-filter:blur(30px);backdrop-filter:blur(30px);border-radius:14px;overflow:hidden;margin-bottom:8px}
+@media (prefers-color-scheme:light){#as .g{background:rgba(255,255,255,.92)}}
+#as .hd{padding:14px 16px;text-align:center;font-size:13px;color:var(--label2);letter-spacing:-.08px}
+#as .hd b{display:block;font-weight:600;margin-bottom:2px}
+#as .g button{display:block;width:100%;height:57px;font-size:20px;color:var(--tint);letter-spacing:.38px;border-top:.5px solid var(--sep)}
+#as .g button:first-child:not(.after-hd){border-top:0}
+#as .g button.d{color:var(--red-f)}
+#as .g button.c{font-weight:600}
+#as .g button:active{background:var(--press)}
 
-.bar{height:8px;border-radius:4px;background:var(--soft);overflow:hidden;margin-top:10px}
-.bar i{display:block;height:100%;border-radius:4px;background:linear-gradient(90deg,#818CF8,#4F46E5)}
-.client{margin-bottom:14px}
-.client .top2{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
-.client .nm{font-size:18px;font-weight:740}
-.kv{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:14px}
-.kv div{background:var(--soft);border-radius:12px;padding:10px 12px}
-.kv b{display:block;font-size:16px;font-weight:720}
-.kv span{font-size:12.5px;color:var(--mut);font-weight:550}
-.site{display:flex;gap:12px;align-items:flex-start;padding:12px 0;border-top:1px solid var(--line)}
-.site:first-of-type{border-top:0}
-.people{display:flex;flex-wrap:wrap;gap:6px;margin-top:7px}
-.people span{background:var(--soft);border-radius:8px;padding:4px 9px;font-size:13px;font-weight:550;color:var(--ink2);cursor:pointer}
-.settings .row{cursor:pointer}
-.demo{font-size:12.5px;color:var(--mut);text-align:center;margin-top:28px}
+/* banner (top HUD) */
+#banner{position:fixed;left:12px;right:12px;top:calc(var(--st) + 6px);max-width:440px;margin:0 auto;z-index:80;background:var(--bar);-webkit-backdrop-filter:saturate(180%) blur(24px);backdrop-filter:saturate(180%) blur(24px);border-radius:16px;box-shadow:0 10px 30px rgba(0,0,0,.18);display:flex;align-items:center;gap:10px;padding:12px 14px;font-size:15px;font-weight:500;letter-spacing:-.24px;transform:translateY(-140%);transition:transform .45s var(--ease);pointer-events:none}
+@media (prefers-color-scheme:light){#banner{background:rgba(255,255,255,.94)}}
+#banner.on{transform:none;pointer-events:auto}
+#banner .bt{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#banner button{color:var(--tint);font-weight:600}
+#banner .bi{color:var(--green-f)}
 
-@media (prefers-color-scheme:dark){
-  :root{--bg:#0B0D14;--card:#151824;--ink:#F2F4FA;--ink2:#C9CDDB;--mut:#8C92A8;--line:#252A3A;--soft:#1D2131;--soft2:#191C29;
-    --acc:#7C83FF;--acc-s:#23264A;--pay:#FF6369;--pay-s:#3A1D22;--ok:#3DD68C;--ok-s:#15301F;--warn:#F5B544;--warn-s:#33270F;
-    --nav:rgba(21,24,36,.9);--field:#11141E;--pop:#1B1F2E;--hl:#5B4A12;--sh:0 1px 2px rgba(0,0,0,.3),0 8px 24px rgba(0,0,0,.25)}
-  .problems .pi{color:#F2D9A6}
-  .hero{background:linear-gradient(150deg,#232852 0%,#151824 75%)}
-  .toast{background:#F2F4FA;color:#0B0D14}.toast button{color:#4F46E5}
-  .sw{background:#3A3F52}
-  .btn:disabled{background:#2A2F42;color:#6B7188}
-}
-@media (min-width:900px){
-  .app{padding:24px 32px 60px}
-  .tabs,.add-top{display:flex}
-  .nav{display:none}
-  .home{display:grid;grid-template-columns:1.05fr 1fr;gap:22px;align-items:start}
-  .stats{grid-template-columns:repeat(4,1fr)}
-  .sheet{left:50%;right:auto;bottom:auto;top:50%;width:520px;border-radius:24px;transform:translate(-50%,-46%) scale(.97);opacity:0;pointer-events:none;transition:all .22s;padding:24px 26px}
-  .sheet.on{transform:translate(-50%,-50%);opacity:1;pointer-events:auto;visibility:visible}
-  .grab{display:none}
-  .toast{bottom:32px}
-  .cols{display:grid;grid-template-columns:1fr 1fr;gap:22px;align-items:start}
-}
+/* sync dot */
+.syncb{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:500;color:var(--label2);text-transform:none;letter-spacing:-.08px}
+.syncb i{width:7px;height:7px;border-radius:50%;display:inline-block}
+
+/* lock */
+.lock{position:fixed;inset:0;background:var(--bg);z-index:100;display:grid;place-items:center;padding:var(--st) 20px var(--sb)}
+.lk-in{text-align:center;width:100%;max-width:320px}
+.lk-logo{width:60px;height:60px;border-radius:14px;margin:0 auto 18px;background:linear-gradient(140deg,#6E6BE8,#4A47C9);color:#fff;display:grid;place-items:center;font-size:28px;font-weight:700}
+.lk-t{font-size:22px;font-weight:600;letter-spacing:.35px}.lk-s{color:var(--label2);font-size:15px;margin-top:4px;letter-spacing:-.24px}
+.dots{display:flex;gap:22px;justify-content:center;margin:30px 0 36px}.dots i{width:13px;height:13px;border-radius:50%;border:1.5px solid var(--label)}.dots i.on{background:var(--label)}
+.dots.shake{animation:sh .4s}@keyframes sh{20%,60%{transform:translateX(-10px)}40%,80%{transform:translateX(10px)}}
+.pad{display:grid;grid-template-columns:repeat(3,78px);gap:16px 26px;justify-content:center}
+.pad button{width:78px;height:78px;border-radius:50%;background:var(--fill);font-size:34px;font-weight:400;letter-spacing:0}
+.pad button.del{background:none;font-size:17px}
+.pad button:active{background:var(--press)}
+.lk-c{margin-top:22px;color:var(--tint);font-size:17px}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;border-top:.5px solid var(--sep)}
+.grid3>div{padding:12px 14px;position:relative}
+.grid3>div+div:before{content:"";position:absolute;left:0;top:12px;bottom:12px;width:.5px;background:var(--sep)}
+.grid3 .k{font-size:13px;color:var(--label2);letter-spacing:-.08px}
+.grid3 .v{font-size:19px;font-weight:600;margin-top:2px;white-space:nowrap}
 </style>
 </head>
 <body>
-<div class="app" id="app"></div>
-<nav class="nav" id="nav"></nav>
-<div class="scrim" id="scrim"></div>
-<div class="sheet" id="sheet"></div>
-<div class="toast" id="toast"></div>
-
+<div id="app"><div id="stack"></div><nav id="tabbar"></nav></div>
+<div id="scrim"></div>
+<div class="modal" id="modal"><div class="mb"></div></div>
+<div id="as"></div>
+<div id="banner"></div>
+<input type="file" id="restore" accept=".json" hidden onchange="restore(this.files[0]);this.value=''">
 <script>
-function hideToast(){const t=document.getElementById("toast");if(t)t.classList.remove("on")}
 if(window.navigator.standalone===true||matchMedia("(display-mode: standalone)").matches)document.documentElement.classList.add("ios-app");
-const APP_VERSION="2.2";
-/* ============ data layer ============ */
+const APP_VERSION="3.0";
 const TABLES=["clients","sites","workers","rates","entries","income"];
 const EMPTY=()=>({clients:[],sites:[],workers:[],rates:[],entries:[],income:[]});
 let DB=EMPTY();
@@ -342,7 +341,7 @@ function seed(){
   return d;
 }
 
-/* ============ helpers ============ */
+
 const $=s=>document.querySelector(s);
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const money=v=>{v=Math.round((+v||0)*100)/100;const a=Math.abs(v);return (v<0?"−$":"$")+a.toLocaleString("en-AU",{minimumFractionDigits:a%1?2:0,maximumFractionDigits:2})};
@@ -360,22 +359,6 @@ const PAL=[["#EEF0FF","#4F46E5"],["#FFF0F0","#D93D42"],["#EAF8EF","#12924A"],["#
 const avc=n=>{let h=0;for(const c of n)h=(h*31+c.charCodeAt(0))>>>0;return PAL[h%PAL.length]};
 const av=(n,extra="")=>{const[b,f]=avc(n);return `<div class="av" style="background:${b};color:${f};${extra}">${esc(initials(n))}</div>`};
 const plural=(n,w)=>n+" "+(n===1?w:(w==="person"?"people":w==="entry"?"entries":w+"s"));
-const ICON={
-  home:'<svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg>',
-  people:'<svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.6 3.4-5.5 6.5-5.5s5.7 1.9 6.5 5.5"/><circle cx="17.5" cy="9" r="2.5"/><path d="M17 14.5c2.5.2 4 1.8 4.6 4.5"/></svg>',
-  sites:'<svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M12 21s7-6.2 7-11.5A7 7 0 0 0 5 9.5C5 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg>',
-  plus:'<svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>',
-  more:'<svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-2.8 1.2V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-2.8-1.2l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1A1.7 1.7 0 0 0 3.2 14H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.2-2.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1A1.7 1.7 0 0 0 10 3.2V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 2.8 1.2l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.4 1.9 1.7 1.7 0 0 0 1.6 1h.2a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>',
-  search:'<svg width="20" height="20" fill="none" stroke="#7A8299" stroke-width="2.2" stroke-linecap="round" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>',
-  back:'<svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>',
-  check:'<svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5"/></svg>',
-  warn:'<svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" viewBox="0 0 24 24"><path d="M12 3 2 20h20z"/><path d="M12 10v4M12 17h.01"/></svg>',
-  party:'<svg width="34" height="34" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.7 2.7L16.5 9"/></svg>',
-  find:'<svg width="34" height="34" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>',
-  edit:'<svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16z"/></svg>',
-  sheet:'<svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" viewBox="0 0 24 24"><rect x="4" y="3" width="16" height="18" rx="2.5"/><path d="M4 9h16M4 15h16M10 9v12"/></svg>',
-  chev:'<svg width="18" height="18" fill="none" stroke="#B4B9C9" stroke-width="2.4" stroke-linecap="round" viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg>',
-};
 
 /* ============ calculations ============ */
 function owedByWorker(){ // all months
@@ -403,493 +386,15 @@ function problems(){
   const seenT=new Set(); return out.filter(p=>!seenT.has(p.text)&&seenT.add(p.text));
 }
 
-/* ============ state & router ============ */
-let state={tab:"home",month:null,person:null,q:"",filter:"all",siteFocus:null};
-function go(tab,extra={}){hideToast();state={...state,tab,person:null,...extra};render();window.scrollTo({top:0,behavior:"instant"})}
 
-function render(){
-  const app=$("#app");
-  const titles={home:"Overview",people:"People",sites:"Clients",more:"More"};
-  const showMonth=(state.tab==="home"||state.tab==="sites")&&!state.person&&DB.workers.length;
-  const bare=state.person||(state.tab==="home"&&!DB.workers.length);
-  const top=`<div class="top${bare?" bare":""}">
-    <div class="brand"><div class="logo">C</div><span class="bt">Crew Wages</span></div>
-    <h1 class="ptitle" style="display:flex;align-items:baseline;gap:10px">${state.person?"":(DB.workers.length||state.tab!=="home"?titles[state.tab]:"")}</h1>
-    <div class="tabs">${[["home","Home"],["people","People"],["sites","Clients & Sites"]].map(([k,l])=>`<button class="${state.tab===k?"on":""}" onclick="go('${k}')">${l}</button>`).join("")}</div>
-    <div class="spacer"></div>
-    ${online()&&!state.person?syncBadge():""}${showMonth?monthSwitch():""}
-    <button class="add-top" onclick="openAdd()">${ICON.plus.replace('width="24" height="24"','width="18" height="18"')}Add</button>
-    <button class="icon-btn gear" onclick="go('more')" aria-label="Settings">${ICON.more.replace('width="24" height="24"','width="20" height="20"')}</button>
-  </div>`;
-  let body="";
-  if(state.person) body=personPage(state.person);
-  else if(state.tab==="home") body=homePage();
-  else if(state.tab==="people") body=peoplePage();
-  else if(state.tab==="sites") body=sitesPage();
-  else if(state.tab==="more") body=morePage();
-  app.innerHTML=top+body;
-  $("#nav").innerHTML=[["home","Home",ICON.home],["people","People",ICON.people]].map(navBtn).join("")+
-    `<button onclick="openAdd()" aria-label="Add"><div class="fab">${ICON.plus}</div></button>`+
-    [["sites","Clients",ICON.sites],["more","More",ICON.more]].map(navBtn).join("");
-  const si=$("#q"); if(si&&state.focusSearch){si.focus();si.setSelectionRange(si.value.length,si.value.length)}
-}
-const navBtn=([k,l,i])=>`<button class="${state.tab===k&&!state.person?"on":""}" onclick="go('${k}')">${i}${l}</button>`;
-function monthSwitch(){return `<div class="month"><button onclick="state.month=addM(state.month,-1);render()" aria-label="Previous month">‹</button><span>${mLabel(state.month)}</span><button onclick="state.month=addM(state.month,1);render()" aria-label="Next month">›</button></div>`}
-
-/* ---------- Home ---------- */
-function homePage(){
-  const owed=owedByWorker(); const total=owed.reduce((s,o)=>s+o.amount,0);
-  const st=monthStats(state.month); const pr=problems();
-  const paidThis=DB.entries.filter(e=>e.paid&&e.month===state.month);
-  const paidTotal=paidThis.reduce((s,e)=>s+wage(e),0);
-  const left=`
-    <div class="hero">
-      <div class="lbl" style="display:flex;justify-content:space-between;position:relative;z-index:1">Still to pay ${online()?syncBadge():""}</div>
-      <div class="big num">${money(total)}</div>
-      <div class="sub">${owed.length?`${plural(owed.length,"person")} waiting · all months`:"Everyone is paid up"}</div>
-      <div class="row"><div class="pill">${mShort(state.month)} work paid <b class="num">${money(paidTotal)}</b></div><div class="pill">${plural(paidThis.length,"entry")}</div></div>
-    </div>
-    <div class="stats">
-      ${stat("Hours",st.hours.toLocaleString(),"#4F46E5")}${stat("Wages",money(st.wages),"#E5484D")}
-      ${stat("Money in",money(st.income),"#1C6FD1")}${stat("Profit",money(st.profit),"#12A150",st.profit<0)}
-    </div>
-    ${pr.length?`<div class="problems"><div class="pt">${ICON.warn} ${plural(pr.length,"thing")} to check</div>${pr.slice(0,4).map(p=>`<div class="pi" onclick="openPerson('${p.e.workerId}')">${esc(p.text)}</div>`).join("")}</div>`:""}`;
-  const right=`
-    <div class="sec sec-first"><h2>To pay</h2><span class="h"><span class="count">${owed.length}</span></span></div>
-    <div class="list">${owed.length?owed.map(o=>{const w=W(o.workerId);return `
-      <div class="row">
-        <div class="row tap" style="padding:0;border:0;flex:1;min-width:0" onclick="openPerson('${o.workerId}')">${av(w.name)}
-          <div class="main"><div class="t1">${esc(w.name)}</div><div class="t2">${[...o.sites].map(esc).join(", ")} · ${[...o.months].sort().map(mShort).join(", ")}</div></div>
-          <div class="amt num">${money(o.amount)}</div></div>
-        <button class="pay-btn" onclick="openPay('${o.workerId}')">Pay</button>
-      </div>`}).join(""):`<div class="empty"><div class="e" style="color:var(--ok)">${ICON.party}</div>Everyone is paid up</div>`}</div>
-    <div class="sec"><h2>Paid · ${mShort(state.month)} work</h2><span class="h"><span class="count">${paidThis.length}</span></span></div>
-    <div class="list">${paidThis.length?groupPaid(paidThis):`<div class="empty">Nothing paid for ${mLabel(state.month)} yet</div>`}</div>`;
-  if(!DB.workers.length){
-    const steps=[["client","Add your first client","e.g. Ken",DB.clients.length],["site","Add a site","Where the work happens",DB.sites.length],["worker","Add a worker","Name, site and pay rate",DB.workers.length]];
-    return `<div class="hero"><div class="lbl">Welcome to</div><div class="big">Crew Wages</div><div class="sub">Three quick steps and you're ready to add hours.</div></div>
-    <div class="list" style="margin-top:14px">${steps.map(([k,t,d,done],i)=>`<div class="row tap" onclick="openAdd('${k}')"><div class="av" style="background:${done?"var(--ok-s)":"var(--acc-s)"};color:${done?"var(--ok)":"var(--acc)"}">${done?"✓":i+1}</div><div class="main"><div class="t1">${t}</div><div class="t2">${d}</div></div>${ICON.chev}</div>`).join("")}</div>
-    <button class="btn ghost" style="margin-top:14px" onclick="resetDemo(true,true)">Or try it with sample data</button>`;
-  }
-  return `<div class="home"><div>${left}</div><div>${right}</div></div>`;
-}
-const stat=(k,v,c,neg)=>`<div class="stat"><div class="k"><span class="dot" style="background:${c}"></span>${k}</div><div class="v num"${neg?' style="color:var(--pay)"':""}>${v}</div></div>`;
-function groupPaid(es){
-  const g={}; es.forEach(e=>{(g[e.workerId]||(g[e.workerId]={id:e.workerId,amt:0,h:0,sites:new Set()})); g[e.workerId].amt+=wage(e); g[e.workerId].h+= +e.hours; g[e.workerId].sites.add(Sx(e.siteId).name)});
-  return Object.values(g).sort((a,b)=>b.amt-a.amt).slice(0,8).map(x=>`<div class="row tap" onclick="openPerson('${x.id}')">${av(W(x.id).name)}<div class="main"><div class="t1">${esc(W(x.id).name)}</div><div class="t2">${[...x.sites].map(esc).join(", ")} · ${x.h} hrs</div></div><span class="tag ok">Paid</span><div class="amt num" style="min-width:76px">${money(x.amt)}</div></div>`).join("")
-    + (Object.keys(g).length>8?`<div class="row tap" style="justify-content:center;color:var(--acc);font-weight:600;font-size:14.5px" onclick="go('people')">See all ${Object.keys(g).length}</div>`:"");
-}
-
-/* ---------- People ---------- */
-function peoplePage(){
-  const q=state.q.trim().toLowerCase(); const owed=Object.fromEntries(owedByWorker().map(o=>[o.workerId,o.amount]));
-  let ws=DB.workers.filter(w=>w.active!==false);
-  if(q) ws=ws.filter(w=>{
-    if(w.name.toLowerCase().includes(q))return true;
-    return DB.rates.some(r=>r.workerId===w.id&&(Sx(r.siteId).name.toLowerCase().includes(q)||C(Sx(r.siteId).clientId).name.toLowerCase().includes(q)));
-  });
-  if(state.filter==="owed") ws=ws.filter(w=>owed[w.id]);
-  if(state.filter==="paid") ws=ws.filter(w=>!owed[w.id]);
-  ws.sort((a,b)=>(owed[b.id]||0)-(owed[a.id]||0)||a.name.localeCompare(b.name));
-  const nOwed=DB.workers.filter(w=>owed[w.id]).length;
-  return `
-    <div class="search">${ICON.search}<input id="q" type="search" enterkeyhint="search" placeholder="Search name, site or client" value="${esc(state.q)}" oninput="state.q=this.value;state.focusSearch=true;render()" autocomplete="off"></div>
-    <div class="chips">${[["all","Everyone"],["owed",`Waiting for pay · ${nOwed}`],["paid","All paid"]].map(([k,l])=>`<button class="chip ${state.filter===k?"on":""}" onclick="state.filter='${k}';render()">${l}</button>`).join("")}</div>
-    <div class="list" style="margin-top:14px">${ws.length?ws.map(w=>{
-      const sites=DB.rates.filter(r=>r.workerId===w.id).map(r=>Sx(r.siteId).name);
-      return `<div class="row tap" onclick="openPerson('${w.id}')">${av(w.name)}<div class="main"><div class="t1">${hl(w.name,q)}</div><div class="t2">${sites.length?sites.map(s=>hl(s,q)).join(", "):"No site yet"}</div></div>
-        ${owed[w.id]?`<div class="amt num" style="color:var(--pay)">${money(owed[w.id])}<small>to pay</small></div>`:`<span class="tag ok">Paid up</span>`}${ICON.chev}</div>`}).join(""):`<div class="empty"><div class="e" style="color:var(--mut)">${ICON.find}</div>No one matches “${esc(state.q)}”</div>`}</div>`;
-}
-function hl(text,q){const t=esc(text); if(!q)return t; const i=text.toLowerCase().indexOf(q); if(i<0)return t; return esc(text.slice(0,i))+`<mark style="background:var(--hl);color:inherit;border-radius:3px">${esc(text.slice(i,i+q.length))}</mark>`+esc(text.slice(i+q.length))}
-
-function openPerson(id){state.person=id;state.focusSearch=false;render();window.scrollTo({top:0,behavior:"instant"})}
-function personPage(id){
-  const w=W(id); const es=DB.entries.filter(e=>e.workerId===id).sort((a,b)=>b.month.localeCompare(a.month));
-  const hours=es.reduce((s,e)=>s+ +e.hours,0), total=es.reduce((s,e)=>s+wage(e),0), owe=es.filter(e=>!e.paid).reduce((s,e)=>s+wage(e),0);
-  const rates=DB.rates.filter(r=>r.workerId===id);
-  const pr=problems().filter(p=>p.e.workerId===id);
-  const byM={}; es.forEach(e=>(byM[e.month]=byM[e.month]||[]).push(e));
-  return `
-    <div style="display:flex;justify-content:space-between;align-items:center"><button class="back" onclick="hideToast();state.person=null;render()">${ICON.back}Back</button><button class="link" style="display:flex;gap:6px;align-items:center;padding:6px 2px 14px" onclick="editWorker('${id}')">${ICON.edit}Edit</button></div>
-    <div class="ph">${av(w.name)}<div style="flex:1;min-width:0"><h1>${esc(w.name)}${w.active===false?' <span class="tag mut" style="vertical-align:middle">Left</span>':""}</h1><div class="t2">${rates.length?rates.map(r=>esc(Sx(r.siteId).name)).join(" · "):"No site yet"}</div></div></div>
-    <div class="mini">${stat("Hours",hours.toLocaleString(),"#4F46E5")}${stat("Earned",money(total),"#12A150")}${stat("To pay",money(owe),owe?"#E5484D":"#C7CAD9")}</div>
-    ${owe?`<button class="btn red" style="margin-top:14px" onclick="openPay('${id}')">Pay ${money(owe)}</button>`:""}
-    ${pr.length?`<div class="problems">${pr.map(p=>`<div class="pi" style="cursor:default">${esc(p.text)}</div>`).join("")}</div>`:""}
-    <div class="cols">
-      <div>
-        <div class="sec"><h2>Works at</h2><button class="link" onclick="openAdd('worker','${id}')">+ Add site</button></div>
-        <div class="list">${rates.length?rates.map(r=>{const s=Sx(r.siteId); const mates=DB.rates.filter(x=>x.siteId===r.siteId&&x.workerId!==id).map(x=>W(x.workerId));
-          return `<div class="row"><div class="main"><div class="t1">${esc(s.name)} <span class="tag mut" style="margin-left:6px">${esc(C(s.clientId).name)}</span></div>
-          <div class="people">${mates.length?mates.map(m=>`<span onclick="openPerson('${m.id}')">${esc(m.name)}</span>`).join(""):`<span style="cursor:default;color:var(--mut)">Works here alone</span>`}</div></div>
-          <button class="amt num" style="text-align:right" onclick="editRate('${r.id}')">${money(r.rate)}<small style="color:var(--acc)">per hour · edit</small></button></div>`}).join(""):`<div class="empty">Not linked to a site yet</div>`}</div>
-      </div>
-      <div>
-        <div class="sec"><h2>History</h2><button class="link" onclick="openAdd('hours','${id}')">+ Add hours</button></div>
-        <div class="list">${es.length?Object.keys(byM).map(m=>`<div class="grp" style="background:var(--soft2)">${mLabel(m)}</div>`+byM[m].map(e=>`
-          <div class="row tap" onclick="openEntry('${e.id}')"><div class="main"><div class="t1">${esc(Sx(e.siteId).name)}</div><div class="t2">${e.hours} hrs × ${money(e.rate)}${e.notes?" · "+esc(e.notes):""}</div></div>
-          <span class="tag ${e.paid?"ok":"pay"}">${e.paid?"Paid":"To pay"}</span><div class="amt num" style="min-width:80px">${money(wage(e))}</div></div>`).join("")).join(""):`<div class="empty">No hours yet</div>`}</div>
-      </div>
-    </div>`;
-}
-
-/* ---------- Clients & sites ---------- */
-function sitesPage(){
-  const m=state.month;
-  return `
-  <div class="cols">${DB.clients.map(c=>{
-    const sites=DB.sites.filter(s=>s.clientId===c.id);
-    const es=DB.entries.filter(e=>e.month===m&&sites.some(s=>s.id===e.siteId));
-    const wages=es.reduce((s,e)=>s+wage(e),0), inc=DB.income.filter(i=>i.clientId===c.id&&i.month===m).reduce((s,i)=>s+ +i.amount,0);
-    const pct=inc?Math.min(100,wages/inc*100):0;
-    return `<div class="card client">
-      <div class="top2"><button style="text-align:left" onclick="editClient('${c.id}')"><div class="nm">${esc(c.name)}</div><div class="t2">${plural(sites.length,"site")} · <span style="color:var(--acc)">edit</span></div></button><button class="link" onclick="openAdd('money','${c.id}')">+ Money in</button></div>
-      <div class="kv"><div onclick="moneyList('${c.id}')" style="cursor:pointer"><b class="num">${money(inc)}</b><span>Money in ›</span></div><div><b class="num">${money(wages)}</b><span>Wages</span></div><div><b class="num" style="color:${inc-wages>=0?"var(--ok)":"var(--pay)"}">${money(inc-wages)}</b><span>Profit</span></div></div>
-      ${inc?`<div class="bar"><i style="width:${pct}%"></i></div><div class="t2" style="margin-top:6px">${Math.round(pct)}% of money in goes on wages</div>`:""}
-      <div style="margin-top:12px">${sites.map(s=>{const ws=[...new Set(DB.rates.filter(r=>r.siteId===s.id).map(r=>r.workerId))];const h=es.filter(e=>e.siteId===s.id).reduce((a,e)=>a+ +e.hours,0);
-        return `<div class="site"><div style="flex:1"><button class="t1" style="text-align:left" onclick="editSite('${s.id}')">${esc(s.name)}</button><div class="people">${ws.length?ws.map(id=>`<span onclick="openPerson('${id}')">${esc(W(id).name)}</span>`).join(""):`<span style="cursor:default;color:var(--mut)">No one yet</span>`}</div></div><div class="amt num">${h}<small>hrs</small></div></div>`}).join("")||`<div class="empty">No sites yet</div>`}</div>
-    </div>`}).join("")}</div>
-  ${DB.clients.length?"":`<div class="card empty">No clients yet</div>`}
-  <div class="two" style="margin-top:4px"><button class="btn ghost" style="margin-top:0" onclick="openAdd('client')">+ New client</button><button class="btn ghost" style="margin-top:0" onclick="openAdd('site')">+ New site</button></div>`;
-}
-
-/* ---------- More ---------- */
-function morePage(){
-  return `
-  ${online()?`<div class="list settings" style="margin-bottom:22px">
-    <div class="row" style="cursor:default"><div class="av" style="background:var(--ok-s);color:var(--ok)">${ICON.sheet}</div><div class="main"><div class="t1">Google Sheet</div><div class="t2">${syncBadge()}</div></div><button class="link" onclick="pull()">Sync now</button></div>
-    ${CONN.s?`<div class="row" onclick="window.open('${CONN.s}','_blank')"><div class="main"><div class="t1">Open my Google Sheet</div><div class="t2">See or download everything as Excel</div></div>${ICON.chev}</div>`:""}
-    <div class="row" onclick="showConnectQR()"><div class="main"><div class="t1">Connect another device</div><div class="t2">Show a QR code for your phone or laptop</div></div>${ICON.chev}</div>
-    <div class="row" onclick="setPin(()=>toast('✓ PIN changed'))"><div class="main"><div class="t1">Change PIN</div></div>${ICON.chev}</div>
-    <div class="row" onclick="disconnect()"><div class="main"><div class="t1" style="color:var(--pay)">Disconnect this device</div><div class="t2">Your data stays in the Sheet</div></div>${ICON.chev}</div>
-  </div>`:`<div class="list settings" style="margin-bottom:22px"><div class="row" onclick="openConnect()"><div class="av" style="background:var(--acc-s);color:var(--acc)">${ICON.sheet}</div><div class="main"><div class="t1">Connect to Google Sheet</div><div class="t2">Use on phone and laptop</div></div>${ICON.chev}</div></div>`}
-  <div class="list settings">
-    <div class="row" onclick="exportCSV()"><div class="main"><div class="t1">Download for Excel</div><div class="t2">All hours as a spreadsheet file</div></div>${ICON.chev}</div>
-    <div class="row" onclick="backup()"><div class="main"><div class="t1">Download a backup</div><div class="t2">One file with everything</div></div>${ICON.chev}</div>
-    <div class="row" onclick="$('#restore').click()"><div class="main"><div class="t1">Restore a backup</div><div class="t2">Replace everything with a backup file</div></div>${ICON.chev}</div>
-    ${online()?"":`<div class="row" onclick="resetDemo(true)"><div class="main"><div class="t1">Load sample data</div><div class="t2">Try the app with example workers</div></div>${ICON.chev}</div>
-    <div class="row" onclick="resetDemo(false)"><div class="main"><div class="t1" style="color:var(--pay)">Clear all data</div><div class="t2">Start empty</div></div>${ICON.chev}</div>`}
-  </div>
-  <input type="file" id="restore" accept=".json" hidden onchange="restore(this.files[0])">
-  <div class="sec"><h2>Workers</h2><button class="link" onclick="openAdd('worker')">+ New worker</button></div>
-  <div class="list">${DB.workers.slice().sort((a,b)=>a.name.localeCompare(b.name)).map(w=>`<div class="row tap" onclick="openPerson('${w.id}')">${av(w.name)}<div class="main"><div class="t1">${esc(w.name)}</div></div>${w.active===false?'<span class="tag mut">Left</span>':""}${ICON.chev}</div>`).join("")}</div>
-  <div class="demo">${online()?"Saved to your Google Sheet":"Not connected — data is saved on this device only"} · v${APP_VERSION}</div>`;
-}
-
-/* ============ sheets ============ */
-let sheetClose=null;
-function openSheet(html,onClose){$("#sheet").innerHTML=`<div class="grab"></div>`+html;$("#sheet").classList.add("on");$("#scrim").classList.add("on");sheetClose=onClose||null;$("#sheet").scrollTop=0}
-function closeSheet(){document.body.classList.remove("sheet-open");const sh=$("#sheet");if(sh.style.transform){sh.style.transition="transform .25s";sh.style.transform="translateY(110%)";setTimeout(()=>{sh.style.transition="";sh.style.transform=""},300)}sh.classList.remove("on");$("#scrim").classList.remove("on");if(sheetClose)sheetClose()}
-$("#scrim").onclick=closeSheet;
-document.addEventListener("touchstart",()=>{},{passive:true});
-(function(){const sh=document.getElementById("sheet");const chk=()=>{sh.classList.toggle("scrolly",sh.scrollHeight>sh.clientHeight+4);document.body.classList.toggle("sheet-open",sh.classList.contains("on"))};
-  new MutationObserver(chk).observe(sh,{attributes:true,attributeFilter:["class"]});
-  /* keyboard: keep the panel above it */
-  const vv=window.visualViewport;const fit=()=>{if(!vv)return;const kb=Math.max(0,window.innerHeight-vv.height-vv.offsetTop);document.documentElement.style.setProperty("--kb",kb+"px");document.documentElement.style.setProperty("--vvh",vv.height+"px");chk()};
-  if(vv){vv.addEventListener("resize",fit);vv.addEventListener("scroll",fit);fit()}
-  /* swipe down to close, like iOS */
-  let y0=null,dy=0;sh.addEventListener("touchstart",e=>{if(sh.scrollTop<=0&&!e.target.closest("input,textarea,.sug")){y0=e.touches[0].clientY;dy=0}else y0=null},{passive:true});
-  sh.addEventListener("touchmove",e=>{if(y0==null)return;dy=e.touches[0].clientY-y0;if(dy>0){sh.style.transition="none";sh.style.transform=`translateY(${dy}px)`}},{passive:true});
-  sh.addEventListener("touchend",()=>{if(y0==null)return;sh.style.transition="";if(dy>110)closeSheet();else sh.style.transform="";y0=null});
-  new MutationObserver(()=>requestAnimationFrame(chk)).observe(sh,{childList:true,subtree:true});window.addEventListener("resize",chk)})();
-document.addEventListener("keydown",e=>{if(e.key==="Escape")closeSheet()});
-
-let toastT;
-function toast(msg,undo){const t=$("#toast");t.innerHTML=`<span>${msg}</span>`+(undo?`<button id="undo">Undo</button>`:"");t.classList.add("on");if(undo)$("#undo").onclick=()=>{undo();t.classList.remove("on")};clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove("on"),undo?4500:2400)}
-
-/* ---- Add ---- */
-let F={};
-function openAdd(kind="hours",ref=null){hideToast();
-  F={kind,month:state.month||nowM(),workerId:null,siteId:null,hours:"",paid:false,notes:"",name:"",rate:"",clientId:null,amount:"",q:""};
-  if(kind==="hours"&&ref){F.workerId=ref;const rs=DB.rates.filter(r=>r.workerId===ref);if(rs.length===1)F.siteId=rs[0].siteId;F.q=W(ref).name}
-  if(kind==="worker"&&ref){F.workerId=ref;F.name=W(ref).name}
-  if(kind==="money"&&ref)F.clientId=ref;
-  drawAdd(); $("#sheet").classList.add("on");$("#scrim").classList.add("on");sheetClose=null;$("#sheet").scrollTop=0;
-  setTimeout(()=>{const f=$("#sheet input");if(f&&kind==="hours"&&!F.workerId)f.focus()},280);
-}
-function drawAdd(){
-  const segs=[["hours","Hours"],["worker","Worker"],["site","Site"],["client","Client"],["money","Money in"]];
-  let body="";
-  if(F.kind==="hours") body=formHours();
-  if(F.kind==="worker") body=formWorker();
-  if(F.kind==="site") body=formSite();
-  if(F.kind==="client") body=formClient();
-  if(F.kind==="money") body=formMoney();
-  $("#sheet").innerHTML=`<div class="grab"></div><h3>Add</h3><div class="seg">${segs.map(([k,l])=>`<button class="${F.kind===k?"on":""}" onclick="F.kind='${k}';F.err='';drawAdd()">${l}</button>`).join("")}</div>${body}`;
-}
-function monthField(){return `<div class="f"><label>Month</label><div class="month" style="box-shadow:none;border:1.5px solid var(--line);height:52px;border-radius:14px;justify-content:space-between"><button onclick="F.month=addM(F.month,-1);drawAdd()">‹</button><span>${mLabel(F.month)}</span><button onclick="F.month=addM(F.month,1);drawAdd()">›</button></div></div>`}
-function formHours(){
-  const rs=F.workerId?DB.rates.filter(r=>r.workerId===F.workerId):[];
-  const rate=(rs.find(r=>r.siteId===F.siteId)||{}).rate||0;
-  const h=parseFloat(F.hours)||0;
-  const dup=F.workerId&&F.siteId&&DB.entries.some(e=>e.workerId===F.workerId&&e.siteId===F.siteId&&e.month===F.month);
-  return `${monthField()}
-  <div class="f"><label>Who worked?</label><input class="inp" id="wq" placeholder="Start typing a name" autocapitalize="words" autocorrect="off" spellcheck="false" value="${esc(F.q)}" autocomplete="off" oninput="F.q=this.value;F.workerId=null;F.siteId=null;sugWorkers()" onfocus="sugWorkers()"><div id="sug"></div></div>
-  ${F.workerId?`<div class="f"><label>Which site?</label><div class="opts">${rs.length?rs.map(r=>`<button class="opt ${F.siteId===r.siteId?"on":""}" onclick="F.siteId='${r.siteId}';drawAdd()">${esc(Sx(r.siteId).name)}<small>${money(r.rate)}/hr</small></button>`).join(""):`<span class="t2">No site yet — <button class="link" onclick="openAdd('worker','${F.workerId}')">add one</button></span>`}</div></div>`:""}
-  <div class="two">
-    <div class="f"><label>Hours</label><input class="inp num" id="hrs" inputmode="decimal" placeholder="0" value="${esc(F.hours)}" oninput="F.hours=this.value.replace(/[^0-9.]/g,'');this.value=F.hours;updPreview()"></div>
-    <div class="f"><label>Already paid?</label><button class="toggle" style="width:100%" onclick="F.paid=!F.paid;drawAdd()"><span>${F.paid?"Yes":"Not yet"}</span><span class="sw ${F.paid?"on":""}"></span></button></div>
-  </div>
-  <div class="opts" style="margin:-4px 0 14px">${[8,16,38,40].map(n=>`<button class="opt" style="padding:9px 14px;font-size:14px" onclick="F.hours='${n}';drawAdd()">${n} hrs</button>`).join("")}</div>
-  <div class="f"><label>Note <span style="color:var(--mut);font-weight:500">(optional)</span></label><input class="inp" placeholder="e.g. Public holiday" value="${esc(F.notes)}" oninput="F.notes=this.value"></div>
-  <div class="preview" id="pv"><div><div class="pl">${F.siteId?`${h||0} hrs × ${money(rate)}`:"Pay"}</div><div class="pv num">${money(h*rate)}</div></div><span class="tag ${F.paid?"ok":"pay"}">${F.paid?"Paid":"Goes to To pay"}</span></div>
-<div id="why">${whyHtml(h)}</div>
-  ${dup?`<div class="err">⚠ ${esc(W(F.workerId).name)} already has hours at this site for ${mLabel(F.month)}.</div>`:""}
-  <button class="btn" ${F.workerId&&F.siteId&&h>0?"":"disabled"} onclick="saveHours()">Save hours</button>`;
-}
-function whyHtml(h){return (!F.workerId?`<div class="hint">Pick who worked to continue</div>`:!F.siteId?`<div class="hint">Pick the site to continue</div>`:!(h>0)?`<div class="hint">Type the hours to continue</div>`:"")+(h>250?`<div class="err">⚠ ${h} hours in one month is a lot — please double-check.</div>`:"")}
-function updPreview(){const wy=$("#why");if(wy)wy.innerHTML=whyHtml(parseFloat(F.hours)||0);const rs=DB.rates.filter(r=>r.workerId===F.workerId);const rate=(rs.find(r=>r.siteId===F.siteId)||{}).rate||0;const h=parseFloat(F.hours)||0;
-  const pv=$("#pv"); if(pv){pv.querySelector(".pl").textContent=F.siteId?`${h} hrs × ${money(rate)}`:"Pay";pv.querySelector(".pv").textContent=money(h*rate)}
-  const b=$("#sheet .btn"); if(b)b.disabled=!(F.workerId&&F.siteId&&h>0)}
-function sugWorkers(){
-  const q=F.q.trim().toLowerCase(); const box=$("#sug"); if(!box)return;
-  let ws=DB.workers.filter(w=>w.active!==false&&(!q||w.name.toLowerCase().includes(q))).slice(0,6);
-  if(!ws.length){box.innerHTML=`<div class="sug"><button onclick="F.kind='worker';F.name=F.q;drawAdd()"><div class="main"><div class="t1">+ Add “${esc(F.q)}” as a new worker</div></div></button></div>`;return}
-  box.innerHTML=`<div class="sug">${ws.map(w=>`<button onmousedown="event.preventDefault()" onclick="pickW('${w.id}')">${av(w.name)}<div class="main"><div class="t1">${esc(w.name)}</div><div class="t2">${DB.rates.filter(r=>r.workerId===w.id).map(r=>esc(Sx(r.siteId).name)).join(", ")}</div></div></button>`).join("")}</div>`;
-}
-function pickW(id){F.workerId=id;F.q=W(id).name;const rs=DB.rates.filter(r=>r.workerId===id);F.siteId=rs.length===1?rs[0].siteId:null;drawAdd();setTimeout(()=>{if(F.siteId)$("#hrs")?.focus()},50)}
-async function saveHours(){
-  const rate=(DB.rates.find(r=>r.workerId===F.workerId&&r.siteId===F.siteId)||{}).rate||0;
-  const e={id:uid(),month:F.month,workerId:F.workerId,siteId:F.siteId,hours:parseFloat(F.hours),rate,paid:F.paid,paidAt:F.paid?new Date().toISOString().slice(0,10):"",notes:F.notes,createdAt:new Date().toISOString().slice(0,10)};
-  await put("entries",e); closeSheet(); render();
-  toast(`✓ Saved · ${esc(W(e.workerId).name)} · ${e.hours} hrs · ${money(wage(e))}`,async()=>{await del("entries",e.id);render()});
-}
-function formWorker(){
-  const existing=F.workerId?W(F.workerId):null;
-  return `<div class="f"><label>Name</label><input class="inp" placeholder="Full name" autocapitalize="words" autocomplete="off" enterkeyhint="next" value="${esc(F.name)}" oninput="F.name=this.value" ${existing?"disabled":""}></div>
-  <div class="f"><label>Works at</label><div class="opts">${DB.sites.length?"":`<span class="t2">No sites yet — <button class="link" onclick="F.kind='site';F.name='';drawAdd()">add a site first</button></span>`}${DB.sites.map(s=>`<button class="opt ${F.siteId===s.id?"on":""}" onclick="F.siteId='${s.id}';drawAdd()">${esc(s.name)}</button>`).join("")}</div></div>
-  <div class="f"><label>Pay rate ($ per hour)</label><input class="inp num" inputmode="decimal" placeholder="e.g. 25" value="${esc(F.rate)}" oninput="F.rate=this.value"></div>
-  <div class="hint">Works at more than one site? Save, then add the next site from their page.</div>
-  ${F.err?`<div class="err">${F.err}</div>`:""}
-  <button class="btn" onclick="saveWorker()">${existing?"Add site":"Save worker"}</button>`;
-}
-async function saveWorker(){
-  const name=F.name.trim(), rate=parseFloat(F.rate);
-  if(!name)return F.err="Type a name",drawAdd(); if(!F.siteId)return F.err="Pick a site",drawAdd(); if(!(rate>0))return F.err="Type the pay rate",drawAdd();
-  let w=F.workerId?W(F.workerId):DB.workers.find(x=>x.name.toLowerCase()===name.toLowerCase());
-  if(!w){w={id:uid(),name,active:true};await put("workers",w)}
-  const ex=DB.rates.find(r=>r.workerId===w.id&&r.siteId===F.siteId);
-  await put("rates",{id:ex?ex.id:uid(),workerId:w.id,siteId:F.siteId,rate});
-  closeSheet(); render(); toast(`✓ ${esc(w.name)} · ${esc(Sx(F.siteId).name)} · ${money(rate)}/hr`);
-}
-function formSite(){
-  return `<div class="f"><label>Site name</label><input class="inp" placeholder="e.g. Parramatta" autocapitalize="words" autocomplete="off" value="${esc(F.name)}" oninput="F.name=this.value"></div>
-  <div class="f"><label>Client</label><div class="opts">${DB.clients.map(c=>`<button class="opt ${F.clientId===c.id?"on":""}" onclick="F.clientId='${c.id}';drawAdd()">${esc(c.name)}</button>`).join("")}<button class="opt" onclick="F.kind='client';drawAdd()">+ New client</button></div></div>
-  ${F.err?`<div class="err">${F.err}</div>`:""}<button class="btn" onclick="saveSite()">Save site</button>`;
-}
-async function saveSite(){
-  const name=F.name.trim(); if(!name)return F.err="Type a site name",drawAdd(); if(!F.clientId)return F.err="Pick a client",drawAdd();
-  if(DB.sites.some(s=>s.name.toLowerCase()===name.toLowerCase()))return F.err="That site already exists",drawAdd();
-  await put("sites",{id:uid(),name,clientId:F.clientId}); closeSheet(); render(); toast(`✓ Site added · ${esc(name)}`);
-}
-function formClient(){
-  return `<div class="f"><label>Client name</label><input class="inp" placeholder="e.g. Bupa" autocapitalize="words" autocomplete="off" value="${esc(F.name)}" oninput="F.name=this.value"></div>
-  ${F.err?`<div class="err">${F.err}</div>`:""}<button class="btn" onclick="saveClient()">Save client</button>`;
-}
-async function saveClient(){
-  const name=F.name.trim(); if(!name)return F.err="Type a name",drawAdd();
-  if(DB.clients.some(c=>c.name.toLowerCase()===name.toLowerCase()))return F.err="That client already exists",drawAdd();
-  const c={id:uid(),name}; await put("clients",c); F={...F,kind:"site",clientId:c.id,name:"",err:""}; drawAdd(); toast(`✓ Client added · ${esc(name)} — now add a site`);
-}
-function formMoney(){
-  return `${monthField()}<div class="f"><label>From client</label><div class="opts">${DB.clients.map(c=>`<button class="opt ${F.clientId===c.id?"on":""}" onclick="F.clientId='${c.id}';drawAdd()">${esc(c.name)}</button>`).join("")}</div></div>
-  <div class="f"><label>Amount ($)</label><input class="inp num" inputmode="decimal" placeholder="0" value="${esc(F.amount)}" oninput="F.amount=this.value"></div>
-  ${F.err?`<div class="err">${F.err}</div>`:""}<button class="btn" onclick="saveMoney()">Save money in</button>`;
-}
-async function saveMoney(){
-  const a=parseFloat(F.amount); if(!F.clientId)return F.err="Pick a client",drawAdd(); if(!(a>0))return F.err="Type the amount",drawAdd();
-  await put("income",{id:uid(),clientId:F.clientId,month:F.month,amount:a,note:""}); closeSheet(); render(); toast(`✓ ${money(a)} from ${esc(C(F.clientId).name)} · ${mLabel(F.month)}`);
-}
-
-/* ---- Pay ---- */
-let P={};
-function openPay(wid){hideToast();
-  const es=DB.entries.filter(e=>e.workerId===wid&&!e.paid&&e.hours>0&&e.rate>0).sort((a,b)=>a.month.localeCompare(b.month));
-  P={wid,sel:new Set(es.map(e=>e.id)),es}; drawPay(); $("#sheet").classList.add("on");$("#scrim").classList.add("on");sheetClose=null;
-}
-function drawPay(){
-  const w=W(P.wid); const tot=P.es.filter(e=>P.sel.has(e.id)).reduce((s,e)=>s+wage(e),0);
-  $("#sheet").innerHTML=`<div class="grab"></div>
-  <div style="display:flex;gap:14px;align-items:center;margin-bottom:12px">${av(w.name)}<div><h3 style="margin:0">Pay ${esc(w.name)}</h3><div class="t2">${P.es.length>1?"Untick anything you're not paying today":"Check it, then mark as paid"}</div></div></div>
-  <div style="margin-bottom:16px">${P.es.map(e=>`<div class="check" onclick="P.sel.has('${e.id}')?P.sel.delete('${e.id}'):P.sel.add('${e.id}');drawPay()"><div class="box ${P.sel.has(e.id)?"on":""}">${P.sel.has(e.id)?ICON.check:""}</div><div class="main"><div class="t1">${esc(Sx(e.siteId).name)} · ${mLabel(e.month)}</div><div class="t2">${e.hours} hrs × ${money(e.rate)}</div></div><div class="amt num">${money(wage(e))}</div></div>`).join("")}</div>
-  <button class="btn red" ${P.sel.size?"":"disabled"} onclick="doPay()">Mark ${money(tot)} as paid</button>
-  <button class="btn ghost" onclick="closeSheet()">Cancel</button>`;
-}
-async function doPay(){
-  const today=new Date().toISOString().slice(0,10);
-  const rows=P.es.filter(e=>P.sel.has(e.id)).map(e=>({...e,paid:true,paidAt:today}));
-  const before=P.es.filter(e=>P.sel.has(e.id)).map(e=>({...e}));
-  const tot=rows.reduce((s,e)=>s+wage(e),0), name=W(P.wid).name;
-  await putMany("entries",rows); closeSheet(); render();
-  toast(`✓ ${esc(name)} paid ${money(tot)}`,async()=>{await putMany("entries",before);render()});
-}
-
-/* ---- Edit entry ---- */
-function openEntry(id){hideToast();
-  const e=DB.entries.find(x=>x.id===id); if(!e)return;
-  F={kind:"edit",e:{...e}};
-  const draw=()=>{const x=F.e;$("#sheet").innerHTML=`<div class="grab"></div><h3>${esc(W(x.workerId).name)}</h3><div class="lead">${esc(Sx(x.siteId).name)} · ${mLabel(x.month)}</div>
-    <div class="two"><div class="f"><label>Hours</label><input class="inp num" inputmode="decimal" value="${x.hours}" oninput="F.e.hours=parseFloat(this.value)||0"></div>
-    <div class="f"><label>Rate ($/hr)</label><input class="inp num" inputmode="decimal" value="${x.rate}" oninput="F.e.rate=parseFloat(this.value)||0"></div></div>
-    <div class="f"><label>Paid?</label><button class="toggle" style="width:100%" id="pt"><span>${x.paid?"Paid":"Not yet"}</span><span class="sw ${x.paid?"on":""}"></span></button></div>
-    <div class="f"><label>Note</label><input class="inp" value="${esc(x.notes)}" oninput="F.e.notes=this.value"></div>
-    <button class="btn" id="sv">Save changes</button><button class="btn ghost" id="dl" style="color:var(--pay)">Delete this entry</button>`;
-    $("#pt").onclick=()=>{F.e.paid=!F.e.paid;F.e.paidAt=F.e.paid?new Date().toISOString().slice(0,10):"";draw()};
-    $("#sv").onclick=async()=>{await put("entries",F.e);closeSheet();render();toast("✓ Changes saved")};
-    $("#dl").onclick=async()=>{const old={...e};await del("entries",e.id);closeSheet();render();toast("Entry deleted",async()=>{await put("entries",old);render()})};
-  };
-  draw(); $("#sheet").classList.add("on");$("#scrim").classList.add("on");sheetClose=null;
-}
-
-/* ---- edit worker / rate / client / site / money ---- */
-function showSheet(html){$("#sheet").innerHTML=`<div class="grab"></div>`+html;$("#sheet").classList.add("on");$("#scrim").classList.add("on");sheetClose=null;$("#sheet").scrollTop=0}
-function editWorker(id){hideToast();const w=W(id);let name=w.name,active=w.active!==false;
-  const draw=()=>{showSheet(`<h3>Edit worker</h3><div class="lead">Change the name, or mark them as left.</div>
-    <div class="f"><label>Name</label><input class="inp" id="en" autocapitalize="words" value="${esc(name)}"></div>
-    <div class="f"><label>Still working?</label><button class="toggle" style="width:100%" id="ea"><span>${active?"Yes, working":"Left the crew"}</span><span class="sw ${active?"on":""}"></span></button></div>
-    <div class="hint">People who left are hidden from lists, but their history stays.</div>
-    <button class="btn" id="es">Save</button><button class="btn ghost" onclick="closeSheet()">Cancel</button>`);
-    $("#en").oninput=e=>name=e.target.value; $("#ea").onclick=()=>{active=!active;draw()};
-    $("#es").onclick=async()=>{if(!name.trim())return;await put("workers",{...w,name:name.trim(),active});closeSheet();render();toast("✓ Saved")}};
-  draw()}
-function editRate(rid){hideToast();const r=DB.rates.find(x=>x.id===rid);if(!r)return;let rate=r.rate;
-  showSheet(`<h3>${esc(W(r.workerId).name)}</h3><div class="lead">${esc(Sx(r.siteId).name)}</div>
-  <div class="f"><label>Pay rate ($ per hour)</label><input class="inp num" inputmode="decimal" id="rr" value="${r.rate}"></div>
-  <div class="hint">New hours use the new rate. Hours already saved keep their old rate.</div>
-  <button class="btn" id="rs">Save rate</button><button class="btn ghost" id="rd" style="color:var(--pay)">Remove this site from ${esc(W(r.workerId).name)}</button>`);
-  $("#rr").oninput=e=>rate=parseFloat(e.target.value)||0;
-  $("#rs").onclick=async()=>{if(!(rate>0))return;await put("rates",{...r,rate});closeSheet();render();toast("✓ Rate updated")};
-  $("#rd").onclick=async()=>{await del("rates",r.id);closeSheet();render();toast("Site removed",async()=>{await put("rates",r);render()})}}
-function editClient(cid){hideToast();const c=C(cid);let name=c.name;const used=DB.sites.some(s=>s.clientId===cid)||DB.income.some(i=>i.clientId===cid);
-  showSheet(`<h3>Edit client</h3><div class="f" style="margin-top:12px"><label>Client name</label><input class="inp" id="cn" value="${esc(name)}"></div>
-  <button class="btn" id="cs">Save</button>${used?`<div class="hint" style="margin-top:12px;text-align:center">To delete a client, first move or delete its sites.</div>`:`<button class="btn ghost" id="cd" style="color:var(--pay)">Delete client</button>`}`);
-  $("#cn").oninput=e=>name=e.target.value;
-  $("#cs").onclick=async()=>{if(!name.trim())return;await put("clients",{...c,name:name.trim()});closeSheet();render();toast("✓ Saved")};
-  if(!used)$("#cd").onclick=async()=>{await del("clients",cid);closeSheet();render();toast("Client deleted",async()=>{await put("clients",c);render()})}}
-function editSite(sid){hideToast();const s0=Sx(sid);let name=s0.name,cl=s0.clientId;const used=DB.entries.some(e=>e.siteId===sid);
-  const draw=()=>{showSheet(`<h3>Edit site</h3><div class="f" style="margin-top:12px"><label>Site name</label><input class="inp" id="sn" value="${esc(name)}"></div>
-  <div class="f"><label>Client</label><div class="opts">${DB.clients.map(c=>`<button class="opt ${cl===c.id?"on":""}" data-c="${c.id}">${esc(c.name)}</button>`).join("")}</div></div>
-  <button class="btn" id="ss">Save</button>${used?`<div class="hint" style="margin-top:12px;text-align:center">This site has hours saved, so it can't be deleted.</div>`:`<button class="btn ghost" id="sd" style="color:var(--pay)">Delete site</button>`}`);
-  $("#sn").oninput=e=>name=e.target.value;
-  document.querySelectorAll("#sheet .opt").forEach(b=>b.onclick=()=>{cl=b.dataset.c;draw()});
-  $("#ss").onclick=async()=>{if(!name.trim())return;await put("sites",{...s0,name:name.trim(),clientId:cl});closeSheet();render();toast("✓ Saved")};
-  if(!used)$("#sd").onclick=async()=>{const rs=DB.rates.filter(r=>r.siteId===sid);for(const r of rs)await del("rates",r.id);await del("sites",sid);closeSheet();render();toast("Site deleted")}};
-  draw()}
-function moneyList(cid){hideToast();const m=state.month;
-  const draw=()=>{const items=DB.income.filter(i=>i.clientId===cid&&i.month===m);
-  showSheet(`<h3>Money in · ${esc(C(cid).name)}</h3><div class="lead">${mLabel(m)}</div>
-  <div style="margin-bottom:16px">${items.length?items.map(i=>`<div class="check" style="cursor:default"><div class="main"><div class="t1 num">${money(i.amount)}</div>${i.note?`<div class="t2">${esc(i.note)}</div>`:""}</div><button class="link" style="color:var(--pay)" data-d="${i.id}">Delete</button></div>`).join(""):`<div class="empty">Nothing received this month</div>`}</div>
-  <button class="btn" id="ma">+ Add money in</button>`);
-  document.querySelectorAll("#sheet [data-d]").forEach(b=>b.onclick=async()=>{const old=DB.income.find(x=>x.id===b.dataset.d);await del("income",old.id);render();draw();toast("Deleted",async()=>{await put("income",old);render()})});
-  $("#ma").onclick=()=>openAdd("money",cid)};
-  draw()}
-
-/* ============ connect · PIN · QR ============ */
 const CDN_QR="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js";
 const CDN_SCAN="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js";
 function loadScript(src){return new Promise((res,rej)=>{if(document.querySelector(`script[src="${src}"]`)){res();return}const s=document.createElement("script");s.src=src;s.onload=res;s.onerror=()=>rej(new Error("load"));document.head.appendChild(s)})}
 const b64u={enc:s=>btoa(unescape(encodeURIComponent(s))).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,""),dec:s=>decodeURIComponent(escape(atob(s.replace(/-/g,"+").replace(/_/g,"/"))))};
 function makeCode(c){return "CW1."+b64u.enc(JSON.stringify({u:c.u,k:c.k}))}
 function readCode(t){t=(t||"").trim().replace(/\s+/g,"");const i=t.indexOf("CW1.");if(i<0)return null;try{const o=JSON.parse(b64u.dec(t.slice(i+4)));return o.u&&o.k?o:null}catch(e){return null}}
-
-function openConnect(){hideToast();
-  showSheet(`<h3>Connect to Google Sheet</h3><div class="lead">Your data will be saved in your own Google Sheet and shared between your phone and laptop.</div>
-  <button class="btn" id="cq">Scan QR code</button>
-  <div class="grp" style="text-align:center;padding:16px 0 8px">or paste the connect code</div>
-  <div class="f"><textarea class="inp" id="cc" placeholder="CW1.…" style="height:90px;font-size:16px" autocapitalize="off" autocorrect="off" spellcheck="false"></textarea></div>
-  <div id="cerr"></div>
-  <button class="btn ghost" id="cp" style="margin-top:0">Connect with this code</button>
-  <div class="hint" style="margin-top:14px">Get the code from your Google Sheet: <b>Crew Wages → Connect a device</b>.</div>`);
-  $("#cq").onclick=()=>scanQR(code=>tryConnect(code));
-  $("#cp").onclick=()=>tryConnect($("#cc").value);
-}
-async function tryConnect(text){
-  const c=readCode(text); const err=m=>{const e=$("#cerr");if(e)e.innerHTML=`<div class="err">${m}</div>`;else toast(m)};
-  if(!c)return err("That isn't a Crew Wages connect code.");
-  showSheet(`<div class="empty" style="padding:40px 0">Connecting…</div>`);
-  let data;
-  try{const prev=CONN;CONN=c;data=await api("getAll");CONN=prev}
-  catch(e){CONN=null;showSheet(`<h3>Couldn't connect</h3><div class="lead">${e.server?esc(e.message):"No answer from Google. Check the internet, and that the script is deployed with access set to “Anyone”."}</div><button class="btn" onclick="openConnect()">Try again</button>`);return}
-  const sheetUrl=data.sheetUrl; delete data.sheetUrl;
-  setPin(async()=>{
-    CONN={...c,s:sheetUrl}; ls.set(K_CONN,CONN); OUT=[]; ls.set(K_OUT,OUT);
-    const sheetEmpty=!data.workers.length&&!data.entries.length&&!data.clients.length;
-    const local=ls.get(KEY,null); const hasLocal=local&&(local.workers.length||local.clients.length);
-    if(sheetEmpty&&hasLocal){
-      showSheet(`<h3>Connected ✓</h3><div class="lead">Your Sheet is empty. Copy what's on this device into it?</div>
-      <button class="btn" id="cy">Copy my data to the Sheet</button><button class="btn ghost" id="cn">Start with an empty Sheet</button>`);
-      $("#cy").onclick=async()=>{closeSheet();await replaceAll(local);afterConnect()};
-      $("#cn").onclick=()=>{DB=data;saveLocal();closeSheet();afterConnect()};
-    } else {DB=data;saveLocal();closeSheet();afterConnect()}
-  });
-}
-function afterConnect(){SYNC.at=new Date();setSync("idle");const ms=DB.entries.map(e=>e.month).sort();state.month=nowM();go("home");toast("✓ Connected to your Google Sheet")}
-function disconnect(){if(!confirmBox("Disconnect this device? Your data stays safe in the Google Sheet."))return;
-  CONN=null;[K_CONN,K_CACHE,K_OUT,K_PIN].forEach(k=>ls.del(k));OUT=[];DB=ls.get(KEY,null)||EMPTY();go("more");toast("Disconnected")}
-
-async function showConnectQR(){hideToast();const code=makeCode(CONN);
-  showSheet(`<h3>Connect another device</h3><div class="lead">On the other device open Crew Wages → More → Connect to Google Sheet → Scan QR code.</div>
-  <div id="qrbox" style="background:#fff;border-radius:18px;padding:16px;display:grid;place-items:center;min-height:260px">Loading…</div>
-  <div class="hint" style="margin-top:12px">Keep this code private — it opens your data.</div>
-  <button class="btn ghost" id="cpy">Copy code instead</button>`);
-  $("#cpy").onclick=async()=>{try{await navigator.clipboard.writeText(code);toast("✓ Code copied")}catch(e){toast("Couldn't copy")}};
-  try{await loadScript(CDN_QR);const q=qrcode(0,"M");q.addData(code);q.make();$("#qrbox").innerHTML=q.createSvgTag({cellSize:5,margin:2,scalable:true});const sv=$("#qrbox svg");if(sv){sv.style.width="240px";sv.style.height="240px"}}
-  catch(e){$("#qrbox").textContent="Couldn't draw the QR — use Copy code."}
-}
-
-let scanStop=null;
-async function scanQR(onCode){
-  showSheet(`<h3>Scan QR code</h3><div class="lead">Point the camera at the QR on your laptop.</div>
-  <div style="position:relative;border-radius:18px;overflow:hidden;background:#000;aspect-ratio:1"><video id="qv" playsinline muted style="width:100%;height:100%;object-fit:cover"></video>
-  <div style="position:absolute;inset:18%;border:3px solid rgba(255,255,255,.85);border-radius:18px"></div></div>
-  <div id="qerr"></div><button class="btn ghost" id="qc">Cancel</button>`);
-  const stop=()=>{if(scanStop)scanStop();scanStop=null};
-  $("#qc").onclick=()=>{stop();openConnect()};
-  try{
-    await loadScript(CDN_SCAN);
-    const st=await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"},audio:false});
-    const v=$("#qv");v.srcObject=st;await v.play();
-    const cv=document.createElement("canvas"),cx=cv.getContext("2d",{willReadFrequently:true});let live=true;
-    scanStop=()=>{live=false;st.getTracks().forEach(t=>t.stop())};
-    const tick=()=>{if(!live)return;if(v.videoWidth){cv.width=v.videoWidth;cv.height=v.videoHeight;cx.drawImage(v,0,0);
-      const r=jsQR(cx.getImageData(0,0,cv.width,cv.height).data,cv.width,cv.height,{inversionAttempts:"dontInvert"});
-      if(r&&r.data&&r.data.includes("CW1.")){stop();onCode(r.data);return}}requestAnimationFrame(tick)};tick();
-  }catch(e){stop();$("#qerr").innerHTML=`<div class="err" style="margin-top:12px">Camera not available. Allow camera access, or go back and paste the code.</div>`}
-}
-
-/* ---- PIN ---- */
 async function hashPin(pin,salt){try{const b=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(salt+":"+pin));return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,"0")).join("")}catch(e){let h=0;for(const c of salt+pin)h=(h*31+c.charCodeAt(0))>>>0;return "x"+h}}
-function pinPad(title,sub,onDone,opts={}){
-  let v="";const el=document.createElement("div");el.className="lock";document.body.appendChild(el);
-  const draw=(shake)=>{el.innerHTML=`<div class="lk-in"><div class="logo" style="width:56px;height:56px;font-size:24px;border-radius:17px;margin:0 auto 18px">C</div>
-    <div class="lk-t">${title}</div><div class="lk-s">${sub}</div>
-    <div class="dots${shake?" shake":""}">${[0,1,2,3].map(i=>`<i class="${i<v.length?"on":""}"></i>`).join("")}</div>
-    <div class="pad">${[1,2,3,4,5,6,7,8,9,"",0,"⌫"].map(k=>k===""?"<span></span>":`<button data-k="${k}">${k}</button>`).join("")}</div>
-    ${opts.cancel?`<button class="link" id="lkc" style="margin-top:10px">Cancel</button>`:""}</div>`;
-    el.querySelectorAll(".pad button").forEach(b=>b.onclick=async()=>{const k=b.dataset.k;if(k==="⌫")v=v.slice(0,-1);else if(v.length<4)v+=k;draw();
-      if(v.length===4){const ok=await onDone(v);if(ok===false){v="";setTimeout(()=>draw(true),120)}else el.remove()}});
-    const c=el.querySelector("#lkc");if(c)c.onclick=()=>{el.remove();opts.cancel()}};
-  draw();
-}
-function setPin(done){closeSheet();
-  pinPad("Create a PIN","4 digits to open the app",first=>{
-    setTimeout(()=>pinPad("Repeat your PIN","Type the same 4 digits again",async second=>{
-      if(second!==first){toast("PINs didn't match — try again");setTimeout(()=>setPin(done),50);return true}
-      const salt=uid();ls.set(K_PIN,{salt,h:await hashPin(first,salt),bad:0});done();return true}),10);return true});
-}
-let unlocked=false;
-function lockIfNeeded(){
-  const p=ls.get(K_PIN,null); if(!online()||!p){unlocked=true;return}
-  unlocked=false;
-  pinPad("Enter PIN","Crew Wages is locked",async v=>{
-    const p2=ls.get(K_PIN,null); if(await hashPin(v,p2.salt)===p2.h){p2.bad=0;ls.set(K_PIN,p2);unlocked=true;pull();return true}
-    p2.bad=(p2.bad||0)+1;ls.set(K_PIN,p2);
-    if(p2.bad>=5){CONN=null;[K_CONN,K_CACHE,K_OUT,K_PIN].forEach(k=>ls.del(k));OUT=[];DB=ls.get(KEY,null)||EMPTY();render();toast("Too many wrong PINs — this device was disconnected");return true}
-    toast(`Wrong PIN · ${5-p2.bad} ${5-p2.bad===1?"try":"tries"} left`);return false});
-}
-let hiddenAt=0;
-document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="hidden")hiddenAt=Date.now();else if(online()&&unlocked&&hiddenAt&&Date.now()-hiddenAt>5*60*1000&&!document.querySelector(".lock"))lockIfNeeded()});
 
-/* ---- export / backup ---- */
 function download(name,text,type){if(location.hostname.includes("claude")){toast("Downloads work in the real app");throw 0}const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([text],{type}));a.download=name;document.body.appendChild(a);a.click();a.remove()}
 function exportCSV(){try{exportCSV_()}catch(e){}}
 function exportCSV_(){
@@ -900,19 +405,488 @@ function exportCSV_(){
   download("Crew_Wages_hours.csv","﻿"+rows.map(r=>r.map(q).join(",")).join("\r\n"),"text/csv");toast("✓ Downloaded — opens in Excel");
 }
 function backup(){try{download(`Crew_Wages_backup_${new Date().toISOString().slice(0,10)}.json`,JSON.stringify(DB),"application/json");toast("✓ Backup downloaded")}catch(e){}}
-function restore(file){if(!file)return;const r=new FileReader();r.onload=async()=>{try{const d=JSON.parse(r.result);if(!TABLES.every(t=>Array.isArray(d[t])))throw 0;
-  if(!confirmBox("Replace everything with this backup?"))return; await replaceAll(d); render(); toast("✓ Backup restored")}catch(e){toast("That file isn't a Crew Wages backup")}};r.readAsText(file)}
-function confirmBox(m){try{return window.confirm(m)}catch(e){return true}}
-function resetDemo(sample,quiet){if(!quiet&&!confirmBox(sample?"Replace everything with sample data?":"Delete all data on this device?"))return;DB=sample?seed():{clients:[],sites:[],workers:[],rates:[],entries:[],income:[]};saveLocal();state.person=null;if(sample)state.month="2026-11";go("home");toast(sample?"Sample data loaded":"All data cleared")}
+
+let unlocked=false,hiddenAt=0;
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='hidden')hiddenAt=Date.now();else if(online()&&unlocked&&hiddenAt&&Date.now()-hiddenAt>5*60*1000&&!document.querySelector('.lock'))lockIfNeeded()});
+/* ============ icons (SF-Symbol-like) ============ */
+const I={
+  chev:'<svg class="chev" viewBox="0 0 8 13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M1.5 1.5 6.5 6.5 1.5 11.5"/></svg>',
+  back:'<svg width="13" height="21" viewBox="0 0 13 21" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M10.5 2 2.5 10.5l8 8.5"/></svg>',
+  plus:'<svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M10 2.5v15M2.5 10h15"/></svg>',
+  check:'<svg class="check" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 10.5l4.2 4.2L16.5 5.5"/></svg>',
+  tick:'<svg width="13" height="13" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3.5 10.5l4.2 4.2L16.5 5.5"/></svg>',
+  search:'<svg width="16" height="16" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="8.5" cy="8.5" r="6"/><path d="m13 13 5 5"/></svg>',
+  warn:'<svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="M10.3 3.3a2 2 0 0 1 3.4 0l8.4 14.6A2 2 0 0 1 20.4 21H3.6a2 2 0 0 1-1.7-3.1z"/><path d="M12 9v5M12 17.3h.01" stroke="#fff" stroke-width="2.2" stroke-linecap="round"/></svg>',
+  left:'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>',
+  right:'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg>',
+  pay:'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="2.5" y="5.5" width="19" height="13" rx="2.5"/><circle cx="12" cy="12" r="2.6"/><path d="M6 9v6M18 9v6"/></svg>',
+  clock:'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>',
+  pencil:'<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16z"/><path d="m13.5 6.5 4 4"/></svg>',
+  sheet:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><rect x="4" y="3" width="16" height="18" rx="2.5"/><path d="M4 9h16M4 15h16M10 9v12"/></svg>',
+  qr:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3.5" y="3.5" width="6" height="6" rx="1"/><rect x="14.5" y="3.5" width="6" height="6" rx="1"/><rect x="3.5" y="14.5" width="6" height="6" rx="1"/><path d="M14.5 14.5h2v2h-2zM18.5 18.5h2v2h-2zM18.5 14.5h2M14.5 18.5v2"/></svg>',
+  lock:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="5" y="10.5" width="14" height="10" rx="2.5"/><path d="M8 10.5V7.5a4 4 0 0 1 8 0v3"/></svg>',
+  sync:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 0 0-14.6-4.5M4 13a8 8 0 0 0 14.6 4.5"/><path d="M5 3v4h4M19 21v-4h-4"/></svg>',
+  dl:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M7 10l5 5 5-5M5 20h14"/></svg>',
+  ul:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V4M7 9l5-5 5 5M5 20h14"/></svg>',
+  box:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"><path d="M3.5 7.5 12 3l8.5 4.5v9L12 21l-8.5-4.5z"/><path d="M3.5 7.5 12 12l8.5-4.5M12 12v9"/></svg>',
+  trash:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M10 7V4.5h4V7M6.5 7l1 13h9l1-13"/></svg>',
+  done:'<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9.5"/><path d="M7.5 12.5l3 3 6-6.5"/></svg>',
+  people0:'<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>',
+  tabHome:(on)=>on?'<svg width="28" height="28" viewBox="0 0 28 28" fill="currentColor"><path d="M14 3.3 2.9 12.6a1 1 0 0 0 1.3 1.5l.8-.7V23a2 2 0 0 0 2 2h4.5v-6.5h5V25H21a2 2 0 0 0 2-2v-9.6l.8.7a1 1 0 0 0 1.3-1.5z"/></svg>':'<svg width="28" height="28" viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M3.5 13 14 4.2 24.5 13M6 11v12a1.5 1.5 0 0 0 1.5 1.5h4v-6.5h5v6.5h4A1.5 1.5 0 0 0 22 23V11"/></svg>',
+  tabPeople:(on)=>on?'<svg width="30" height="28" viewBox="0 0 30 28" fill="currentColor"><circle cx="11" cy="9" r="4.6"/><path d="M2.5 22.3c.6-4.4 4-7 8.5-7s7.9 2.6 8.5 7c.1.9-.6 1.7-1.5 1.7H4c-.9 0-1.6-.8-1.5-1.7z"/><circle cx="21.5" cy="10" r="3.6"/><path d="M20.8 15.5c3.6 0 6.2 2 6.7 5.6.1.8-.5 1.4-1.3 1.4h-4.3c-.3-2.7-1.3-5-3.2-6.6.7-.3 1.4-.4 2.1-.4z"/></svg>':'<svg width="30" height="28" viewBox="0 0 30 28" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="11" cy="9" r="4.4"/><path d="M3.3 23c.6-4.4 3.6-7 7.7-7s7.1 2.6 7.7 7z" stroke-linejoin="round"/><circle cx="21.5" cy="10" r="3.4"/><path d="M21 15.7c3.1.1 5.4 2 5.9 5.8h-4.8" stroke-linejoin="round"/></svg>',
+  tabClients:(on)=>on?'<svg width="28" height="28" viewBox="0 0 28 28" fill="currentColor"><path d="M5 4.5A1.5 1.5 0 0 1 6.5 3h9A1.5 1.5 0 0 1 17 4.5V10h4.5a1.5 1.5 0 0 1 1.5 1.5V25H5zM8 7v2h2V7zm4 0v2h2V7zm-4 4v2h2v-2zm4 0v2h2v-2zm-4 4v2h2v-2zm4 0v2h2v-2zm6-1v2h2v-2zm0 4v2h2v-2zM11 21v4h3v-4z"/></svg>':'<svg width="28" height="28" viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M5.5 24.5V4.5a1 1 0 0 1 1-1h9a1 1 0 0 1 1 1v20M16.5 10.5h5a1 1 0 0 1 1 1v13M3.5 24.5h21"/><path d="M9 7.5h1M12 7.5h1M9 11.5h1M12 11.5h1M9 15.5h1M12 15.5h1M19 14.5h1M19 18.5h1M10.5 24.5v-4h2v4" stroke-linecap="round"/></svg>',
+  tabMore:(on)=>on?'<svg width="28" height="28" viewBox="0 0 28 28" fill="currentColor"><path d="M12.2 2.5h3.6l.6 3a8.8 8.8 0 0 1 2.4 1.4l2.9-1 1.8 3.1-2.3 2a8.9 8.9 0 0 1 0 2.8l2.3 2-1.8 3.1-2.9-1a8.8 8.8 0 0 1-2.4 1.4l-.6 3h-3.6l-.6-3a8.8 8.8 0 0 1-2.4-1.4l-2.9 1-1.8-3.1 2.3-2a8.9 8.9 0 0 1 0-2.8l-2.3-2 1.8-3.1 2.9 1a8.8 8.8 0 0 1 2.4-1.4zM14 10.2a3.8 3.8 0 1 0 0 7.6 3.8 3.8 0 0 0 0-7.6z" transform="translate(0 0)"/></svg>':'<svg width="28" height="28" viewBox="0 0 28 28" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M12.2 3h3.6l.6 3a8.8 8.8 0 0 1 2.4 1.4l2.9-1 1.8 3.1-2.3 2a8.9 8.9 0 0 1 0 2.8l2.3 2-1.8 3.1-2.9-1a8.8 8.8 0 0 1-2.4 1.4l-.6 3h-3.6l-.6-3a8.8 8.8 0 0 1-2.4-1.4l-2.9 1-1.8-3.1 2.3-2a8.9 8.9 0 0 1 0-2.8l-2.3-2 1.8-3.1 2.9 1a8.8 8.8 0 0 1 2.4-1.4z"/><circle cx="14" cy="14" r="3.6"/></svg>',
+};
+const AVC=["#FF9500","#FF2D55","#5856D6","#34C759","#007AFF","#AF52DE","#FF3B30","#30B0C7","#A2845E"];
+const avColor=n=>{let h=0;for(const c of n)h=(h*31+c.charCodeAt(0))>>>0;return AVC[h%AVC.length]};
+const avatar=(n,size)=>`<div class="av" style="background:linear-gradient(180deg,${avColor(n)}dd,${avColor(n)});${size?`width:${size}px;height:${size}px;font-size:${Math.round(size*.38)}px`:""}">${esc(initials(n))}</div>`;
+const ic=(svg,bg)=>`<div class="ic" style="background:${bg}">${svg}</div>`;
+const hl=(text,q)=>{const t=esc(text);if(!q)return t;const i=text.toLowerCase().indexOf(q);if(i<0)return t;return esc(text.slice(0,i))+`<mark>${esc(text.slice(i,i+q.length))}</mark>`+esc(text.slice(i+q.length))};
+
+/* ============ state & navigation ============ */
+const TABS=[["home","Overview",I.tabHome],["people","People",I.tabPeople],["clients","Clients",I.tabClients],["more","More",I.tabMore]];
+let state={tab:"home",month:nowM(),q:"",filter:"all"};
+const stacks={home:[{n:"home"}],people:[{n:"people"}],clients:[{n:"clients"}],more:[{n:"more"}]};
+let animating=false;
+
+function screenHTML(route){
+  const v=VIEWS[route.n](route);
+  const depth=stacks[state.tab].indexOf(route);
+  const backLabel=depth>0?(TABS.find(t=>t[0]===state.tab)[1]):"";
+  const left=depth>0?`<button class="nbb" onclick="pop()">${I.back}<span style="margin-left:4px">${esc(v.back||backLabel)}</span></button>`:(v.left||"");
+  return `<div class="nb"><div class="nb-l">${left}</div><div class="nb-t">${esc(v.title)}</div><div class="nb-r">${v.right||""}</div></div>
+  <div class="sc">${v.large===false?"":`<div class="lt">${esc(v.title)}</div>`}${v.body}</div><div class="shade"></div>`;
+}
+function mountScreen(route){
+  const el=document.createElement("section");el.className="scr";el.innerHTML=screenHTML(route);el._route=route;
+  const sc=el.querySelector(".sc");sc.addEventListener("scroll",()=>el.classList.toggle("scrolled",sc.scrollTop>(route.n==="person"||route.n==="client"?70:34)),{passive:true});
+  if(VIEWS[route.n].after)setTimeout(()=>VIEWS[route.n].after(el,route));
+  return el;
+}
+function topEl(){const s=$("#stack");return s.lastElementChild}
+function render(){ // re-render current screen in place, keep scroll
+  const el=topEl(); if(!el)return;
+  const sc=el.querySelector(".sc"), y=sc?sc.scrollTop:0;
+  el.innerHTML=screenHTML(el._route); const sc2=el.querySelector(".sc"); sc2.scrollTop=y;
+  sc2.addEventListener("scroll",()=>el.classList.toggle("scrolled",sc2.scrollTop>(el._route.n==="person"||el._route.n==="client"?70:34)),{passive:true});
+  el.classList.toggle("scrolled",y>34);
+  if(VIEWS[el._route.n].after)VIEWS[el._route.n].after(el,el._route);
+  drawTabs();
+}
+function showTab(tab){
+  if(animating)return;
+  if(tab===state.tab){ if(stacks[tab].length>1){stacks[tab]=[stacks[tab][0]];} else {const sc=topEl()?.querySelector(".sc");if(sc)sc.scrollTo({top:0,behavior:"smooth"});return} }
+  state.tab=tab; const s=$("#stack"); s.innerHTML=""; stacks[tab].forEach((r,i)=>{const el=mountScreen(r);if(i<stacks[tab].length-1){el.style.transform="translateX(-30%)";el.classList.add("under")}s.appendChild(el)}); drawTabs();
+}
+function drawTabs(){$("#tabbar").innerHTML=TABS.map(([k,l,ic])=>`<button class="${state.tab===k?"on":""}" onclick="showTab('${k}')">${ic(state.tab===k)}<span>${l}</span></button>`).join("")}
+const DUR=420, EASE="cubic-bezier(.32,.72,0,1)";
+function push(route){
+  if(animating)return; animating=true; hideBanner();
+  const s=$("#stack"), prev=topEl(); stacks[state.tab].push(route);
+  const el=mountScreen(route); el.style.transform="translateX(100%)"; el.style.boxShadow="-1px 0 0 var(--sep),-10px 0 30px rgba(0,0,0,.08)"; s.appendChild(el);
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{
+    el.style.transition=prev.style.transition=`transform ${DUR}ms ${EASE}`;prev.querySelector(".shade").style.transition=`opacity ${DUR}ms ${EASE}`;
+    el.style.transform="translateX(0)";prev.style.transform="translateX(-30%)";prev.querySelector(".shade").style.opacity=".08";prev.classList.add("under");
+    setTimeout(()=>{el.style.transition=prev.style.transition="";animating=false},DUR+20);
+  }));
+}
+function pop(){
+  if(animating||stacks[state.tab].length<2)return; animating=true; hideBanner();
+  const el=topEl(), prev=el.previousElementSibling; stacks[state.tab].pop();
+  render0(prev);
+  el.style.transition=prev.style.transition=`transform ${DUR*.85}ms ${EASE}`;prev.querySelector(".shade").style.transition=`opacity ${DUR*.85}ms ${EASE}`;
+  el.style.transform="translateX(100%)";prev.style.transform="translateX(0)";prev.querySelector(".shade").style.opacity="0";prev.classList.remove("under");
+  setTimeout(()=>{el.remove();prev.style.transition="";animating=false},DUR*.85+20);
+}
+function render0(el){const sc=el.querySelector(".sc"),y=sc.scrollTop;el.innerHTML=screenHTML(el._route);const sc2=el.querySelector(".sc");sc2.scrollTop=y;
+  sc2.addEventListener("scroll",()=>el.classList.toggle("scrolled",sc2.scrollTop>(el._route.n==="person"||el._route.n==="client"?70:34)),{passive:true});
+  if(VIEWS[el._route.n].after)VIEWS[el._route.n].after(el,el._route);el.querySelector(".shade").style.opacity=el.classList.contains("under")?".08":"0"}
+/* swipe from the left edge to go back */
+(function(){let x0=null,y0=0,dx=0,el=null,prev=null,t0=0,locked=false;
+  document.addEventListener("touchstart",e=>{const t=e.touches[0];if(animating||stacks[state.tab].length<2||t.clientX>24||document.querySelector(".modal.on,.lock,#as.on"))return;
+    x0=t.clientX;y0=t.clientY;dx=0;t0=Date.now();locked=false;el=topEl();prev=el.previousElementSibling},{passive:true});
+  document.addEventListener("touchmove",e=>{if(x0==null)return;const t=e.touches[0];dx=Math.max(0,t.clientX-x0);
+    if(!locked){if(Math.abs(t.clientY-y0)>Math.abs(dx)){x0=null;return}locked=true}
+    const w=el.offsetWidth,p=Math.min(1,dx/w);el.style.transition=prev.style.transition="none";el.style.transform=`translateX(${dx}px)`;prev.style.transform=`translateX(${-30+30*p}%)`;prev.querySelector(".shade").style.opacity=String(.08*(1-p))},{passive:true});
+  document.addEventListener("touchend",()=>{if(x0==null)return;const w=el.offsetWidth,v=dx/Math.max(1,Date.now()-t0);x0=null;
+    if(dx>w*.35||v>.5){el.style.transition=prev.style.transition="";animating=false;
+      const e2=el,p2=prev;stacks[state.tab].pop();render0(p2);e2.style.transition=p2.style.transition=`transform 280ms ${EASE}`;e2.style.transform="translateX(100%)";p2.style.transform="translateX(0)";p2.querySelector(".shade").style.opacity="0";p2.classList.remove("under");animating=true;setTimeout(()=>{e2.remove();p2.style.transition="";animating=false},300)}
+    else{el.style.transition=prev.style.transition=`transform 280ms ${EASE}`;el.style.transform="translateX(0)";prev.style.transform="translateX(-30%)";prev.querySelector(".shade").style.opacity=".08";setTimeout(()=>{el.style.transition=prev.style.transition=""},300)}});
+})();
+function openPerson(id){push({n:"person",id})}
+function openClient(id){push({n:"client",id})}
+
+/* ============ building blocks ============ */
+const cell=(inner,{tap,cls="",style=""}={})=>tap?`<button class="cell ${cls}" style="${style}" onclick="${tap}">${inner}</button>`:`<div class="cell ${cls}" style="${style}">${inner}</div>`;
+const sec=(rows,{h,big,f,ferr,bigRight}={})=>`<div class="sec">${big?`<div class="gh big">${big}${bigRight?`<small>${bigRight}</small>`:""}</div>`:h?`<div class="gh">${h}</div>`:""}<div class="grp">${rows}</div>${f?`<div class="gf ${ferr?"err":""}">${f}</div>`:""}</div>`;
+const ct=(a,b)=>`<div class="ct"><div class="t1">${a}</div>${b?`<div class="t2">${b}</div>`:""}</div>`;
+const monthStepper=(onchg)=>`<div class="mstep"><button onclick="${onchg}(-1)" aria-label="Previous month">${I.left}</button><b>${fullMonth(state.month)}</b><button onclick="${onchg}(1)" aria-label="Next month">${I.right}</button></div>`;
+const FM=["January","February","March","April","May","June","July","August","September","October","November","December"];
+const fullMonth=m=>{const[y,mm]=m.split("-");return FM[+mm-1]+" "+y};
+function stepMonth(n){state.month=addM(state.month,n);render()}
+
+/* ============ views ============ */
+const VIEWS={};
+VIEWS.home={};
+VIEWS.home=Object.assign((r)=>{
+  if(!DB.workers.length){
+    const steps=[["client","Add your first client","e.g. Ken",DB.clients.length],["site","Add a site","Where the work happens",DB.sites.length],["worker","Add a worker","Name, site and pay rate",DB.workers.length]];
+    return {title:"Overview",body:`<div class="hero"><div class="logo">C</div><h2>Crew Wages</h2><p>Three quick steps and you're ready to add hours.</p></div>
+      ${sec(steps.map(([k,t,d,done],i)=>cell(`<div class="stepn ${done?"done":""}">${done?I.tick:i+1}</div>${ct(t,d)}${I.chev}`,{tap:`openAdd('${k}')`})).join(""),{h:"Get started"})}
+      ${sec(cell(ct(`<span class="blue">Try it with sample data</span>`),{tap:"resetDemo(true,true)"}))}`};
+  }
+  const owed=owedByWorker(),total=owed.reduce((s,o)=>s+o.amount,0),st=monthStats(state.month),pr=problems();
+  const paid=DB.entries.filter(e=>e.paid&&e.month===state.month);
+  const g={};paid.forEach(e=>{const x=g[e.workerId]||(g[e.workerId]={id:e.workerId,amt:0,h:0,sites:new Set()});x.amt+=wage(e);x.h+= +e.hours;x.sites.add(Sx(e.siteId).name)});
+  const paidRows=Object.values(g).sort((a,b)=>b.amt-a.amt);
+  return {title:"Overview",right:`<button class="nbb" onclick="openAdd('hours')" aria-label="Add hours">${I.plus}</button>`,
+  body:`
+  ${sec(`<div class="sum"><div class="cap"><span>Still to pay</span>${syncBadge()}</div><div class="big num ${total?"":"green"}">${money(total)}</div><div class="sub">${owed.length?`${plural(owed.length,"person")} waiting · all months`:"Everyone is paid up"}</div></div>`)}
+  ${sec(`${monthStepper("stepMonth")}<div class="grid2" style="border-top:.5px solid var(--sep)">
+     <div><div class="k">Hours</div><div class="v num">${st.hours.toLocaleString()}</div></div>
+     <div><div class="k">Wages</div><div class="v num">${money(st.wages)}</div></div>
+     <div><div class="k">Money in</div><div class="v num">${money(st.income)}</div></div>
+     <div><div class="k">Profit</div><div class="v num ${st.profit<0?"red":""}">${money(st.profit)}</div></div></div>`)}
+  ${pr.length?sec(pr.slice(0,5).map(p=>cell(`<span style="color:var(--orange-f)">${I.warn}</span>${ct(esc(W(p.e.workerId).name),esc(`${Sx(p.e.siteId).name} · ${mLabel(p.e.month)} · ${p.type==="dup"?"entered twice":"no pay rate"}`))}${I.chev}`,{tap:`openPerson('${p.e.workerId}')`})).join(""),{big:"Needs checking",bigRight:pr.length})+"":""}
+  ${sec(owed.length?owed.map(o=>{const w=W(o.workerId);return `<div class="cell av-row tap" onclick="if(!event.target.closest('.capsule'))openPerson('${o.workerId}')">${avatar(w.name)}${ct(esc(w.name),`${[...o.sites].map(esc).join(", ")} · ${[...o.months].sort().map(mShort).join(", ")}`)}<span class="amt num">${money(o.amount)}</span><button class="capsule red" onclick="openPay('${o.workerId}')">Pay</button></div>`}).join(""):`<div class="empty">${I.done}Nobody is waiting for money</div>`,{big:"To Pay",bigRight:owed.length?money(total):""})}
+  ${sec(paidRows.length?paidRows.map(x=>cell(`${avatar(W(x.id).name)}${ct(esc(W(x.id).name),`${[...x.sites].map(esc).join(", ")} · ${x.h} hrs`)}<span class="amt num">${money(x.amt)}</span>${I.chev}`,{tap:`openPerson('${x.id}')`,cls:"av-row"})).join(""):`<div class="empty">Nothing paid for ${fullMonth(state.month)} yet</div>`,{big:"Paid",bigRight:`${mShort(state.month)} work`})}
+  `};
+},{});
+
+VIEWS.people=(r)=>({title:"People",right:`<button class="nbb" onclick="openAdd('worker')" aria-label="New worker">${I.plus}</button>`,
+  body:`<div class="search">${I.search}<input id="q" type="search" enterkeyhint="search" placeholder="Search name, site or client" value="${esc(state.q)}" oninput="state.q=this.value;$('#plist').innerHTML=peopleList()" autocomplete="off" autocorrect="off"></div>
+  <div class="seg">${[["all","All"],["owed","To Pay"],["paid","Paid Up"]].map(([k,l])=>`<button class="${state.filter===k?"on":""}" onclick="state.filter='${k}';render()">${l}</button>`).join("")}</div>
+  <div id="plist">${peopleList()}</div>`});
+function peopleList(){
+  const q=state.q.trim().toLowerCase(),owed=Object.fromEntries(owedByWorker().map(o=>[o.workerId,o.amount]));
+  let ws=DB.workers.filter(w=>w.active!==false||q);
+  if(q)ws=ws.filter(w=>w.name.toLowerCase().includes(q)||DB.rates.some(r=>r.workerId===w.id&&(Sx(r.siteId).name.toLowerCase().includes(q)||C(Sx(r.siteId).clientId).name.toLowerCase().includes(q))));
+  if(state.filter==="owed")ws=ws.filter(w=>owed[w.id]);if(state.filter==="paid")ws=ws.filter(w=>!owed[w.id]);
+  ws.sort((a,b)=>(owed[b.id]||0)-(owed[a.id]||0)||a.name.localeCompare(b.name));
+  if(!ws.length)return `<div class="empty">${I.people0}${q?`No results for “${esc(state.q)}”`:state.filter==="owed"?"Nobody is waiting for money":"No one here yet"}</div>`;
+  return sec(ws.map(w=>{const sites=DB.rates.filter(r=>r.workerId===w.id).map(r=>Sx(r.siteId).name);
+    return cell(`${avatar(w.name)}${ct(hl(w.name,q)+(w.active===false?` <span class="pill n">Left</span>`:""),sites.length?sites.map(s=>hl(s,q)).join(", "):"No site yet")}${owed[w.id]?`<span class="amt num red">${money(owed[w.id])}</span>`:`<span class="rv" style="font-size:15px">Paid up</span>`}${I.chev}`,{tap:`openPerson('${w.id}')`,cls:"av-row"})}).join(""),{f:`${plural(ws.length,"person")}`});
+}
+
+VIEWS.person=(r)=>{
+  const id=r.id,w=W(id),es=DB.entries.filter(e=>e.workerId===id).sort((a,b)=>b.month.localeCompare(a.month));
+  const hours=es.reduce((s,e)=>s+ +e.hours,0),total=es.reduce((s,e)=>s+wage(e),0),owe=es.filter(e=>!e.paid&&e.rate>0).reduce((s,e)=>s+wage(e),0);
+  const rates=DB.rates.filter(x=>x.workerId===id),pr=problems().filter(p=>p.e.workerId===id);
+  const byM={};es.forEach(e=>(byM[e.month]=byM[e.month]||[]).push(e));
+  return {title:w.name,large:false,right:`<button class="nbb" onclick="editWorker('${id}')">Edit</button>`,
+  body:`<div class="phead">${avatar(w.name,84)}<h1>${esc(w.name)}</h1><div class="t2">${w.active===false?"Left the crew · ":""}${rates.length?rates.map(x=>esc(Sx(x.siteId).name)).join(" · "):"No site yet"}</div></div>
+  <div class="acts"><button class="r" ${owe?"":"disabled"} onclick="openPay('${id}')">${I.pay}Pay</button><button onclick="openAdd('hours','${id}')">${I.clock}Add Hours</button><button onclick="editWorker('${id}')">${I.pencil}Edit</button></div>
+  ${sec(cell(`${ct("To pay")}<span class="amt num ${owe?"red":"green"}">${owe?money(owe):"Paid up"}</span>`)+cell(`${ct("Earned")}<span class="rv num">${money(total)}</span>`)+cell(`${ct("Hours worked")}<span class="rv num">${hours.toLocaleString()}</span>`))}
+  ${pr.length?sec(pr.map(p=>cell(`<span style="color:var(--orange-f)">${I.warn}</span>${ct(esc(`${Sx(p.e.siteId).name} · ${mLabel(p.e.month)}`),p.type==="dup"?"Entered twice — tap the entry below to fix":"No pay rate — tap the site below to set one")}`)).join(""),{h:"Needs checking"}):""}
+  ${sec(rates.map(x=>{const s=Sx(x.siteId),mates=DB.rates.filter(y=>y.siteId===x.siteId&&y.workerId!==id).map(y=>W(y.workerId).name);
+      return cell(`${ct(`${esc(s.name)} <span class="pill n">${esc(C(s.clientId).name)}</span>`,mates.length?"With "+mates.map(esc).join(", "):"Works here alone")}<span class="rv num">${money(x.rate)}/hr</span>${I.chev}`,{tap:`editRate('${x.id}')`})}).join("")+cell(`<span class="blue">Add Site</span>`,{tap:`openAdd('worker','${id}')`,cls:"action"}),{h:"Works at"})}
+  ${es.length?Object.keys(byM).map(m=>sec(byM[m].map(e=>cell(`${ct(esc(Sx(e.siteId).name),`${e.hours} hrs × ${money(e.rate)}${e.notes?" · "+esc(e.notes):""}`)}<span class="pill ${e.paid?"g":"r"}">${e.paid?"Paid":"To pay"}</span><span class="amt num" style="min-width:70px;text-align:right">${money(wage(e))}</span>${I.chev}`,{tap:`openEntry('${e.id}')`})).join(""),{h:fullMonth(m)})).join(""):sec(`<div class="empty">No hours yet</div>`,{h:"History"})}`};
+};
+
+VIEWS.clients=(r)=>{
+  const m=state.month;let tin=0,twg=0;
+  const rows=DB.clients.map(c=>{const sites=DB.sites.filter(s=>s.clientId===c.id),es=DB.entries.filter(e=>e.month===m&&sites.some(s=>s.id===e.siteId));
+    const wg=es.reduce((s,e)=>s+wage(e),0),inc=DB.income.filter(i=>i.clientId===c.id&&i.month===m).reduce((s,i)=>s+ +i.amount,0);tin+=inc;twg+=wg;
+    return cell(`${ct(esc(c.name),`${plural(sites.length,"site")} · ${money(inc)} in · ${money(wg)} wages`)}<span class="amt num ${inc-wg<0?"red":"green"}">${money(inc-wg)}</span>${I.chev}`,{tap:`openClient('${c.id}')`})}).join("");
+  return {title:"Clients",right:`<button class="nbb" onclick="clientsAdd()" aria-label="Add">${I.plus}</button>`,
+  body:`${sec(`${monthStepper("stepMonth")}<div class="grid3">
+     <div><div class="k">Money in</div><div class="v num">${money(tin)}</div></div>
+     <div><div class="k">Wages</div><div class="v num">${money(twg)}</div></div>
+     <div><div class="k">Profit</div><div class="v num ${tin-twg<0?"red":"green"}">${money(tin-twg)}</div></div></div>`)}
+  ${sec(rows||`<div class="empty">No clients yet</div>`,{big:"Clients",f:rows?"Profit = money in from the client − wages at their sites, for this month.":""})}
+  ${sec(cell(`<span class="blue">New Client</span>`,{tap:"openAdd('client')"})+cell(`<span class="blue">New Site</span>`,{tap:"openAdd('site')"})+cell(`<span class="blue">Add Money In</span>`,{tap:"openAdd('money')"}))}`};
+};
+function clientsAdd(){actionSheet({actions:[{label:"Money In",fn:()=>openAdd("money")},{label:"New Site",fn:()=>openAdd("site")},{label:"New Client",fn:()=>openAdd("client")}]})}
+
+VIEWS.client=(r)=>{
+  const c=C(r.id),m=state.month,sites=DB.sites.filter(s=>s.clientId===r.id),es=DB.entries.filter(e=>e.month===m&&sites.some(s=>s.id===e.siteId));
+  const wg=es.reduce((s,e)=>s+wage(e),0),items=DB.income.filter(i=>i.clientId===r.id&&i.month===m),inc=items.reduce((s,i)=>s+ +i.amount,0),pct=inc?Math.min(100,wg/inc*100):0;
+  const used=sites.length||DB.income.some(i=>i.clientId===r.id);
+  return {title:c.name,right:`<button class="nbb" onclick="editClient('${r.id}')">Edit</button>`,
+  body:`${sec(`${monthStepper("stepMonth")}<div class="grid3">
+     <div><div class="k">Money in</div><div class="v num">${money(inc)}</div></div>
+     <div><div class="k">Wages</div><div class="v num">${money(wg)}</div></div>
+     <div><div class="k">Profit</div><div class="v num ${inc-wg<0?"red":"green"}">${money(inc-wg)}</div></div></div>
+     ${inc?`<div class="bar"><i style="width:${pct}%"></i></div>`:""}`,{f:inc?`${Math.round(pct)}% of the money in goes on wages.`:""})}
+  ${sec(items.map(i=>cell(`${ct(`<span class="num">${money(i.amount)}</span>`,i.note?esc(i.note):"")}<span class="blue" style="font-size:15px">Delete</span>`,{tap:`delIncome('${i.id}')`})).join("")+cell(`<span class="blue">Add Money In</span>`,{tap:`openAdd('money','${r.id}')`}),{h:`Money in · ${fullMonth(m)}`})}
+  ${sec(sites.map(s=>{const ws=[...new Set(DB.rates.filter(x=>x.siteId===s.id).map(x=>x.workerId))].map(id=>W(id).name),h=es.filter(e=>e.siteId===s.id).reduce((a,e)=>a+ +e.hours,0);
+      return cell(`${ct(esc(s.name),ws.length?ws.map(esc).join(", "):"No one yet")}<span class="rv num">${h} hrs</span>${I.chev}`,{tap:`editSite('${s.id}')`})}).join("")+cell(`<span class="blue">Add Site</span>`,{tap:`openAdd('site',null,'${r.id}')`}),{h:"Sites"})}`};
+};
+function delIncome(id){const old=DB.income.find(x=>x.id===id);if(!old)return;actionSheet({title:`Delete ${money(old.amount)}?`,actions:[{label:"Delete",destructive:true,fn:async()=>{await del("income",id);render();banner("Deleted",async()=>{await put("income",old);render()})}}]})}
+
+VIEWS.more=(r)=>({title:"More",
+  body:`${online()?sec(
+      cell(`${ic(I.sheet,"#34C759")}${ct("Google Sheet")}<span class="rv">${syncBadge()}</span>`)+
+      cell(`${ic(I.sync,"#007AFF")}${ct("Sync Now")}`,{tap:"pull().then(render)"})+
+      (CONN.s?cell(`${ic(I.sheet,"#0F9D58")}${ct("Open Google Sheet")}${I.chev}`,{tap:`window.open('${CONN.s}','_blank')`}):"")+
+      cell(`${ic(I.qr,"#5856D6")}${ct("Connect Another Device")}${I.chev}`,{tap:"showConnectQR()"})+
+      cell(`${ic(I.lock,"#8E8E93")}${ct("Change PIN")}${I.chev}`,{tap:"setPin(()=>banner('PIN changed'))"}),
+      {h:"Data",f:"Your data is saved in your own Google Sheet and shared between your devices."})
+    :sec(cell(`${ic(I.sheet,"#34C759")}${ct("Connect to Google Sheet","Use on phone and laptop")}${I.chev}`,{tap:"openConnect()"}),{h:"Data",f:"Not connected — data is saved on this device only."})}
+  ${sec(cell(`${ic(I.dl,"#007AFF")}${ct("Download for Excel")}`,{tap:"exportCSV()"})+cell(`${ic(I.box,"#FF9500")}${ct("Download Backup")}`,{tap:"backup()"})+cell(`${ic(I.ul,"#8E8E93")}${ct("Restore Backup")}`,{tap:"$('#restore').click()"}),{h:"Files"})}
+  ${online()?sec(cell("Disconnect This Device",{tap:"disconnect()",cls:"danger"}),{f:"Your data stays safe in the Google Sheet."})
+    :sec(cell(`<span class="blue">Load Sample Data</span>`,{tap:"resetDemo(true)"})+cell("Clear All Data",{tap:"resetDemo(false)",cls:"danger"}))}
+  <div class="gf" style="text-align:center;padding-bottom:10px">Crew Wages · v${APP_VERSION}</div>`});
+
+/* ============ sync badge ============ */
+function syncBadge(){
+  if(!online())return `<span id="sync"></span>`;
+  const n=OUT.length,st=SYNC.state;
+  const [c,t]=st==="syncing"?["var(--label3)","Syncing…"]:(st==="offline"||n)?["var(--orange-f)",n?`Waiting · ${n}`:"Offline"]:st==="error"?["var(--red-f)","Not connected"]:["var(--green-f)","Synced"];
+  return `<span id="sync" class="syncb"><i style="background:${c}"></i>${t}</span>`;
+}
+function setSync(s){SYNC.state=s;if(s==="idle")SYNC.at=new Date();document.querySelectorAll("#sync").forEach(el=>el.outerHTML=syncBadge())}
+
+/* ============ banner (replaces toast) ============ */
+let bT;
+function banner(msg,undo){const b=$("#banner");b.innerHTML=`<span class="bi">${I.tick}</span><span class="bt">${msg}</span>${undo?`<button id="bu">Undo</button>`:""}`;b.classList.add("on");
+  if(undo)$("#bu").onclick=()=>{hideBanner();undo()};clearTimeout(bT);bT=setTimeout(hideBanner,undo?4500:2400)}
+function hideBanner(){const b=document.getElementById("banner");if(b)b.classList.remove("on")}
+const toast=(m,u)=>banner(String(m).replace(/^✓\s*/,""),u);
+const hideToast=hideBanner;
+
+/* ============ action sheet ============ */
+function actionSheet({title,msg,actions}){
+  const a=$("#as");a.innerHTML=`<div class="bk"></div><div class="box"><div class="g">${title||msg?`<div class="hd">${title?`<b>${esc(title)}</b>`:""}${msg?esc(msg):""}</div>`:""}${actions.map((x,i)=>`<button class="${x.destructive?"d":""} ${title||msg?"after-hd":""}" data-i="${i}">${esc(x.label)}</button>`).join("")}</div><div class="g"><button class="c">Cancel</button></div></div>`;
+  requestAnimationFrame(()=>a.classList.add("on"));
+  const close=()=>{a.classList.remove("on")};
+  a.querySelector(".bk").onclick=close;a.querySelector(".c").onclick=close;
+  a.querySelectorAll("[data-i]").forEach(b=>b.onclick=()=>{close();setTimeout(()=>actions[+b.dataset.i].fn(),180)});
+}
+const confirmAsk=(title,label,fn,msg)=>actionSheet({title,msg,actions:[{label,destructive:true,fn}]});
+
+/* ============ modal page sheet ============ */
+let M=null; // {title,left,right,draw}
+function openModal(m){hideBanner();M=m;const el=$("#modal");drawModal();el.querySelector(".mb").scrollTop=0;
+  requestAnimationFrame(()=>{el.classList.add("on");$("#scrim").classList.add("on")});
+  if(m.focus)setTimeout(()=>{const f=el.querySelector(m.focus);if(f)f.focus()},460)}
+function drawModal(){const el=$("#modal");const r=M.right;
+  el.innerHTML=`<div class="mh"><div class="nb-l"><button class="nbb" onclick="closeModal()">${M.left||"Cancel"}</button></div><div class="nb-t">${esc(M.title)}</div><div class="nb-r">${r?`<button class="nbb bold" id="mright" ${r.disabled?"disabled":""}>${r.label}</button>`:""}</div></div><div class="mb">${M.body()}</div>`;
+  if(r)$("#mright").onclick=()=>{if(!$("#mright").disabled)r.fn()};
+  if(M.after)M.after(el)}
+function redrawModal(){const mb=$("#modal .mb"),y=mb?mb.scrollTop:0;drawModal();$("#modal .mb").scrollTop=y}
+function setRight(enabled){const b=$("#mright");if(b)b.disabled=!enabled}
+function closeModal(){const el=$("#modal");el.classList.remove("on");$("#scrim").classList.remove("on");if(M&&M.onClose)M.onClose();M=null;el.style.transform="";
+  const a=document.activeElement;if(a&&a.blur)a.blur()}
+$("#scrim").onclick=closeModal;
+document.addEventListener("keydown",e=>{if(e.key==="Escape"){if($("#as").classList.contains("on"))$("#as").classList.remove("on");else if(M)closeModal()}});
+(function(){const el=$("#modal");let y0=null,dy=0;
+  el.addEventListener("touchstart",e=>{const mb=el.querySelector(".mb");if(e.target.closest(".mh")||(mb&&mb.scrollTop<=0&&!e.target.closest("input,textarea"))){y0=e.touches[0].clientY;dy=0}else y0=null},{passive:true});
+  el.addEventListener("touchmove",e=>{if(y0==null)return;dy=e.touches[0].clientY-y0;if(dy>0){el.style.transition="none";el.style.transform=`translateY(${dy}px)`}else y0=null},{passive:true});
+  el.addEventListener("touchend",()=>{if(y0==null)return;el.style.transition="";if(dy>120){el.style.transform="";closeModal()}else el.style.transform="";y0=null});
+  const vv=window.visualViewport;const fit=()=>{if(!vv)return;const kb=Math.max(0,window.innerHeight-vv.height-vv.offsetTop);document.documentElement.style.setProperty("--kb",kb+"px")};
+  if(vv){vv.addEventListener("resize",fit);vv.addEventListener("scroll",fit)}
+  document.addEventListener("touchstart",()=>{},{passive:true});
+})();
+
+/* ============ forms ============ */
+let F={};
+const swCell=(label,on,tap)=>cell(`${ct(label)}<span class="sw ${on?"on":""}"></span>`,{tap});
+const mCell=()=>`<div class="cell" style="padding-right:4px">${ct("Month")}<button class="nbb" onclick="F.month=addM(F.month,-1);redrawModal()" aria-label="Previous">${I.left}</button><span class="num" style="min-width:76px;text-align:center">${mLabel(F.month)}</span><button class="nbb" onclick="F.month=addM(F.month,1);redrawModal()" aria-label="Next">${I.right}</button></div>`;
+
+function openAdd(kind="hours",ref=null,ref2=null){
+  F={kind,month:state.month||nowM(),workerId:null,siteId:null,hours:"",paid:false,notes:"",name:"",rate:"",clientId:null,amount:"",q:""};
+  if(kind==="hours"&&ref){F.workerId=ref;const rs=DB.rates.filter(r=>r.workerId===ref);if(rs.length===1)F.siteId=rs[0].siteId;F.q=W(ref).name}
+  if(kind==="worker"&&ref){F.workerId=ref;F.name=W(ref).name}
+  if(kind==="money"&&ref)F.clientId=ref;
+  if(kind==="site"){F.clientId=ref2||(DB.clients.length===1?DB.clients[0].id:null)}
+  if(kind==="money"&&!F.clientId&&DB.clients.length===1)F.clientId=DB.clients[0].id;
+  const T={hours:["Add Hours",saveHours,"#wq"],worker:[ref?"Add Site":"New Worker",saveWorker,ref?null:"#fname"],site:["New Site",saveSite,"#fname"],client:["New Client",saveClient,"#fname"],money:["Money In",saveMoney,"#famt"]}[kind];
+  openModal({title:T[0],right:{label:kind==="hours"?"Save":"Save",fn:T[1],disabled:!valid()},body:formBody,after:()=>setRight(valid()),focus:kind==="hours"&&F.workerId?(F.siteId?"#hrs":null):T[2]});
+}
+function valid(){const h=parseFloat(F.hours)||0;
+  if(F.kind==="hours")return !!(F.workerId&&F.siteId&&h>0);
+  if(F.kind==="worker")return !!(F.name.trim()&&F.siteId&&parseFloat(F.rate)>0);
+  if(F.kind==="site")return !!(F.name.trim()&&F.clientId);
+  if(F.kind==="client")return !!F.name.trim();
+  if(F.kind==="money")return !!(F.clientId&&parseFloat(F.amount)>0);}
+function formBody(){
+  const k=F.kind;
+  if(k==="hours"){
+    const rs=F.workerId?DB.rates.filter(r=>r.workerId===F.workerId):[],rate=(rs.find(r=>r.siteId===F.siteId)||{}).rate||0,h=parseFloat(F.hours)||0;
+    const dup=F.workerId&&F.siteId&&DB.entries.some(e=>e.workerId===F.workerId&&e.siteId===F.siteId&&e.month===F.month);
+    return `${sec(mCell())}
+    ${sec(F.workerId?cell(`${avatar(W(F.workerId).name,32)}${ct(esc(W(F.workerId).name))}<button class="nbb" style="font-size:15px" onclick="F.workerId=null;F.siteId=null;F.q='';redrawModal();setRight(false);setTimeout(()=>$('#wq')&&$('#wq').focus(),50)">Change</button>`)
+      :`<div class="cell">${I.search.replace('width="16"','width="18"')}<input class="inp" id="wq" placeholder="Search for a worker" value="${esc(F.q)}" autocapitalize="words" autocorrect="off" spellcheck="false" autocomplete="off" oninput="F.q=this.value;$('#sug').innerHTML=sugRows()"></div><div class="sugbox" id="sug">${sugRows()}</div>`,{h:"Who worked"})}
+    ${F.workerId?sec(rs.length?rs.map(r=>cell(`${ct(esc(Sx(r.siteId).name),esc(C(Sx(r.siteId).clientId).name))}<span class="rv num">${money(r.rate)}/hr</span>${F.siteId===r.siteId?I.check:'<span style="width:20px"></span>'}`,{tap:`F.siteId='${r.siteId}';redrawModal();setRight(valid())`})).join(""):cell(`<span class="blue">Add a site for ${esc(W(F.workerId).name)}</span>`,{tap:`closeModal();setTimeout(()=>openAdd('worker','${F.workerId}'),300)`}),{h:"Site"}):""}
+    ${sec(`<div class="cell">${ct("Hours")}<input class="inp r num" id="hrs" inputmode="decimal" placeholder="0" value="${esc(F.hours)}" oninput="F.hours=this.value.replace(/[^0-9.]/g,'');this.value=F.hours;hoursChanged()" style="max-width:120px"></div><div class="chips" style="border-top:.5px solid var(--sep);margin-left:16px;padding-left:0">${[8,16,38,40].map(n=>`<button onclick="F.hours='${n}';$('#hrs').value='${n}';hoursChanged()">${n} hrs</button>`).join("")}</div>`)}
+    ${sec(swCell("Already paid",F.paid,"F.paid=!F.paid;redrawModal();setRight(valid())")+`<div class="cell"><input class="inp" placeholder="Note (optional)" value="${esc(F.notes)}" oninput="F.notes=this.value"></div>`)}
+    <div id="hsum">${hoursSummary(rate,h,dup)}</div>`;
+  }
+  if(k==="worker"){const existing=F.workerId?W(F.workerId):null;
+    return `${existing?sec(cell(`${avatar(existing.name,32)}${ct(esc(existing.name))}`)):sec(`<div class="cell"><input class="inp" id="fname" placeholder="Full name" value="${esc(F.name)}" autocapitalize="words" autocomplete="off" oninput="F.name=this.value;setRight(valid())"></div>`)}
+    ${sec(DB.sites.length?DB.sites.map(s=>cell(`${ct(esc(s.name),esc(C(s.clientId).name))}${F.siteId===s.id?I.check:""}`,{tap:`F.siteId='${s.id}';redrawModal()`})).join(""):cell(`<span class="blue">Add a site first</span>`,{tap:"closeModal();setTimeout(()=>openAdd('site'),300)"}),{h:"Works at"})}
+    ${sec(`<div class="cell">${ct("Pay rate")}<span class="rv">$</span><input class="inp r num" id="frate" inputmode="decimal" placeholder="0.00" value="${esc(F.rate)}" oninput="F.rate=this.value;setRight(valid())" style="max-width:100px;flex:none"><span class="rv">/hr</span></div>`,{f:existing?"":"Works at more than one site? Save, then add the next site from their page."})}`;
+  }
+  if(k==="site")return `${sec(`<div class="cell"><input class="inp" id="fname" placeholder="Site name, e.g. Parramatta" value="${esc(F.name)}" autocapitalize="words" autocomplete="off" oninput="F.name=this.value;setRight(valid())"></div>`)}
+    ${sec(DB.clients.map(c=>cell(`${ct(esc(c.name))}${F.clientId===c.id?I.check:""}`,{tap:`F.clientId='${c.id}';redrawModal()`})).join("")+cell(`<span class="blue">New Client…</span>`,{tap:"closeModal();setTimeout(()=>openAdd('client'),300)"}),{h:"Client"})}`;
+  if(k==="client")return sec(`<div class="cell"><input class="inp" id="fname" placeholder="Client name, e.g. Bupa" value="${esc(F.name)}" autocapitalize="words" autocomplete="off" oninput="F.name=this.value;setRight(valid())"></div>`,{f:F.err||"After saving you can add their sites."});
+  if(k==="money")return `${sec(mCell())}
+    ${sec(DB.clients.length?DB.clients.map(c=>cell(`${ct(esc(c.name))}${F.clientId===c.id?I.check:""}`,{tap:`F.clientId='${c.id}';redrawModal()`})).join(""):cell(`<span class="blue">Add a client first</span>`,{tap:"closeModal();setTimeout(()=>openAdd('client'),300)"}),{h:"From"})}
+    ${sec(`<div class="cell">${ct("Amount")}<span class="rv">$</span><input class="inp r num" id="famt" inputmode="decimal" placeholder="0.00" value="${esc(F.amount)}" oninput="F.amount=this.value;setRight(valid())" style="max-width:140px;flex:none"></div><div class="cell"><input class="inp" placeholder="Note (optional)" value="${esc(F.notes)}" oninput="F.notes=this.value"></div>`)}`;
+}
+function hoursSummary(rate,h,dup){
+  const why=!F.workerId?"Choose who worked.":!F.siteId?"Choose the site.":!(h>0)?"Type the hours.":"";
+  return sec(cell(`${ct("Pay",F.siteId?`${h||0} hrs × ${money(rate)}`:"")}<span class="amt num" style="font-size:22px">${money(h*rate)}</span>`),
+    {f:[why,h>250?`⚠ ${h} hours in one month is a lot — please double-check.`:"",dup?`⚠ ${esc(W(F.workerId).name)} already has hours at this site for ${mLabel(F.month)}.`:"",!why&&!dup&&!(h>250)?(F.paid?"Will be saved as paid.":"Will be added to To Pay."):""].filter(Boolean).join(" "),ferr:!!(dup||h>250)});
+}
+function hoursChanged(){const rs=DB.rates.filter(r=>r.workerId===F.workerId),rate=(rs.find(r=>r.siteId===F.siteId)||{}).rate||0,h=parseFloat(F.hours)||0;
+  const dup=F.workerId&&F.siteId&&DB.entries.some(e=>e.workerId===F.workerId&&e.siteId===F.siteId&&e.month===F.month);
+  const el=$("#hsum");if(el)el.innerHTML=hoursSummary(rate,h,dup);setRight(valid())}
+function sugRows(){
+  const q=F.q.trim().toLowerCase();const ws=DB.workers.filter(w=>w.active!==false&&(!q||w.name.toLowerCase().includes(q))).slice(0,q?6:4);
+  if(!ws.length)return q?cell(`<span class="blue">Add “${esc(F.q)}” as a new worker</span>`,{tap:"closeModal();const n=F.q;setTimeout(()=>{openAdd('worker');F.name=n;redrawModal();setRight(valid())},300)"}):"";
+  return ws.map(w=>cell(`${avatar(w.name,32)}${ct(hl(w.name,q),DB.rates.filter(r=>r.workerId===w.id).map(r=>esc(Sx(r.siteId).name)).join(", "))}`,{tap:`pickW('${w.id}')`,style:"--inset:60px"})).join("");
+}
+function pickW(id){F.workerId=id;F.q=W(id).name;const rs=DB.rates.filter(r=>r.workerId===id);F.siteId=rs.length===1?rs[0].siteId:null;redrawModal();setRight(valid());if(F.siteId)setTimeout(()=>{const h=$("#hrs");if(h)h.focus()},60)}
+async function saveHours(){if(!valid())return;
+  const rate=(DB.rates.find(r=>r.workerId===F.workerId&&r.siteId===F.siteId)||{}).rate||0;
+  const e={id:uid(),month:F.month,workerId:F.workerId,siteId:F.siteId,hours:parseFloat(F.hours),rate,paid:F.paid,paidAt:F.paid?new Date().toISOString().slice(0,10):"",notes:F.notes,createdAt:new Date().toISOString().slice(0,10)};
+  await put("entries",e);closeModal();render();banner(`Saved · ${esc(W(e.workerId).name)} · ${e.hours} hrs · ${money(wage(e))}`,async()=>{await del("entries",e.id);render()})}
+async function saveWorker(){if(!valid())return;const name=F.name.trim(),rate=parseFloat(F.rate);
+  let w=F.workerId?W(F.workerId):DB.workers.find(x=>x.name.toLowerCase()===name.toLowerCase());
+  if(!w){w={id:uid(),name,active:true};await put("workers",w)}
+  const ex=DB.rates.find(r=>r.workerId===w.id&&r.siteId===F.siteId);await put("rates",{id:ex?ex.id:uid(),workerId:w.id,siteId:F.siteId,rate});
+  closeModal();render();banner(`${esc(w.name)} · ${esc(Sx(F.siteId).name)} · ${money(rate)}/hr`)}
+async function saveSite(){if(!valid())return;const name=F.name.trim();
+  if(DB.sites.some(s=>s.name.toLowerCase()===name.toLowerCase())){banner("That site already exists");return}
+  await put("sites",{id:uid(),name,clientId:F.clientId});closeModal();render();banner(`Site added · ${esc(name)}`)}
+async function saveClient(){if(!valid())return;const name=F.name.trim();
+  if(DB.clients.some(c=>c.name.toLowerCase()===name.toLowerCase())){F.err="That client already exists.";redrawModal();return}
+  const c={id:uid(),name};await put("clients",c);closeModal();render();banner(`Client added · ${esc(name)}`)}
+async function saveMoney(){if(!valid())return;const a=parseFloat(F.amount);
+  await put("income",{id:uid(),clientId:F.clientId,month:F.month,amount:a,note:F.notes||""});closeModal();render();banner(`${money(a)} from ${esc(C(F.clientId).name)} · ${mLabel(F.month)}`)}
+
+/* ---- pay ---- */
+let P={};
+function openPay(wid){const es=DB.entries.filter(e=>e.workerId===wid&&!e.paid&&e.hours>0&&e.rate>0).sort((a,b)=>a.month.localeCompare(b.month));
+  P={wid,sel:new Set(es.map(e=>e.id)),es};
+  openModal({title:"Pay "+W(wid).name.split(" ")[0],body:()=>{const tot=P.es.filter(e=>P.sel.has(e.id)).reduce((s,e)=>s+wage(e),0);
+    return `<div class="phead" style="padding-top:8px">${avatar(W(wid).name,64)}<div class="t2" style="margin-top:4px">${esc(W(wid).name)}</div><div class="num" style="font-size:40px;font-weight:700;margin-top:2px">${money(tot)}</div></div>
+    ${sec(P.es.map(e=>cell(`<span class="circ ${P.sel.has(e.id)?"on":""}">${P.sel.has(e.id)?I.tick:""}</span>${ct(`${esc(Sx(e.siteId).name)} · ${mLabel(e.month)}`,`${e.hours} hrs × ${money(e.rate)}`)}<span class="amt num">${money(wage(e))}</span>`,{tap:`P.sel.has('${e.id}')?P.sel.delete('${e.id}'):P.sel.add('${e.id}');redrawModal()`})).join(""),{h:"What you're paying",f:P.es.length>1?"Untick anything you're not paying today.":""})}
+    <button class="bigbtn" ${P.sel.size?"":"disabled"} onclick="doPay()">Mark ${money(tot)} as Paid</button>`}});
+}
+async function doPay(){const today=new Date().toISOString().slice(0,10);
+  const before=P.es.filter(e=>P.sel.has(e.id)).map(e=>({...e})),rows=before.map(e=>({...e,paid:true,paidAt:today})),tot=rows.reduce((s,e)=>s+wage(e),0),name=W(P.wid).name;
+  await putMany("entries",rows);closeModal();render();banner(`${esc(name)} paid ${money(tot)}`,async()=>{await putMany("entries",before);render()})}
+
+/* ---- edit entry ---- */
+function openEntry(id){const e0=DB.entries.find(x=>x.id===id);if(!e0)return;F={kind:"edit",e:{...e0}};
+  openModal({title:"Edit Hours",right:{label:"Save",fn:async()=>{await put("entries",F.e);closeModal();render();banner("Changes saved")}},
+    body:()=>{const x=F.e;return `<div class="phead" style="padding-top:4px"><div class="t1" style="font-weight:600">${esc(W(x.workerId).name)}</div><div class="t2">${esc(Sx(x.siteId).name)} · ${fullMonth(x.month)}</div></div>
+    ${sec(`<div class="cell">${ct("Hours")}<input class="inp r num" inputmode="decimal" value="${x.hours}" oninput="F.e.hours=parseFloat(this.value)||0" style="max-width:120px"></div><div class="cell">${ct("Rate")}<span class="rv">$</span><input class="inp r num" inputmode="decimal" value="${x.rate}" oninput="F.e.rate=parseFloat(this.value)||0" style="max-width:90px;flex:none"><span class="rv">/hr</span></div>`)}
+    ${sec(swCell("Paid",x.paid,"F.e.paid=!F.e.paid;F.e.paidAt=F.e.paid?new Date().toISOString().slice(0,10):'';redrawModal()")+`<div class="cell"><input class="inp" placeholder="Note" value="${esc(x.notes)}" oninput="F.e.notes=this.value"></div>`)}
+    ${sec(cell("Delete Entry",{tap:`delEntry('${id}')`,cls:"danger"}))}`}});
+}
+function delEntry(id){const old=DB.entries.find(x=>x.id===id);confirmAsk("Delete these hours?","Delete Entry",async()=>{await del("entries",id);closeModal();render();banner("Entry deleted",async()=>{await put("entries",old);render()})})}
+
+/* ---- edit worker / rate / client / site ---- */
+function editWorker(id){const w=W(id);F={kind:"ew",name:w.name,active:w.active!==false};
+  openModal({title:"Edit Worker",right:{label:"Save",fn:async()=>{if(!F.name.trim())return;await put("workers",{...w,name:F.name.trim(),active:F.active});closeModal();render();banner("Saved")}},
+    body:()=>`${sec(`<div class="cell"><input class="inp" placeholder="Full name" value="${esc(F.name)}" autocapitalize="words" oninput="F.name=this.value;setRight(!!this.value.trim())"></div>`)}
+    ${sec(swCell("Still working",F.active,"F.active=!F.active;redrawModal()"),{f:"People who left are hidden from lists, but their history stays."})}`});
+}
+function editRate(rid){const r=DB.rates.find(x=>x.id===rid);if(!r)return;F={kind:"er",rate:String(r.rate)};
+  openModal({title:"Pay Rate",right:{label:"Save",fn:async()=>{const v=parseFloat(F.rate);if(!(v>0))return;await put("rates",{...r,rate:v});closeModal();render();banner("Rate updated")}},
+    body:()=>`<div class="phead" style="padding-top:4px"><div class="t1" style="font-weight:600">${esc(W(r.workerId).name)}</div><div class="t2">${esc(Sx(r.siteId).name)}</div></div>
+    ${sec(`<div class="cell">${ct("Pay rate")}<span class="rv">$</span><input class="inp r num" inputmode="decimal" value="${esc(F.rate)}" oninput="F.rate=this.value;setRight(parseFloat(this.value)>0)" style="max-width:100px;flex:none"><span class="rv">/hr</span></div>`,{f:"New hours use the new rate. Hours already saved keep their old rate."})}
+    ${sec(cell(`Remove from ${esc(Sx(r.siteId).name)}`,{tap:`remRate('${rid}')`,cls:"danger"}))}`,focus:".inp"});
+}
+function remRate(rid){const r=DB.rates.find(x=>x.id===rid);confirmAsk(`Remove ${W(r.workerId).name} from ${Sx(r.siteId).name}?`,"Remove",async()=>{await del("rates",rid);closeModal();render();banner("Site removed",async()=>{await put("rates",r);render()})},"Their saved hours are not affected.")}
+function editClient(cid){const c=C(cid);F={kind:"ec",name:c.name};const used=DB.sites.some(s=>s.clientId===cid)||DB.income.some(i=>i.clientId===cid);
+  openModal({title:"Edit Client",right:{label:"Save",fn:async()=>{if(!F.name.trim())return;await put("clients",{...c,name:F.name.trim()});closeModal();render();banner("Saved")}},
+    body:()=>`${sec(`<div class="cell"><input class="inp" value="${esc(F.name)}" autocapitalize="words" oninput="F.name=this.value;setRight(!!this.value.trim())"></div>`)}
+    ${used?sec("",{f:"To delete a client, first move or delete its sites and money in."}).replace('<div class="grp"></div>',""):sec(cell("Delete Client",{tap:`confirmAsk('Delete ${esc(c.name).replace(/'/g,"")}?','Delete Client',async()=>{await del('clients','${cid}');closeModal();if(stacks[state.tab].length>1)pop();render();banner('Client deleted')})`,cls:"danger"}))}`});
+}
+function editSite(sid){const s0=Sx(sid);F={kind:"es",name:s0.name,clientId:s0.clientId};const used=DB.entries.some(e=>e.siteId===sid);
+  openModal({title:"Edit Site",right:{label:"Save",fn:async()=>{if(!F.name.trim())return;await put("sites",{...s0,name:F.name.trim(),clientId:F.clientId});closeModal();render();banner("Saved")}},
+    body:()=>{const ws=[...new Set(DB.rates.filter(r=>r.siteId===sid).map(r=>r.workerId))];
+    return `${sec(`<div class="cell"><input class="inp" value="${esc(F.name)}" autocapitalize="words" oninput="F.name=this.value;setRight(!!this.value.trim())"></div>`)}
+    ${sec(DB.clients.map(c=>cell(`${ct(esc(c.name))}${F.clientId===c.id?I.check:""}`,{tap:`F.clientId='${c.id}';redrawModal()`})).join(""),{h:"Client"})}
+    ${ws.length?sec(ws.map(id=>cell(`${avatar(W(id).name,32)}${ct(esc(W(id).name))}${I.chev}`,{tap:`closeModal();setTimeout(()=>openPerson('${id}'),250)`,style:"--inset:60px"})).join(""),{h:"Works here"}):""}
+    ${used?sec("",{f:"This site has hours saved, so it can't be deleted."}).replace('<div class="grp"></div>',""):sec(cell("Delete Site",{tap:`confirmAsk('Delete this site?','Delete Site',async()=>{for(const r of DB.rates.filter(r=>r.siteId==='${sid}'))await del('rates',r.id);await del('sites','${sid}');closeModal();render();banner('Site deleted')})`,cls:"danger"}))}`}});
+}
+
+/* ============ connect · QR · PIN ============ */
+function openConnect(){F={kind:"conn",code:"",err:""};
+  openModal({title:"Google Sheet",body:()=>`<div class="phead" style="padding-top:6px"><div class="ic" style="background:#34C759;width:60px;height:60px;border-radius:14px;margin:0 auto 10px">${I.sheet.replace(/18/g,"32")}</div><div class="t1" style="font-weight:600;font-size:20px">Connect to your Google Sheet</div><div class="t2" style="white-space:normal;margin-top:4px">Your data is saved in your own Sheet and shared between your phone and laptop.</div></div>
+    ${sec(cell(`${ic(I.qr,"#5856D6")}${ct("Scan QR Code")}${I.chev}`,{tap:"scanQR(c=>tryConnect(c))"}),{f:"In the Google Sheet: Crew Wages menu → Connect a device."})}
+    ${sec(`<div class="cell"><textarea class="inp" id="cc" placeholder="Or paste the connect code (CW1.…)" autocapitalize="off" autocorrect="off" spellcheck="false" oninput="F.code=this.value">${esc(F.code)}</textarea></div>`+cell(`<span class="blue">Connect with Code</span>`,{tap:"tryConnect(F.code)"}),{f:F.err,ferr:!!F.err})}`});
+}
+async function tryConnect(text){
+  const c=readCode(text);if(!c){if(M&&F.kind==="conn"){F.err="That isn't a Crew Wages connect code.";redrawModal()}else banner("That isn't a Crew Wages connect code");return}
+  openModal({title:"Google Sheet",body:()=>`<div class="empty" style="padding-top:80px">Connecting…</div>`});
+  let data;try{const prev=CONN;CONN=c;data=await api("getAll");CONN=prev}
+  catch(e){CONN=null;openModal({title:"Google Sheet",body:()=>`${sec(cell(ct("Couldn't connect",e.server?esc(e.message):"No answer from Google. Check the internet, and that the script is deployed with access set to “Anyone”.")),{})}${sec(cell(`<span class="blue">Try Again</span>`,{tap:"openConnect()"}))}`});return}
+  const sheetUrl=data.sheetUrl;delete data.sheetUrl;closeModal();
+  setPin(async()=>{
+    CONN={...c,s:sheetUrl};ls.set(K_CONN,CONN);OUT=[];ls.set(K_OUT,OUT);
+    const empty=!data.workers.length&&!data.entries.length&&!data.clients.length,local=ls.get(KEY,null),hasLocal=local&&(local.workers.length||local.clients.length);
+    if(empty&&hasLocal)actionSheet({title:"Connected",msg:"Your Sheet is empty. Copy what's on this device into it?",actions:[{label:"Copy My Data to the Sheet",fn:async()=>{await replaceAll(local);afterConnect()}},{label:"Start With an Empty Sheet",fn:()=>{DB=data;saveLocal();afterConnect()}}]});
+    else{DB=data;saveLocal();afterConnect()}
+  });
+}
+function afterConnect(){SYNC.at=new Date();state.month=nowM();Object.keys(stacks).forEach(k=>stacks[k]=[stacks[k][0]]);state.tab="";showTab("home");setSync("idle");banner("Connected to your Google Sheet")}
+function disconnect(){confirmAsk("Disconnect this device?","Disconnect",()=>{CONN=null;[K_CONN,K_CACHE,K_OUT,K_PIN].forEach(k=>ls.del(k));OUT=[];DB=ls.get(KEY,null)||EMPTY();render();banner("Disconnected")},"Your data stays safe in the Google Sheet.")}
+async function showConnectQR(){const code=makeCode(CONN);
+  openModal({title:"Connect Device",left:"Done",body:()=>`<div style="background:#fff;border-radius:14px;margin:6px 16px 10px;padding:16px;display:grid;place-items:center;min-height:270px" id="qrbox">Loading…</div>
+    <div class="gf" style="text-align:center;padding:0 24px 18px">On the other device: More → Connect to Google Sheet → Scan QR Code. Keep this private — it opens your data.</div>
+    ${sec(cell(`<span class="blue">Copy Code Instead</span>`,{tap:"copyCode()"}))}`,
+    after:async()=>{try{await loadScript(CDN_QR);const q=qrcode(0,"M");q.addData(code);q.make();$("#qrbox").innerHTML=q.createSvgTag({cellSize:5,margin:2,scalable:true});const sv=$("#qrbox svg");if(sv){sv.style.width="240px";sv.style.height="240px"}}catch(e){const b=$("#qrbox");if(b)b.textContent="Couldn't draw the QR — use Copy Code."}}});
+}
+async function copyCode(){try{await navigator.clipboard.writeText(makeCode(CONN));banner("Code copied")}catch(e){banner("Couldn't copy")}}
+let scanStop=null;
+async function scanQR(onCode){
+  const stop=()=>{if(scanStop)scanStop();scanStop=null};
+  openModal({title:"Scan QR Code",onClose:stop,body:()=>`<div style="margin:6px 16px 12px;border-radius:14px;overflow:hidden;background:#000;aspect-ratio:1;position:relative"><video id="qv" playsinline muted style="width:100%;height:100%;object-fit:cover"></video><div style="position:absolute;inset:18%;border:3px solid rgba(255,255,255,.85);border-radius:20px"></div></div><div class="gf" id="qerr" style="text-align:center">Point the camera at the QR code in your Google Sheet.</div>`});
+  try{await loadScript(CDN_SCAN);const st=await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"},audio:false});
+    const v=$("#qv");if(!v){st.getTracks().forEach(t=>t.stop());return}v.srcObject=st;await v.play();
+    const cv=document.createElement("canvas"),cx=cv.getContext("2d",{willReadFrequently:true});let live=true;scanStop=()=>{live=false;st.getTracks().forEach(t=>t.stop())};
+    const tick=()=>{if(!live)return;if(v.videoWidth){cv.width=v.videoWidth;cv.height=v.videoHeight;cx.drawImage(v,0,0);const r=jsQR(cx.getImageData(0,0,cv.width,cv.height).data,cv.width,cv.height,{inversionAttempts:"dontInvert"});
+      if(r&&r.data&&r.data.includes("CW1.")){stop();onCode(r.data);return}}requestAnimationFrame(tick)};tick();
+  }catch(e){stop();const q=$("#qerr");if(q){q.classList.add("err");q.textContent="Camera not available. Allow camera access in Settings, or go back and paste the code."}}
+}
+function pinPad(title,sub,onDone,opts={}){
+  let v="";const el=document.createElement("div");el.className="lock";document.body.appendChild(el);
+  const draw=(shake)=>{el.innerHTML=`<div class="lk-in"><div class="lk-logo">C</div><div class="lk-t">${title}</div><div class="lk-s">${sub}</div>
+    <div class="dots${shake?" shake":""}">${[0,1,2,3].map(i=>`<i class="${i<v.length?"on":""}"></i>`).join("")}</div>
+    <div class="pad">${[1,2,3,4,5,6,7,8,9,"",0,"del"].map(k=>k===""?"<span></span>":k==="del"?`<button class="del" data-k="del">Delete</button>`:`<button data-k="${k}">${k}</button>`).join("")}</div>
+    ${opts.cancel?`<button class="lk-c" id="lkc">Cancel</button>`:""}</div>`;
+    el.querySelectorAll(".pad button").forEach(b=>b.onclick=async()=>{const k=b.dataset.k;if(k==="del")v=v.slice(0,-1);else if(v.length<4)v+=k;draw();
+      if(v.length===4){const ok=await onDone(v);if(ok===false){v="";setTimeout(()=>draw(true),120)}else el.remove()}});
+    const c=el.querySelector("#lkc");if(c)c.onclick=()=>{el.remove();opts.cancel()}};
+  draw();
+}
+function setPin(done){
+  pinPad("Create a PIN","Enter 4 digits to protect your data",first=>{
+    setTimeout(()=>pinPad("Confirm Your PIN","Enter the same 4 digits again",async second=>{
+      if(second!==first){banner("PINs didn't match — try again");setTimeout(()=>setPin(done),50);return true}
+      const salt=uid();ls.set(K_PIN,{salt,h:await hashPin(first,salt),bad:0});done();return true}),10);return true});
+}
+function lockIfNeeded(){
+  const p=ls.get(K_PIN,null);if(!online()||!p){unlocked=true;return}
+  unlocked=false;
+  pinPad("Enter PIN","Crew Wages is locked",async v=>{
+    const p2=ls.get(K_PIN,null);if(await hashPin(v,p2.salt)===p2.h){p2.bad=0;ls.set(K_PIN,p2);unlocked=true;pull();return true}
+    p2.bad=(p2.bad||0)+1;ls.set(K_PIN,p2);
+    if(p2.bad>=5){CONN=null;[K_CONN,K_CACHE,K_OUT,K_PIN].forEach(k=>ls.del(k));OUT=[];DB=ls.get(KEY,null)||EMPTY();render();banner("Too many wrong PINs — disconnected");return true}
+    banner(`Wrong PIN · ${5-p2.bad} ${5-p2.bad===1?"try":"tries"} left`);return false});
+}
+
+/* ---- data reset / restore ---- */
+function resetDemo(sample,quiet){const go2=()=>{DB=sample?seed():EMPTY();saveLocal();if(sample)state.month="2026-11";Object.keys(stacks).forEach(k=>stacks[k]=[stacks[k][0]]);state.tab="";showTab("home");banner(sample?"Sample data loaded":"All data cleared")};
+  if(quiet)return go2();confirmAsk(sample?"Replace everything with sample data?":"Delete all data on this device?",sample?"Load Sample Data":"Clear All Data",go2)}
+function restore(file){if(!file)return;const r=new FileReader();r.onload=()=>{let d;try{d=JSON.parse(r.result);if(!TABLES.every(t=>Array.isArray(d[t])))throw 0}catch(e){banner("That file isn't a Crew Wages backup");return}
+  confirmAsk("Replace everything with this backup?","Restore Backup",async()=>{await replaceAll(d);render();banner("Backup restored")})};r.readAsText(file)}
 
 /* ============ start ============ */
 (async()=>{
-  $("#app").innerHTML=`<div class="empty" style="padding-top:40vh">Loading…</div>`;
-  try{await load()}catch(e){$("#app").innerHTML=`<div class="empty" style="padding-top:35vh">Couldn't load your data.<br>Check the internet and refresh.</div>`;return}
-  const ms=DB.entries.map(e=>e.month).sort(); state.month=online()?nowM():(ms[ms.length-1]||nowM());
-  render(); lockIfNeeded(); if(online()&&!ls.get(K_PIN,null))unlocked=true; if(unlocked)pull();
+  await load();
+  const ms=DB.entries.map(e=>e.month).sort();state.month=online()?nowM():(ms[ms.length-1]||nowM());
+  state.tab="";showTab("home");lockIfNeeded();if(online()&&!ls.get(K_PIN,null))unlocked=true;if(unlocked)pull();
 })();
 if("serviceWorker" in navigator&&location.protocol==="https:")navigator.serviceWorker.register("sw.js").catch(()=>{});
+
 </script>
 </body>
 </html>
