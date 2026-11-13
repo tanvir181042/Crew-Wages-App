@@ -66,6 +66,23 @@ input,textarea{-webkit-user-select:text;user-select:text}
 .h .count{background:var(--soft);color:var(--ink2);border-radius:20px;padding:1px 8px;font-size:12px}
 .sec{display:flex;align-items:center;justify-content:space-between;margin:26px 4px 10px}
 .sec-first{margin-top:26px}
+.slist{display:flex;flex-direction:column;gap:12px}
+.scard{display:block;width:100%;text-align:left;background:var(--card);border-radius:20px;padding:16px 18px}
+.scard:active{opacity:.75}
+.scard.idle{padding:12px 18px}
+.sc-top{display:flex;gap:12px;align-items:flex-start}
+.sc-name{font-size:19px;font-weight:760;letter-spacing:-.025em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sc-sub{font-size:13.5px;color:var(--mut);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sc-p{font-size:20px;font-weight:780;letter-spacing:-.03em;text-align:right;white-space:nowrap}
+.sc-p small{display:block;font-size:12px;font-weight:600;color:var(--mut);letter-spacing:0}
+.sc-stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:12px}
+.sc-stats div{background:var(--bg);border-radius:12px;padding:9px 11px}
+.sc-stats b{display:block;font-size:15.5px;font-weight:720}
+.sc-stats span{font-size:11.5px;color:var(--mut);font-weight:600}
+.sc-foot{display:flex;align-items:center;gap:10px;margin-top:12px;font-size:13px;color:var(--ink2);font-weight:600}
+.stack{display:flex}.stack .av{width:28px!important;height:28px!important;font-size:10.5px!important;border:2px solid var(--card);margin-left:-8px}.stack .av:first-child{margin-left:0}
+.stack .av.more{background:var(--ink);color:var(--bg)}
+.chip.on{background:var(--ink)!important;color:var(--bg)!important}
 .glance{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:16px}
 .glance button{background:var(--card);border-radius:var(--r-lg,20px);padding:14px 12px;text-align:left;display:flex;flex-direction:column;gap:2px}
 .glance b{font-size:28px;font-weight:780;letter-spacing:-.04em;line-height:1.1}
@@ -561,7 +578,7 @@ textarea.inp{height:96px!important;padding:14px 16px!important}
 <script>
 function hideToast(){const t=document.getElementById("toast");if(t)t.classList.remove("on")}
 if(window.navigator.standalone===true||matchMedia("(display-mode: standalone)").matches)document.documentElement.classList.add("ios-app");
-const APP_VERSION="3.5";
+const APP_VERSION="3.6";
 /* ============ data layer ============ */
 const TABLES=["clients","sites","workers","rates","entries","income"];
 const EMPTY=()=>({clients:[],sites:[],workers:[],rates:[],entries:[],income:[]});
@@ -727,7 +744,7 @@ const sortKey=e=>(e.date||e.month+"-00");
 function inPer(e,p){if(p.mode==="all")return true;if(p.mode==="month")return e.month===p.d.slice(0,7);if(p.mode==="week")return !!e.date&&weekStart(e.date)===weekStart(p.d);return e.date===p.d}
 function perLabel(p){if(p.mode==="all")return "All time";if(p.mode==="month")return mLabel(p.d.slice(0,7));if(p.mode==="week")return (weekStart(p.d)===weekStart(todayD())?"This week · ":"")+weekLabel(p.d);return dayRel(p.d)}
 function perStep(p,n){if(p.mode==="day")p.d=addD(p.d,n);else if(p.mode==="week")p.d=addD(p.d,7*n);else if(p.mode==="month"){const m=addM(p.d.slice(0,7),n);p.d=m===todayD().slice(0,7)?todayD():m+"-01"}}
-const PERS={home:()=>state.per,person:()=>state.pper,site:()=>state.sper};
+const PERS={home:()=>state.per,person:()=>state.pper,site:()=>state.sper,sites:()=>state.slper};
 function perSwitch(key,modes){const p=PERS[key]();
   const sub=k=>{const d=parseD(p.d);return k==="day"?`${DOW[d.getDay()]} ${d.getDate()}`:k==="week"?weekLabel(p.d):k==="month"?FMN[d.getMonth()]:"Everything"};
   const full=k=>{const d=parseD(p.d);return k==="day"?dayRel(p.d)+(dayRel(p.d)===dayLabel(p.d)?"":" · "+dayLabel(p.d)):k==="week"?perLabel(p):FMN[d.getMonth()]+" "+d.getFullYear()};
@@ -775,7 +792,7 @@ function problems(){
 }
 
 /* ============ state & router ============ */
-let state={tab:"home",month:null,person:null,pstack:[],q:"",filter:"all",siteFocus:null,per:{mode:"month",d:todayD()},pper:{mode:"all",d:todayD()},sper:{mode:"month",d:todayD()}};
+let state={tab:"home",month:null,person:null,pstack:[],q:"",filter:"all",siteFocus:null,per:{mode:"month",d:todayD()},pper:{mode:"all",d:todayD()},sper:{mode:"month",d:todayD()},slper:{mode:"month",d:todayD()}};
 const scrolls=[];let navAnim=false;
 function go(tab,extra={}){hideToast();state={...state,tab,person:null,pstack:[],...extra};scrolls.length=0;render();window.scrollTo({top:0,behavior:"instant"})}
 
@@ -788,7 +805,7 @@ function render(){
 const TITLES={home:"Overview",today:"Hours by day",people:"People",sites:"Sites",more:"More",pay:"Pay run",reports:"Reports"};
 function buildApp(){
   const titles=TITLES;
-  const showMonth=state.tab==="sites"&&!state.person&&DB.workers.length;
+  const showMonth=false;
   const bare=state.person||state.tab==="home";
   const top=`<div class="top${bare?" bare":""}">
     <div class="brand"><div class="logo">C</div><span class="bt">Crew Wages</span></div>
@@ -1002,31 +1019,37 @@ function personPage(id){
 
 /* ---------- Clients & sites ---------- */
 function sitesPage(){
-  const m=state.month;
+  const P=state.slper,cf=state.cfilter||"all";
+  let rows=DB.sites.map(x=>siteStats(x,P));
+  const total=rows.reduce((a,r)=>({b:a.b+(r.b||0),w:a.w+r.w,h:a.h+r.h}),{b:0,w:0,h:0}),tp=total.b-total.w;
+  if(cf!=="all")rows=rows.filter(r=>r.x.clientId===cf);
+  const q=(state.sq||"").trim().toLowerCase();if(q)rows=rows.filter(r=>r.x.name.toLowerCase().includes(q)||C(r.x.clientId).name.toLowerCase().includes(q)||(r.x.address||"").toLowerCase().includes(q));
+  rows.sort((a,b)=>(b.h>0)-(a.h>0)||(b.p??-1e12)-(a.p??-1e12)||a.x.name.localeCompare(b.x.name));
+  const loss=rows.filter(r=>r.p!=null&&r.p<0).length,unset=rows.filter(r=>r.p==null&&r.h>0&&!r.note).length;
+  const idle=r=>`<button class="scard idle" onclick="openSite('${r.x.id}')"><div class="sc-top" style="align-items:center"><div style="min-width:0;flex:1"><div class="sc-name" style="font-size:16.5px">${esc(r.x.name)}</div><div class="sc-sub">${esc(C(r.x.clientId).name)}${r.x.address?" · "+esc(r.x.address):""}</div></div><span class="t2" style="font-size:13px">No hours</span><span style="color:var(--mut)">${ICON.chev}</span></div></button>`;
+  const card=r=>{if(!r.h&&!r.w)return idle(r);const x=r.x,ws=[...new Set(DB.rates.filter(q=>q.siteId===x.id).map(q=>q.workerId))],m=r.b?Math.round(r.p/r.b*100):null;
+    return `<button class="scard" onclick="openSite('${x.id}')">
+      <div class="sc-top"><div style="min-width:0;flex:1"><div class="sc-name">${esc(x.name)}</div><div class="sc-sub">${esc(C(x.clientId).name)}${x.address?" · "+esc(x.address):""}</div></div>
+        <div class="sc-p" style="color:${r.p==null?"var(--mut)":r.p<0?"var(--pay)":"var(--ok)"}">${r.p==null?(r.h?"–":""):money(r.p)}<small>${r.p==null?(r.note?"monthly fee":r.h?"money in not set":"no hours"):(r.p<0?"loss":"profit")+(m!=null?" · "+m+"%":"")}</small></div></div>
+      ${r.b?`<div class="mbar" style="height:8px;border-radius:4px;margin-top:12px">${`<i style="width:${Math.min(100,r.w/r.b*100)}%;background:var(--ink)"></i>`}${r.p>0?`<i style="width:${r.p/r.b*100}%;background:var(--ok)"></i>`:""}</div>`:""}
+      <div class="sc-stats"><div><b class="num">${r.b==null?"–":money(r.b)}</b><span>Money in</span></div><div><b class="num">${money(r.w)}</b><span>Wages</span></div><div><b class="num">${r.h}</b><span>Hours</span></div></div>
+      <div class="sc-foot"><div class="stack">${ws.slice(0,4).map(id=>av(W(id).name)).join("")}${ws.length>4?`<div class="av more">+${ws.length-4}</div>`:""}</div><span>${ws.length?plural(ws.length,"worker"):"No one assigned"}</span>
+        ${r.p==null&&r.h&&!r.note?`<span class="tag warn" style="margin-left:auto">Set money in</span>`:`<span style="margin-left:auto;color:var(--mut)">${ICON.chev}</span>`}</div>
+    </button>`};
   return `
-  <div class="cols">${DB.clients.map(c=>{
-    const sites=DB.sites.filter(s=>s.clientId===c.id);
-    const es=DB.entries.filter(e=>e.month===m&&sites.some(s=>s.id===e.siteId));
-    const st=sites.map(x=>{const se=es.filter(e=>e.siteId===x.id),h=se.filter(isWork).reduce((a,e)=>a+ +e.hours,0),w=se.reduce((a,e)=>a+wage(e),0),b=hasBill(x)?siteBilled(x,h):null;return {x,h,w,b,p:b==null?null:b-w}});
-    const wages=es.reduce((s,e)=>s+wage(e),0), inc=DB.income.filter(i=>i.clientId===c.id&&i.month===m).reduce((s,i)=>s+ +i.amount,0);
-    const billing=st.some(r=>r.b!=null), billed=st.reduce((a,r)=>a+(r.b||0),0), noRate=st.filter(r=>r.b==null&&r.h>0).length;
-    const top=billing?billed:inc, profit=top-wages, pct=top?Math.min(100,wages/top*100):0;
-    const ord=st.slice().sort((a,b)=>(b.p??-1e9)-(a.p??-1e9)||b.h-a.h||a.x.name.localeCompare(b.x.name)), open=(state.openC||{})[c.id];
-    return `<div class="card client">
-      <div class="top2"><button style="text-align:left" onclick="editClient('${c.id}')"><div class="nm">${esc(c.name)}</div><div class="t2">${plural(sites.length,"site")} · <span style="color:var(--acc)">edit</span></div></button><button class="link" onclick="openAdd('money','${c.id}')">+ Money in</button></div>
-      <div class="kv"><div ${billing?"":`onclick="moneyList('${c.id}')" style="cursor:pointer"`}><b class="num">${money(top)}</b><span>${billing?"Billed":"Money in ›"}</span></div><div><b class="num">${money(wages)}</b><span>Wages</span></div><div><b class="num" style="color:${profit>=0?"var(--ok)":"var(--pay)"}">${money(profit)}</b><span>Profit</span></div></div>
-      ${top?`<div class="bar"><i style="width:${pct}%"></i></div><div class="t2" style="margin-top:6px">${Math.round(pct)}% of ${billing?"what you bill":"money in"} goes on wages</div>`:""}
-      ${billing?`<button class="recv" onclick="moneyList('${c.id}')"><span>Received <b class="num">${money(inc)}</b></span><span>${billed-inc>0?`Still owed to you <b class="num" style="color:var(--warn)">${money(billed-inc)}</b>`:"Fully paid"} ›</span></button>`:""}
-      ${noRate?`<div class="t2" style="margin-top:8px;color:var(--warn);white-space:normal">${plural(noRate,"site")} with hours ${noRate===1?"has":"have"} no charge rate — tap the site to add it.</div>`:""}
-      <div style="margin-top:12px">${ord.slice(0,open?999:4).map(r=>{const s=r.x,ws=[...new Set(DB.rates.filter(q=>q.siteId===s.id).map(q=>q.workerId))];
-        return `<div class="site"><div style="flex:1;min-width:0"><button class="t1" style="text-align:left;max-width:100%" onclick="openSite('${s.id}')">${esc(s.name)} ›</button>${s.address?`<div class="t2">${esc(s.address)}</div>`:""}
-          <div class="people">${ws.length?ws.map(id=>`<span onclick="openPerson('${id}')">${esc(W(id).name)}</span>`).join(""):`<span style="cursor:default;color:var(--mut)">No one yet</span>`}</div>
-          ${r.b!=null?`<div class="t2 num" style="margin-top:6px">${r.h} hrs · in ${money(r.b)} · wages ${money(r.w)}</div><div class="mbar">${r.b>0?`<i class="w" style="width:${Math.min(100,r.w/r.b*100)}%"></i><i class="p" style="width:${Math.max(0,100-r.w/r.b*100)}%"></i>`:""}</div>`:""}</div>
-          ${r.b!=null?`<div class="amt num" style="color:${r.p>=0?"var(--ok)":"var(--pay)"}">${money(r.p)}<small>profit</small></div>`:`<div class="amt num">${r.h}<small>hrs</small></div>`}</div>`}).join("")||`<div class="empty">No sites yet</div>`}</div>
-      ${sites.length>4?`<button class="link" style="width:100%;text-align:center;padding-top:12px" onclick="state.openC=state.openC||{};state.openC['${c.id}']=!state.openC['${c.id}'];render()">${open?"Show fewer sites":`Show all ${sites.length} sites`}</button>`:""}
-    </div>`}).join("")}</div>
-  ${DB.clients.length?"":`<div class="card empty">No clients yet</div>`}
-  <div class="two" style="margin-top:4px"><button class="btn ghost" style="margin-top:0" onclick="openAdd('client')">+ New client</button><button class="btn ghost" style="margin-top:0" onclick="openAdd('site')">+ New site</button></div>`;
+  <div class="card mcard" style="margin-bottom:14px"><div class="mhead">${perSwitch("sites",[["day","Day"],["week","Week"],["month","Month"]])}</div>
+    <div class="kpis"><div class="kpi"><span>Money in</span><b class="num">${money(total.b)}</b></div><div class="kpi"><span>Wages</span><b class="num">${money(total.w)}</b></div>
+      <div class="kpi"><span>${tp<0?"Loss":"Profit"}</span><b class="num" style="color:${tp<0?"var(--pay)":"var(--ok)"}">${money(tp)}</b>${total.b?`<em class="fl">${Math.round(tp/total.b*100)}% margin</em>`:""}</div>
+      <div class="kpi"><span>Hours</span><b class="num">${total.h.toLocaleString()}</b><em class="fl">${plural(DB.sites.length,"site")}</em></div></div>
+    ${loss||unset?`<div class="mfoot" style="color:var(--warn)">${[loss?plural(loss,"site")+" losing money":"",unset?plural(unset,"site")+" without money in set":""].filter(Boolean).join(" · ")}</div>`:""}</div>
+  <div class="search" style="margin-bottom:10px">${ICON.search}<input type="search" placeholder="Search site, client or address" value="${esc(state.sq||"")}" oninput="state.sq=this.value;clearTimeout(window._sqt);window._sqt=setTimeout(()=>{render();const i=document.querySelector('.search input');if(i){i.focus();i.setSelectionRange(i.value.length,i.value.length)}},250)"></div>
+  ${DB.clients.length>1?`<div class="chips" style="padding-top:0;margin-bottom:6px">${[["all","All clients"],...DB.clients.map(c=>[c.id,c.name])].map(([k,l])=>`<button class="chip ${cf===k?"on":""}" onclick="state.cfilter='${k}';render()">${esc(l)}</button>`).join("")}</div>`:""}
+  <div class="slist">${rows.length?rows.filter(r=>r.h||r.w).map(card).join("")+(rows.some(r=>!r.h&&!r.w)?`<div class="t2" style="margin:10px 4px 0;font-size:13px;font-weight:650">No hours ${P.mode==="day"?"this day":P.mode==="week"?"this week":"this month"}</div>`+rows.filter(r=>!r.h&&!r.w).map(card).join(""):""):`<div class="card empty">${DB.sites.length?"No sites match":"No sites yet"}</div>`}</div>
+  <button class="btn" style="margin-top:14px" onclick="openAdd('site')">+ New site</button>
+  <div class="sec"><h2>Clients</h2><button class="link" onclick="openAdd('client')">+ New client</button></div>
+  <div class="list">${DB.clients.map(c=>{const ss=DB.sites.filter(x=>x.clientId===c.id),billed=ss.map(x=>siteStats(x,{mode:"month",d:P.d})).reduce((a,r)=>a+(r.b||0),0),rec=DB.income.filter(i=>i.clientId===c.id&&i.month===P.d.slice(0,7)).reduce((a,i)=>a+ +i.amount,0);
+    return `<div class="row"><div class="main tap" style="cursor:pointer" onclick="editClient('${c.id}')"><div class="t1">${esc(c.name)}</div><div class="t2">${plural(ss.length,"site")} · ${mShort(P.d.slice(0,7))}: billed ${money(billed)} · received ${money(rec)}</div></div>
+      ${billed-rec>0?`<div class="amt num" style="color:var(--warn)">${money(billed-rec)}<small>owed to you</small></div>`:""}<button class="link" style="padding-left:10px" onclick="moneyList('${c.id}')">Money in</button></div>`}).join("")||`<div class="empty">No clients yet</div>`}</div>`;
 }
 
 /* ============ v4: site detail, worker breakdowns, dashboard ============ */
