@@ -284,7 +284,7 @@ textarea.inp{height:76px;padding:12px 15px;resize:none}
 <script>
 function hideToast(){const t=document.getElementById("toast");if(t)t.classList.remove("on")}
 if(window.navigator.standalone===true||matchMedia("(display-mode: standalone)").matches)document.documentElement.classList.add("ios-app");
-const APP_VERSION="2.13";
+const APP_VERSION="2.14";
 /* ============ data layer ============ */
 const TABLES=["clients","sites","workers","rates","entries","income"];
 const EMPTY=()=>({clients:[],sites:[],workers:[],rates:[],entries:[],income:[]});
@@ -718,11 +718,11 @@ function openSheet(html,onClose){$("#sheet").innerHTML=`<div class="grab"></div>
 function closeSheet(){document.body.classList.remove("sheet-open");const sh=$("#sheet");if(sh.style.transform){sh.style.transition="transform .25s";sh.style.transform="translateY(110%)";setTimeout(()=>{sh.style.transition="";sh.style.transform=""},300)}sh.classList.remove("on");$("#scrim").classList.remove("on");if(sheetClose)sheetClose()}
 $("#scrim").onclick=closeSheet;
 document.addEventListener("touchstart",()=>{},{passive:true});
-const tint={on:false};
-(function(){const sh=document.getElementById("sheet");const chk=()=>{sh.classList.toggle("scrolly",sh.scrollHeight>sh.clientHeight+4);const on=sh.classList.contains("on");document.body.classList.toggle("sheet-open",on);if(false){tint.on=on;const l=document.getElementById("tcl"),d=document.getElementById("tcd");if(l)l.content=on?"#9497A1":"#F5F6FA";if(d)d.content=on?"#0C101B":"#0B0D14"}};
+const tint={on:false};let sheetY=0,wasOn=false;
+(function(){const sh=document.getElementById("sheet");const chk=()=>{(sh.getAnimations&&sh.getAnimations().length?0:sh.classList.toggle("scrolly",sh.scrollHeight>sh.clientHeight+4));const on=sh.classList.contains("on");document.body.classList.toggle("sheet-open",on);if(on&&!wasOn)sheetY=window.scrollY;if(!on&&wasOn)setTimeout(()=>window.scrollTo(0,sheetY),60);wasOn=on;if(false){tint.on=on;const l=document.getElementById("tcl"),d=document.getElementById("tcd");if(l)l.content=on?"#9497A1":"#F5F6FA";if(d)d.content=on?"#0C101B":"#0B0D14"}};
   new MutationObserver(chk).observe(sh,{attributes:true,attributeFilter:["class"]});
   /* keyboard: keep the panel above it */
-  const vv=window.visualViewport;const fit=()=>{if(!vv)return;const kb=Math.max(0,window.innerHeight-vv.height-vv.offsetTop);document.documentElement.style.setProperty("--kb",kb+"px");document.documentElement.style.setProperty("--vvh",vv.height+"px");chk()};
+  const vv=window.visualViewport;const fit=()=>{if(!vv)return;const kb=Math.max(0,window.innerHeight-vv.height-vv.offsetTop);if(kb<40&&sh.classList.contains("on")&&Math.abs(window.scrollY-sheetY)>2)window.scrollTo(0,sheetY);document.documentElement.style.setProperty("--kb",kb+"px");document.documentElement.style.setProperty("--vvh",vv.height+"px");chk()};
   if(vv){vv.addEventListener("resize",fit);vv.addEventListener("scroll",fit);fit()}
   /* swipe down to close, like iOS */
   let y0=null,dy=0;sh.addEventListener("touchstart",e=>{if(sh.scrollTop<=0&&!e.target.closest("input,textarea,.sug")){y0=e.touches[0].clientY;dy=0}else y0=null},{passive:true});
@@ -766,7 +766,7 @@ function drawAdd(){
   sh.querySelector(".fbody").animate([{transform:`translateX(${RM?0:dir*36}px)`,opacity:0},{transform:"translateX(0)",opacity:1}],{duration:320,easing:EASE});
   const h1=sh.offsetHeight;if(Math.abs(h1-h0)<2)return;
   sh.style.overflow="hidden";const an=sh.animate([{height:h0+"px"},{height:h1+"px"}],{duration:380,easing:EASE});
-  an.onfinish=an.oncancel=()=>{sh.style.overflow=""};
+  an.onfinish=an.oncancel=()=>{sh.style.overflow="";sh.classList.toggle("scrolly",sh.scrollHeight>sh.clientHeight+4)};
 }
 function monthField(){return `<div class="f"><label>Month</label><div class="month" style="box-shadow:none;border:1.5px solid var(--line);height:52px;border-radius:14px;justify-content:space-between"><button onclick="F.month=addM(F.month,-1);drawAdd()">‹</button><span>${mLabel(F.month)}</span><button onclick="F.month=addM(F.month,1);drawAdd()">›</button></div></div>`}
 function hoursTotal(){return F.mode==="week"?F.days.reduce((a,v)=>a+(parseFloat(v)||0),0):(parseFloat(F.hours)||0)}
@@ -868,7 +868,7 @@ async function saveClient(){
   const c={id:uid(),name}; await put("clients",c); F={...F,kind:"site",clientId:c.id,name:"",err:""}; drawAdd(); toast(`✓ Client added · ${esc(name)} — now add a site`);
 }
 function formMoney(){
-  return `${monthField()}<div class="f"><label>From client</label><div class="opts">${DB.clients.map(c=>`<button class="opt ${F.clientId===c.id?"on":""}" onclick="F.clientId='${c.id}';drawAdd()">${esc(c.name)}</button>`).join("")}</div></div>
+  return `${monthField()}<div class="f"><label>From client</label><div class="opts">${DB.clients.length?"":`<span class="t2">No clients yet — <button class="link" onclick="F.kind='client';F.name='';drawAdd()">add a client first</button></span>`}${DB.clients.map(c=>`<button class="opt ${F.clientId===c.id?"on":""}" onclick="F.clientId='${c.id}';drawAdd()">${esc(c.name)}</button>`).join("")}</div></div>
   <div class="f"><label>Amount ($)</label><input class="inp num" inputmode="decimal" placeholder="0" value="${esc(F.amount)}" oninput="F.amount=this.value"></div>
   ${F.err?`<div class="err">${F.err}</div>`:""}<button class="btn" onclick="saveMoney()">Save money in</button>`;
 }
