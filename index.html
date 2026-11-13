@@ -561,7 +561,7 @@ textarea.inp{height:96px!important;padding:14px 16px!important}
 <script>
 function hideToast(){const t=document.getElementById("toast");if(t)t.classList.remove("on")}
 if(window.navigator.standalone===true||matchMedia("(display-mode: standalone)").matches)document.documentElement.classList.add("ios-app");
-const APP_VERSION="3.4";
+const APP_VERSION="3.5";
 /* ============ data layer ============ */
 const TABLES=["clients","sites","workers","rates","entries","income"];
 const EMPTY=()=>({clients:[],sites:[],workers:[],rates:[],entries:[],income:[]});
@@ -912,8 +912,8 @@ function homePage(){
   const actC=new Set(DB.sites.filter(x=>DB.entries.some(e=>e.siteId===x.id&&(e.date?e.date>=since:e.month>=since.slice(0,7)))).map(x=>x.clientId)).size;
   const glance=`<div class="a-glance"><div class="glance">
     <button onclick="go('people')"><b class="num">${actW}</b><span>Active workers</span><small>${DB.workers.filter(w=>w.active!==false).length} on the team</small></button>
-    <button onclick="go('sites')"><b class="num">${actS}</b><span>Active sites</span><small>${DB.sites.length} in total</small></button>
-    <button onclick="go('sites')"><b class="num">${actC}</b><span>Active clients</span><small>${DB.clients.length} in total</small></button>
+    <button onclick="go('sites')"><b class="num">${actS}</b><span>Active sites</span><small>${actC===1?"for 1 client":`for ${actC} clients`}</small></button>
+    ${(()=>{const ws=weekStart(todayD()),h=DB.entries.filter(e=>e.date&&e.date>=ws&&isWork(e)).reduce((a,e)=>a+ +e.hours,0);return `<button onclick="go('today')"><b class="num">${h.toLocaleString()}</b><span>Hours this week</span><small>${weekLabel(todayD())}</small></button>`})()}
   </div><div class="t2" style="margin:8px 4px 0;font-size:12.5px">Active = worked in the last 30 days</div></div>`;
   const sp=DB.sites.map(x=>siteStats(x,P0)).filter(r=>r.h||r.w||r.b),known=sp.filter(r=>r.p!=null).sort((a,b)=>b.p-a.p),unknown=sp.filter(r=>r.p==null);
   const mxp=Math.max(1,...known.map(r=>Math.abs(r.p))),tp=known.reduce((a,r)=>a+r.p,0),loss=known.filter(r=>r.p<0);
