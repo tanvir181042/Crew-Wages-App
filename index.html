@@ -465,6 +465,21 @@ html,body{background:var(--bg)}
 .qa button:nth-child(1) i{background:var(--lime)!important;color:#111214!important}
 .mbar i.w{background:var(--soft)}
 .preview{background:var(--card)}
+
+/* v3.2: medium switch with dates + rounded-square nav */
+.m8{display:grid;background:var(--soft);border-radius:14px;padding:4px;gap:4px;margin:4px 6px 0}
+.m8 button{height:48px;border-radius:11px;display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:680;font-size:14.5px;color:var(--ink2);line-height:1.15;min-width:0}
+.m8 button small{font-size:11px;font-weight:550;color:var(--mut);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;padding:0 4px}
+.m8 button.on{background:var(--ink);color:var(--bg)}.m8 button.on small{color:var(--bg);opacity:.65}
+.mstep2{display:flex;align-items:center;justify-content:space-between;margin:10px 6px 4px}
+.mstep2 b{font-size:16.5px;font-weight:720;letter-spacing:-.02em;text-align:center;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mstep2 button{width:38px;height:38px;border-radius:11px;background:var(--bg);display:grid;place-items:center;font-size:19px;font-weight:600;color:var(--ink);flex:none}
+.mstep2 button:active{opacity:.6}
+.nav .tabsg{height:68px!important;border-radius:24px!important;padding:6px!important;gap:4px;background:rgba(255,255,255,.9)!important;-webkit-backdrop-filter:blur(24px) saturate(180%)!important;backdrop-filter:blur(24px) saturate(180%)!important;border:1px solid var(--line)!important;box-shadow:0 12px 30px rgba(0,0,0,.10)!important;min-width:0}
+.nav .tabsg button{border-radius:18px!important;color:#7A7B80!important;min-width:0;font-size:10.5px!important}
+.nav .tabsg button.on{background:#111214!important;color:#fff!important;flex:1.35}
+.nav .fabw{width:68px!important;height:68px!important;border-radius:24px!important}
+@media (prefers-color-scheme:dark){.nav .tabsg{background:rgba(28,28,32,.9)!important}.nav .tabsg button.on{background:#F5F5F2!important;color:#111214!important}}
 </style>
 </head>
 <body>
@@ -478,7 +493,7 @@ html,body{background:var(--bg)}
 <script>
 function hideToast(){const t=document.getElementById("toast");if(t)t.classList.remove("on")}
 if(window.navigator.standalone===true||matchMedia("(display-mode: standalone)").matches)document.documentElement.classList.add("ios-app");
-const APP_VERSION="3.1";
+const APP_VERSION="3.2";
 /* ============ data layer ============ */
 const TABLES=["clients","sites","workers","rates","entries","income"];
 const EMPTY=()=>({clients:[],sites:[],workers:[],rates:[],entries:[],income:[]});
@@ -646,8 +661,11 @@ function perLabel(p){if(p.mode==="all")return "All time";if(p.mode==="month")ret
 function perStep(p,n){if(p.mode==="day")p.d=addD(p.d,n);else if(p.mode==="week")p.d=addD(p.d,7*n);else if(p.mode==="month"){const m=addM(p.d.slice(0,7),n);p.d=m===todayD().slice(0,7)?todayD():m+"-01"}}
 const PERS={home:()=>state.per,person:()=>state.pper};
 function perSwitch(key,modes){const p=PERS[key]();
-  return `<div class="pseg">${modes.map(([k,l])=>`<button class="${p.mode===k?"on":""}" onclick="PERS['${key}']().mode='${k}';render()">${l}</button>`).join("")}</div>
-  ${p.mode==="all"?"":`<div class="month pstep"><button onclick="perStep(PERS['${key}'](),-1);render()" aria-label="Previous">‹</button><span>${perLabel(p)}</span><button onclick="perStep(PERS['${key}'](),1);render()" aria-label="Next">›</button></div>`}`}
+  const sub=k=>{const d=parseD(p.d);return k==="day"?`${DOW[d.getDay()]} ${d.getDate()}`:k==="week"?weekLabel(p.d):k==="month"?FMN[d.getMonth()]:"Everything"};
+  const full=k=>{const d=parseD(p.d);return k==="day"?dayRel(p.d)+(dayRel(p.d)===dayLabel(p.d)?"":" · "+dayLabel(p.d)):k==="week"?perLabel(p):FMN[d.getMonth()]+" "+d.getFullYear()};
+  return `<div class="m8" style="grid-template-columns:repeat(${modes.length},1fr)">${modes.map(([k,l])=>`<button class="${p.mode===k?"on":""}" onclick="PERS['${key}']().mode='${k}';render()">${l}<small>${sub(k)}</small></button>`).join("")}</div>
+  ${p.mode==="all"?"":`<div class="mstep2"><button onclick="perStep(PERS['${key}'](),-1);render()" aria-label="Previous">‹</button><b>${full(p.mode)}</b><button onclick="perStep(PERS['${key}'](),1);render()" aria-label="Next">›</button></div>`}`}
+const FMN=["January","February","March","April","May","June","July","August","September","October","November","December"];
 function perStats(p){const es=DB.entries.filter(e=>inPer(e,p));const hours=es.reduce((s,e)=>s+ +e.hours,0),wages=es.reduce((s,e)=>s+wage(e),0);
   const income=p.mode==="month"?DB.income.filter(i=>i.month===p.d.slice(0,7)).reduce((s,i)=>s+ +i.amount,0):0;
   const hidden=p.mode==="day"||p.mode==="week"?DB.entries.filter(e=>!e.date&&(e.month===p.d.slice(0,7)||e.month===addD(weekStart(p.d),6).slice(0,7))).length:0;
