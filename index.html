@@ -175,7 +175,10 @@ body.sheet-open{overflow:hidden}
 .sheet .lead{color:var(--mut);font-size:14.5px;margin-bottom:16px}
 .seg{display:flex;background:var(--soft);border-radius:13px;padding:4px;gap:4px;margin-bottom:18px;overflow-x:auto;scrollbar-width:none}
 .seg button{flex:1;padding:12px 10px;border-radius:10px;font-size:14px;font-weight:620;color:var(--mut);white-space:nowrap}
-.seg button.on{background:var(--card);color:var(--ink);box-shadow:0 1px 3px rgba(14,19,37,.1)}
+.seg{position:relative}
+.seg .ind{position:absolute;top:4px;bottom:4px;left:0;width:0;border-radius:10px;background:var(--card);box-shadow:0 1px 3px rgba(14,19,37,.12);transition:left .38s cubic-bezier(.32,.72,0,1),width .38s cubic-bezier(.32,.72,0,1);pointer-events:none}
+.seg button{position:relative;z-index:1;transition:color .25s}
+.seg button.on{background:transparent!important;box-shadow:none!important;background:var(--card);color:var(--ink);box-shadow:0 1px 3px rgba(14,19,37,.1)}
 .f{margin-bottom:14px;position:relative}
 .f label{display:block;font-size:13px;font-weight:650;color:var(--ink2);margin-bottom:7px}
 .inp{width:100%;height:52px;border-radius:14px;border:1.5px solid var(--line);background:var(--field);padding:0 15px;font-size:16.5px;outline:0;transition:border-color .15s,box-shadow .15s}
@@ -270,7 +273,7 @@ textarea.inp{height:76px;padding:12px 15px;resize:none}
 <script>
 function hideToast(){const t=document.getElementById("toast");if(t)t.classList.remove("on")}
 if(window.navigator.standalone===true||matchMedia("(display-mode: standalone)").matches)document.documentElement.classList.add("ios-app");
-const APP_VERSION="2.10";
+const APP_VERSION="2.11";
 /* ============ data layer ============ */
 const TABLES=["clients","sites","workers","rates","entries","income"];
 const EMPTY=()=>({clients:[],sites:[],workers:[],rates:[],entries:[],income:[]});
@@ -692,7 +695,20 @@ function drawAdd(){
   if(F.kind==="site") body=formSite();
   if(F.kind==="client") body=formClient();
   if(F.kind==="money") body=formMoney();
-  $("#sheet").innerHTML=`<div class="grab"></div><h3>Add</h3><div class="seg">${segs.map(([k,l])=>`<button class="${F.kind===k?"on":""}" onclick="F.kind='${k}';F.err='';drawAdd()">${l}</button>`).join("")}</div>${body}`;
+  const sh=$("#sheet"),order=segs.map(x=>x[0]),prevKind=drawAdd.last,changed=sh.classList.contains("on")&&prevKind&&prevKind!==F.kind;
+  const h0=sh.offsetHeight,oldOn=sh.querySelector(".seg button.on"),segEl=sh.querySelector(".seg"),from=oldOn&&segEl?{l:oldOn.offsetLeft,w:oldOn.offsetWidth}:null,sl=segEl?segEl.scrollLeft:0;
+  sh.innerHTML=`<div class="grab"></div><h3>Add</h3><div class="seg"><i class="ind"></i>${segs.map(([k,l])=>`<button class="${F.kind===k?"on":""}" onclick="F.kind='${k}';F.err='';drawAdd()">${l}</button>`).join("")}</div><div class="fbody">${body}</div>`;
+  drawAdd.last=F.kind;
+  const seg=sh.querySelector(".seg"),on=seg.querySelector("button.on"),ind=seg.querySelector(".ind");seg.scrollLeft=sl;
+  const place=(x)=>{ind.style.left=x.l+"px";ind.style.width=x.w+"px"};
+  if(changed&&from&&!RM){ind.style.transition="none";place(from);ind.getBoundingClientRect();ind.style.transition="";place({l:on.offsetLeft,w:on.offsetWidth});}
+  else place({l:on.offsetLeft,w:on.offsetWidth});
+  if(!changed||RM)return;
+  const dir=order.indexOf(F.kind)>order.indexOf(prevKind)?1:-1;
+  sh.querySelector(".fbody").animate([{transform:`translateX(${dir*36}px)`,opacity:0},{transform:"translateX(0)",opacity:1}],{duration:320,easing:EASE});
+  const h1=sh.offsetHeight;if(Math.abs(h1-h0)<2)return;
+  sh.style.overflow="hidden";const an=sh.animate([{height:h0+"px"},{height:h1+"px"}],{duration:380,easing:EASE});
+  an.onfinish=an.oncancel=()=>{sh.style.overflow=""};
 }
 function monthField(){return `<div class="f"><label>Month</label><div class="month" style="box-shadow:none;border:1.5px solid var(--line);height:52px;border-radius:14px;justify-content:space-between"><button onclick="F.month=addM(F.month,-1);drawAdd()">‹</button><span>${mLabel(F.month)}</span><button onclick="F.month=addM(F.month,1);drawAdd()">›</button></div></div>`}
 function formHours(){
