@@ -66,6 +66,13 @@ input,textarea{-webkit-user-select:text;user-select:text}
 .h .count{background:var(--soft);color:var(--ink2);border-radius:20px;padding:1px 8px;font-size:12px}
 .sec{display:flex;align-items:center;justify-content:space-between;margin:26px 4px 10px}
 .sec-first{margin-top:26px}
+.scount{padding:18px}
+.sc-big{display:flex;align-items:center;gap:14px}
+.sc-big b{font-size:48px;font-weight:800;letter-spacing:-.05em;line-height:1}
+.sc-big span{display:block;font-size:17px;font-weight:700}
+.sc-big small{display:block;font-size:13.5px;color:var(--mut);margin-top:2px}
+.sdot{width:9px;height:9px;border-radius:50%;background:var(--line);flex:none}
+.sdot.on{background:var(--ok)}
 .slist{display:flex;flex-direction:column;gap:12px}
 .scard{display:block;width:100%;text-align:left;background:var(--card);border-radius:20px;padding:16px 18px}
 .scard:active{opacity:.75}
@@ -578,7 +585,7 @@ textarea.inp{height:96px!important;padding:14px 16px!important}
 <script>
 function hideToast(){const t=document.getElementById("toast");if(t)t.classList.remove("on")}
 if(window.navigator.standalone===true||matchMedia("(display-mode: standalone)").matches)document.documentElement.classList.add("ios-app");
-const APP_VERSION="3.6";
+const APP_VERSION="3.7";
 /* ============ data layer ============ */
 const TABLES=["clients","sites","workers","rates","entries","income"];
 const EMPTY=()=>({clients:[],sites:[],workers:[],rates:[],entries:[],income:[]});
@@ -929,7 +936,7 @@ function homePage(){
   const actC=new Set(DB.sites.filter(x=>DB.entries.some(e=>e.siteId===x.id&&(e.date?e.date>=since:e.month>=since.slice(0,7)))).map(x=>x.clientId)).size;
   const glance=`<div class="a-glance"><div class="glance">
     <button onclick="go('people')"><b class="num">${actW}</b><span>Active workers</span><small>${DB.workers.filter(w=>w.active!==false).length} on the team</small></button>
-    <button onclick="go('sites')"><b class="num">${actS}</b><span>Active sites</span><small>${actC===1?"for 1 client":`for ${actC} clients`}</small></button>
+    <button onclick="go('sites')"><b class="num">${actS}</b><span>Active sites</span><small>of ${DB.sites.length} sites</small></button>
     ${(()=>{const ws=weekStart(todayD()),h=DB.entries.filter(e=>e.date&&e.date>=ws&&isWork(e)).reduce((a,e)=>a+ +e.hours,0);return `<button onclick="go('today')"><b class="num">${h.toLocaleString()}</b><span>Hours this week</span><small>${weekLabel(todayD())}</small></button>`})()}
   </div><div class="t2" style="margin:8px 4px 0;font-size:12.5px">Active = worked in the last 30 days</div></div>`;
   const sp=DB.sites.map(x=>siteStats(x,P0)).filter(r=>r.h||r.w||r.b),known=sp.filter(r=>r.p!=null).sort((a,b)=>b.p-a.p),unknown=sp.filter(r=>r.p==null);
@@ -1018,37 +1025,37 @@ function personPage(id){
 }
 
 /* ---------- Clients & sites ---------- */
+function siteActive(x){const since=addD(todayD(),-30);return DB.entries.some(e=>e.siteId===x.id&&(e.date?e.date>=since:e.month>=since.slice(0,7)))}
 function sitesPage(){
-  const P=state.slper,cf=state.cfilter||"all";
-  let rows=DB.sites.map(x=>siteStats(x,P));
-  const total=rows.reduce((a,r)=>({b:a.b+(r.b||0),w:a.w+r.w,h:a.h+r.h}),{b:0,w:0,h:0}),tp=total.b-total.w;
+  const P=state.slper,cf=state.cfilter||"all",af=state.afilter||"all";
+  const all=DB.sites.map(x=>({...siteStats(x,P),act:siteActive(x)}));
+  const nAct=all.filter(r=>r.act).length;
+  let rows=all;
   if(cf!=="all")rows=rows.filter(r=>r.x.clientId===cf);
+  if(af==="active")rows=rows.filter(r=>r.act);if(af==="idle")rows=rows.filter(r=>!r.act);
   const q=(state.sq||"").trim().toLowerCase();if(q)rows=rows.filter(r=>r.x.name.toLowerCase().includes(q)||C(r.x.clientId).name.toLowerCase().includes(q)||(r.x.address||"").toLowerCase().includes(q));
-  rows.sort((a,b)=>(b.h>0)-(a.h>0)||(b.p??-1e12)-(a.p??-1e12)||a.x.name.localeCompare(b.x.name));
-  const loss=rows.filter(r=>r.p!=null&&r.p<0).length,unset=rows.filter(r=>r.p==null&&r.h>0&&!r.note).length;
-  const idle=r=>`<button class="scard idle" onclick="openSite('${r.x.id}')"><div class="sc-top" style="align-items:center"><div style="min-width:0;flex:1"><div class="sc-name" style="font-size:16.5px">${esc(r.x.name)}</div><div class="sc-sub">${esc(C(r.x.clientId).name)}${r.x.address?" · "+esc(r.x.address):""}</div></div><span class="t2" style="font-size:13px">No hours</span><span style="color:var(--mut)">${ICON.chev}</span></div></button>`;
-  const card=r=>{if(!r.h&&!r.w)return idle(r);const x=r.x,ws=[...new Set(DB.rates.filter(q=>q.siteId===x.id).map(q=>q.workerId))],m=r.b?Math.round(r.p/r.b*100):null;
-    return `<button class="scard" onclick="openSite('${x.id}')">
-      <div class="sc-top"><div style="min-width:0;flex:1"><div class="sc-name">${esc(x.name)}</div><div class="sc-sub">${esc(C(x.clientId).name)}${x.address?" · "+esc(x.address):""}</div></div>
-        <div class="sc-p" style="color:${r.p==null?"var(--mut)":r.p<0?"var(--pay)":"var(--ok)"}">${r.p==null?(r.h?"–":""):money(r.p)}<small>${r.p==null?(r.note?"monthly fee":r.h?"money in not set":"no hours"):(r.p<0?"loss":"profit")+(m!=null?" · "+m+"%":"")}</small></div></div>
-      ${r.b?`<div class="mbar" style="height:8px;border-radius:4px;margin-top:12px">${`<i style="width:${Math.min(100,r.w/r.b*100)}%;background:var(--ink)"></i>`}${r.p>0?`<i style="width:${r.p/r.b*100}%;background:var(--ok)"></i>`:""}</div>`:""}
-      <div class="sc-stats"><div><b class="num">${r.b==null?"–":money(r.b)}</b><span>Money in</span></div><div><b class="num">${money(r.w)}</b><span>Wages</span></div><div><b class="num">${r.h}</b><span>Hours</span></div></div>
-      <div class="sc-foot"><div class="stack">${ws.slice(0,4).map(id=>av(W(id).name)).join("")}${ws.length>4?`<div class="av more">+${ws.length-4}</div>`:""}</div><span>${ws.length?plural(ws.length,"worker"):"No one assigned"}</span>
-        ${r.p==null&&r.h&&!r.note?`<span class="tag warn" style="margin-left:auto">Set money in</span>`:`<span style="margin-left:auto;color:var(--mut)">${ICON.chev}</span>`}</div>
-    </button>`};
+  rows.sort((a,b)=>(b.act-a.act)||a.x.name.localeCompare(b.x.name));
+  const tot=rows.reduce((a,r)=>({b:a.b+(r.b||0),w:a.w+r.w,h:a.h+r.h}),{b:0,w:0,h:0}),tp=tot.b-tot.w;
+  const row=r=>{const x=r.x,ws=new Set(DB.rates.filter(q=>q.siteId===x.id).map(q=>q.workerId)).size;
+    return `<div class="row tap" onclick="openSite('${x.id}')"><span class="sdot ${r.act?"on":""}"></span><div class="main"><div class="t1">${esc(x.name)}</div><div class="t2">${esc(C(x.clientId).name)}${x.address?" · "+esc(x.address):""} · ${plural(ws,"worker")}</div></div>
+      <div class="amt num" style="color:${r.p==null?"var(--mut)":r.p<0?"var(--pay)":r.p>0?"var(--ok)":"var(--mut)"}">${r.h||r.w?(r.p==null?"–":money(r.p)):"–"}<small>${r.h||r.w?(r.p==null?(r.note?"monthly fee":"money in not set"):(r.p<0?"loss":"profit")):"no hours"}</small></div>${ICON.chev}</div>`};
   return `
-  <div class="card mcard" style="margin-bottom:14px"><div class="mhead">${perSwitch("sites",[["day","Day"],["week","Week"],["month","Month"]])}</div>
-    <div class="kpis"><div class="kpi"><span>Money in</span><b class="num">${money(total.b)}</b></div><div class="kpi"><span>Wages</span><b class="num">${money(total.w)}</b></div>
-      <div class="kpi"><span>${tp<0?"Loss":"Profit"}</span><b class="num" style="color:${tp<0?"var(--pay)":"var(--ok)"}">${money(tp)}</b>${total.b?`<em class="fl">${Math.round(tp/total.b*100)}% margin</em>`:""}</div>
-      <div class="kpi"><span>Hours</span><b class="num">${total.h.toLocaleString()}</b><em class="fl">${plural(DB.sites.length,"site")}</em></div></div>
-    ${loss||unset?`<div class="mfoot" style="color:var(--warn)">${[loss?plural(loss,"site")+" losing money":"",unset?plural(unset,"site")+" without money in set":""].filter(Boolean).join(" · ")}</div>`:""}</div>
-  <div class="search" style="margin-bottom:10px">${ICON.search}<input type="search" placeholder="Search site, client or address" value="${esc(state.sq||"")}" oninput="state.sq=this.value;clearTimeout(window._sqt);window._sqt=setTimeout(()=>{render();const i=document.querySelector('.search input');if(i){i.focus();i.setSelectionRange(i.value.length,i.value.length)}},250)"></div>
-  ${DB.clients.length>1?`<div class="chips" style="padding-top:0;margin-bottom:6px">${[["all","All clients"],...DB.clients.map(c=>[c.id,c.name])].map(([k,l])=>`<button class="chip ${cf===k?"on":""}" onclick="state.cfilter='${k}';render()">${esc(l)}</button>`).join("")}</div>`:""}
-  <div class="slist">${rows.length?rows.filter(r=>r.h||r.w).map(card).join("")+(rows.some(r=>!r.h&&!r.w)?`<div class="t2" style="margin:10px 4px 0;font-size:13px;font-weight:650">No hours ${P.mode==="day"?"this day":P.mode==="week"?"this week":"this month"}</div>`+rows.filter(r=>!r.h&&!r.w).map(card).join(""):""):`<div class="card empty">${DB.sites.length?"No sites match":"No sites yet"}</div>`}</div>
+  <div class="card scount">
+    <div class="sc-big"><b class="num">${DB.sites.length}</b><div><span>${DB.sites.length===1?"site":"sites"} in total</span><small>${nAct} active · ${DB.sites.length-nAct} not active · ${plural(DB.clients.length,"client")}</small></div></div>
+    <div class="m8" style="grid-template-columns:repeat(3,1fr);margin:14px 0 0">${[["all","All",DB.sites.length],["active","Active",nAct],["idle","Not active",DB.sites.length-nAct]].map(([k,l,n])=>`<button class="${af===k?"on":""}" onclick="state.afilter='${k}';render()">${l}<small>${n} ${n===1?"site":"sites"}</small></button>`).join("")}</div>
+    <div class="t2" style="font-size:12.5px;margin-top:10px">Active = hours in the last 30 days</div>
+  </div>
+  <div class="search" style="margin:14px 0 10px">${ICON.search}<input type="search" placeholder="Search site, client or address" value="${esc(state.sq||"")}" oninput="state.sq=this.value;clearTimeout(window._sqt);window._sqt=setTimeout(()=>{render();const i=document.querySelector('.search input');if(i){i.focus();i.setSelectionRange(i.value.length,i.value.length)}},250)"></div>
+  ${DB.clients.length>1?`<div class="chips" style="padding-top:0;margin-bottom:4px">${[["all","All clients"],...DB.clients.map(c=>[c.id,c.name])].map(([k,l])=>`<button class="chip ${cf===k?"on":""}" onclick="state.cfilter='${k}';render()">${esc(l)}</button>`).join("")}</div>`:""}
+  <div class="card mcard" style="margin:10px 0 14px"><div class="mhead">${perSwitch("sites",[["day","Day"],["week","Week"],["month","Month"]])}</div>
+    <div class="kpis" style="grid-template-columns:repeat(3,1fr)"><div class="kpi"><span>Money in</span><b class="num" style="font-size:18px">${money(tot.b)}</b></div><div class="kpi"><span>Wages</span><b class="num" style="font-size:18px">${money(tot.w)}</b></div>
+      <div class="kpi"><span>${tp<0?"Loss":"Profit"}</span><b class="num" style="font-size:18px;color:${tp<0?"var(--pay)":"var(--ok)"}">${money(tp)}</b></div></div></div>
+  <div class="sec" style="margin-top:4px"><h2>${af==="active"?"Active sites":af==="idle"?"Not active":"All sites"}</h2><span class="h"><span class="count">${rows.length}</span></span></div>
+  <div class="list">${rows.length?rows.map(row).join(""):`<div class="empty">${DB.sites.length?"No sites match":"No sites yet"}</div>`}</div>
   <button class="btn" style="margin-top:14px" onclick="openAdd('site')">+ New site</button>
   <div class="sec"><h2>Clients</h2><button class="link" onclick="openAdd('client')">+ New client</button></div>
   <div class="list">${DB.clients.map(c=>{const ss=DB.sites.filter(x=>x.clientId===c.id),billed=ss.map(x=>siteStats(x,{mode:"month",d:P.d})).reduce((a,r)=>a+(r.b||0),0),rec=DB.income.filter(i=>i.clientId===c.id&&i.month===P.d.slice(0,7)).reduce((a,i)=>a+ +i.amount,0);
-    return `<div class="row"><div class="main tap" style="cursor:pointer" onclick="editClient('${c.id}')"><div class="t1">${esc(c.name)}</div><div class="t2">${plural(ss.length,"site")} · ${mShort(P.d.slice(0,7))}: billed ${money(billed)} · received ${money(rec)}</div></div>
+    return `<div class="row"><div class="main" style="cursor:pointer" onclick="editClient('${c.id}')"><div class="t1">${esc(c.name)}</div><div class="t2">${plural(ss.length,"site")} · ${mShort(P.d.slice(0,7))}: billed ${money(billed)} · received ${money(rec)}</div></div>
       ${billed-rec>0?`<div class="amt num" style="color:var(--warn)">${money(billed-rec)}<small>owed to you</small></div>`:""}<button class="link" style="padding-left:10px" onclick="moneyList('${c.id}')">Money in</button></div>`}).join("")||`<div class="empty">No clients yet</div>`}</div>`;
 }
 
