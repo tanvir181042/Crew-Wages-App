@@ -151,7 +151,8 @@ html.ios-app .toast{bottom:124px}
 .pghost .gd{position:absolute;inset:0;background:#000;opacity:0}
 
 /* sheet */
-.scrim{position:fixed;inset:0;top:env(safe-area-inset-top);background:rgba(14,19,37,.42);opacity:0;visibility:hidden;pointer-events:none;transition:opacity .22s,visibility 0s .22s;z-index:40}
+.scrim{position:fixed;inset:0;top:calc(env(safe-area-inset-top) + 3px);background:rgba(14,19,37,.42);opacity:0;visibility:hidden;pointer-events:none;transition:opacity .22s,visibility 0s .22s;z-index:40}
+#sbguard{position:fixed;left:0;right:0;top:0;height:calc(env(safe-area-inset-top) + 3px);background:var(--bg);z-index:45;pointer-events:none}
 .scrim.on{opacity:1;visibility:visible;pointer-events:auto;transition:opacity .22s}
 .sheet{position:fixed;left:0;right:0;bottom:var(--kb,0px);overscroll-behavior:contain;-webkit-overflow-scrolling:touch;background:var(--card);border-radius:26px 26px 0 0;max-height:calc(var(--vvh,100vh) - env(safe-area-inset-top) - 24px);overflow:auto;transform:translateY(105%);visibility:hidden;transition:transform .28s cubic-bezier(.2,.8,.2,1),visibility 0s .28s;z-index:50;padding:10px 20px calc(22px + env(safe-area-inset-bottom))}
 .sheet.on{transform:none;visibility:visible;transition:transform .28s cubic-bezier(.2,.8,.2,1)}
@@ -250,6 +251,7 @@ textarea.inp{height:76px;padding:12px 15px;resize:none}
 <div class="app" id="app"></div>
 <nav class="nav" id="nav"></nav>
 <div id="mini" class="glass"></div>
+<div id="sbguard"></div>
 <div class="scrim" id="scrim"></div>
 <div class="sheet" id="sheet"></div>
 <div class="toast" id="toast"></div>
@@ -257,7 +259,7 @@ textarea.inp{height:76px;padding:12px 15px;resize:none}
 <script>
 function hideToast(){const t=document.getElementById("toast");if(t)t.classList.remove("on")}
 if(window.navigator.standalone===true||matchMedia("(display-mode: standalone)").matches)document.documentElement.classList.add("ios-app");
-const APP_VERSION="2.4";
+const APP_VERSION="2.5";
 /* ============ data layer ============ */
 const TABLES=["clients","sites","workers","rates","entries","income"];
 const EMPTY=()=>({clients:[],sites:[],workers:[],rates:[],entries:[],income:[]});
