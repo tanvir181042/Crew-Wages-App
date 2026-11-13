@@ -107,6 +107,9 @@ button{border:0;background:none;cursor:pointer}
 
 /* bottom nav */
 .nav{position:fixed;left:0;right:0;bottom:0;background:rgba(255,255,255,.92);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-top:1px solid var(--line);display:flex;justify-content:space-around;align-items:center;padding:10px 8px calc(max(14px, env(safe-area-inset-bottom)) + 6px);z-index:20}
+html.ios-app .nav{padding-bottom:calc(max(34px, env(safe-area-inset-bottom)) + 14px)}
+html.ios-app .app{padding-bottom:150px}
+html.ios-app .toast{bottom:130px}
 .nav button{display:flex;flex-direction:column;align-items:center;gap:5px;font-size:11.5px;font-weight:600;color:var(--mut);width:64px}
 .nav button.on{color:var(--ink)}
 .nav .fab{width:56px;height:56px;border-radius:18px;background:var(--acc);color:#fff;display:grid;place-items:center;margin-top:-22px;box-shadow:0 10px 22px rgba(79,70,229,.4)}
@@ -200,6 +203,8 @@ textarea.inp{height:76px;padding:12px 15px;resize:none}
 <div class="toast" id="toast"></div>
 
 <script>
+if(window.navigator.standalone===true||matchMedia("(display-mode: standalone)").matches)document.documentElement.classList.add("ios-app");
+const APP_VERSION="1.5";
 /* ============ data layer ============ */
 const TABLES=["clients","sites","workers","rates","entries","income"];
 const isGAS = typeof google!=="undefined" && google.script && google.script.run;
@@ -476,7 +481,7 @@ function morePage(){
   <input type="file" id="restore" accept=".json" hidden onchange="restore(this.files[0])">
   <div class="sec"><h2>Workers</h2><button class="link" onclick="openAdd('worker')">+ New worker</button></div>
   <div class="list">${DB.workers.slice().sort((a,b)=>a.name.localeCompare(b.name)).map(w=>`<div class="row tap" onclick="openPerson('${w.id}')">${av(w.name)}<div class="main"><div class="t1">${esc(w.name)}</div></div>${w.active===false?'<span class="tag mut">Left</span>':""}${ICON.chev}</div>`).join("")}</div>
-  <div class="demo">${isGAS?"Saved to your Google Sheet":"Test version — data is saved on this device only"}</div>`;
+  <div class="demo">${isGAS?"Saved to your Google Sheet":"Test version — data is saved on this device only"} · v${APP_VERSION}</div>`;
 }
 
 /* ============ sheets ============ */
