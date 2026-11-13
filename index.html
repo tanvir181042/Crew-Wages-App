@@ -139,6 +139,7 @@ input[type=date].inp{-webkit-appearance:none;appearance:none;display:flex;align-
 @media (min-width:900px){.sec-first{margin-top:4px}}
 .sec h2{font-size:18px;font-weight:720;letter-spacing:-.01em}
 .link{color:var(--acc);font-weight:600;font-size:14.5px;padding:8px 0}
+.addrow{display:flex;width:100%;align-items:center;justify-content:space-between;gap:12px;text-align:left;min-height:60px;padding:10px 16px;margin:0 0 16px;border-radius:var(--r-md);border:1.5px dashed var(--line);color:var(--ink)}.addrow b{display:block;font-size:15.5px;font-weight:650}.addrow small{display:block;font-size:13px;color:var(--mut);margin-top:2px}.addrow i{font-style:normal;font-size:22px;width:32px;height:32px;display:grid;place-items:center;border-radius:var(--r-xs);background:var(--card)}
 .subback{display:flex;align-items:center;min-height:44px;margin:-6px 0 6px;color:var(--ink);font-size:15px;font-weight:650}
 
 .hero{background:linear-gradient(150deg,#1B1F3B 0%,#0E1325 70%);color:#fff;border-radius:24px;padding:22px;position:relative;overflow:hidden}
@@ -265,8 +266,6 @@ textarea.inp{height:76px;padding:12px 15px;resize:none}
 .btn{width:100%;height:54px;border-radius:15px;background:var(--acc);color:#fff;font-weight:700;font-size:16.5px;box-shadow:0 8px 20px rgba(79,70,229,.3)}
 .btn:disabled{background:#C7CAD9;box-shadow:none}
 .sheet.scrolly .btn:not(.ghost){position:sticky;bottom:12px;z-index:3;box-shadow:0 14px 0 14px var(--bg),0 -10px 18px 8px var(--bg)}
-.ncbox{display:grid;grid-template-columns:1fr auto;gap:8px}.ncbox .ncadd{height:52px;padding:0 22px;border-radius:var(--r-md);background:var(--ink);color:var(--bg);font-weight:680;font-size:16px}.ncbox .ncadd:disabled{opacity:.35}
-.ncrow{display:flex;justify-content:space-between;align-items:center;margin-top:6px}.ncrow .link{color:var(--mut);font-weight:600;min-height:44px}
 .btn.red{background:var(--pay);box-shadow:0 8px 20px rgba(229,72,77,.3)}
 .btn.ghost{background:var(--soft);color:var(--ink);box-shadow:none;margin-top:10px}
 .hint{font-size:13px;color:var(--mut);margin-top:-6px;margin-bottom:12px}
@@ -588,7 +587,7 @@ textarea.inp{height:96px!important;padding:14px 16px!important}
 <script>
 function hideToast(){const t=document.getElementById("toast");if(t)t.classList.remove("on")}
 if(window.navigator.standalone===true||matchMedia("(display-mode: standalone)").matches)document.documentElement.classList.add("ios-app");
-const APP_VERSION="3.10";
+const APP_VERSION="3.11";
 /* ============ data layer ============ */
 const TABLES=["clients","sites","workers","rates","entries","income"];
 const EMPTY=()=>({clients:[],sites:[],workers:[],rates:[],entries:[],income:[]});
@@ -1292,13 +1291,21 @@ function drawAdd(){
   if(F.kind==="client") body=formClient();
   if(F.kind==="money") body=formMoney();
   const sh=$("#sheet"),order=segs.map(x=>x[0]),prevKind=drawAdd.last,changed=sh.classList.contains("on")&&prevKind&&prevKind!==F.kind;
+  const inner=`${FBACK.length?`<button class="link subback" onclick="backSub()">‹ Back to ${SUBNAME[FBACK[FBACK.length-1].kind]}</button>`:""}${body}`;
+  const fb0=sh.querySelector(".fbody");
+  if(sh.classList.contains("on")&&prevKind===F.kind&&fb0){ // same form: only refresh the body, keep header still
+    const a0=sh.getAnimations?sh.getAnimations():[];a0.forEach(a=>a.cancel());
+    const hA=sh.offsetHeight,st=sh.scrollTop;fb0.innerHTML=inner;sh.scrollTop=st;
+    const hB=sh.offsetHeight;if(Math.abs(hB-hA)<2||RM)return;
+    sh.style.overflow="hidden";const an=sh.animate([{height:hA+"px"},{height:hB+"px"}],{duration:300,easing:EASE});
+    an.onfinish=an.oncancel=()=>{sh.style.overflow="";sh.classList.toggle("scrolly",sh.scrollHeight>sh.clientHeight+4)};return}
   const h0=sh.offsetHeight,oldOn=sh.querySelector(".seg button.on"),segEl=sh.querySelector(".seg"),from=oldOn&&segEl?{l:oldOn.offsetLeft,w:oldOn.offsetWidth}:null,sl=segEl?segEl.scrollLeft:0;
-  sh.innerHTML=`<div class="grab"></div><h3>Add</h3><div class="seg"><i class="ind"></i>${segs.map(([k,l])=>`<button class="${F.kind===k?"on":""}" onclick="FBACK=[];F.kind='${k}';F.err='';F.newC=false;drawAdd()">${l}</button>`).join("")}</div><div class="fbody">${FBACK.length?`<button class="link subback" onclick="backSub()">‹ Back to ${SUBNAME[FBACK[FBACK.length-1].kind]}</button>`:""}${body}</div>`;
+  sh.innerHTML=`<div class="grab"></div><h3>Add</h3><div class="seg"><i class="ind"></i>${segs.map(([k,l])=>`<button class="${F.kind===k?"on":""}" onclick="FBACK=[];F.kind='${k}';F.err='';drawAdd()">${l}</button>`).join("")}</div><div class="fbody">${inner}</div>`;
   drawAdd.last=F.kind;
   const seg=sh.querySelector(".seg"),on=seg.querySelector("button.on"),ind=seg.querySelector(".ind");seg.scrollLeft=sl;
   const place=(x)=>{ind.style.left=x.l+"px";ind.style.width=x.w+"px"};
   if(changed&&from){ind.style.transition="none";place(from);ind.getBoundingClientRect();ind.style.transition="";place({l:on.offsetLeft,w:on.offsetWidth});}
-  else place({l:on.offsetLeft,w:on.offsetWidth});
+  else{ind.style.transition="none";place({l:on.offsetLeft,w:on.offsetWidth});ind.getBoundingClientRect();ind.style.transition=""}
   if(!changed)return;
   const dir=order.indexOf(F.kind)>order.indexOf(prevKind)?1:-1;
   sh.querySelector(".fbody").animate([{transform:`translateX(${RM?0:dir*36}px)`,opacity:0},{transform:"translateX(0)",opacity:1}],{duration:320,easing:EASE});
@@ -1388,27 +1395,33 @@ async function saveWorker(){
   if(FBACK.length&&FBACK[FBACK.length-1].kind==="hours"){const sid=F.siteId;backSub({workerId:w.id,q:w.name,siteId:sid});render();toast(msg);setTimeout(()=>$("#hrs")?.focus(),60);return}
   closeSheet(); render(); toast(msg);
 }
-function clientPick(label){
-  if(F.newC)return `<div class="f"><label>New client</label><div class="ncbox"><input class="inp" id="ncn" placeholder="Client name, e.g. Bupa" autocapitalize="words" autocomplete="off" autocorrect="off" enterkeyhint="done" value="${esc(F.ncName||"")}" oninput="F.ncName=this.value;this.nextElementSibling.disabled=!this.value.trim()" onkeydown="if(event.key==='Enter'){event.preventDefault();addClientInline()}"><button class="ncadd" ${(F.ncName||"").trim()?"":"disabled"} onmousedown="event.preventDefault()" onclick="addClientInline()">Add</button></div>
-    <div class="ncrow">${F.ncErr?`<span class="err" style="margin:0">${F.ncErr}</span>`:`<span class="t2">It'll be picked for this ${F.kind==="money"?"payment":"site"}</span>`}<button class="link" onclick="F.newC=false;F.ncName='';F.ncErr='';drawAdd()">Cancel</button></div></div>`;
-  return `<div class="f"><label>${label}</label><div class="opts">${DB.clients.map(c=>`<button class="opt ${F.clientId===c.id?"on":""}" onclick="F.clientId='${c.id}';drawAdd()">${esc(c.name)}</button>`).join("")}<button class="opt" onclick="F.newC=true;F.ncErr='';drawAdd();setTimeout(()=>$('#ncn')?.focus(),40)">+ New client</button></div></div>`;
+function clientField(label){
+  if(F.clientId&&F.cq==null)F.cq=C(F.clientId).name;
+  return `<div class="f"><label>${label}</label><input class="inp" id="cq" placeholder="Type or pick a client" autocapitalize="words" autocomplete="off" autocorrect="off" spellcheck="false" value="${esc(F.cq||"")}" oninput="F.cq=this.value;F.err='';drawCsug()"><div id="csug" class="opts" style="margin-top:10px">${csugHtml()}</div></div>`;
 }
-async function addClientInline(){
-  const name=(F.ncName||"").trim(); if(!name)return;
-  const ex=DB.clients.find(c=>c.name.toLowerCase()===name.toLowerCase());
-  if(ex){F.clientId=ex.id;F.newC=false;F.ncName="";F.ncErr="";drawAdd();toast(`${esc(ex.name)} already exists — picked it`);return}
-  const c={id:uid(),name}; await put("clients",c); F.clientId=c.id;F.newC=false;F.ncName="";F.ncErr=""; drawAdd(); render(); toast(`✓ Client added · ${esc(name)}`);
+function clientMatch(){const q=(F.cq||"").trim().toLowerCase();return q?DB.clients.find(c=>c.name.toLowerCase()===q):null}
+function csugHtml(){
+  const q=(F.cq||"").trim(),ql=q.toLowerCase(),hit=clientMatch();
+  const n=id=>DB.sites.filter(x=>x.clientId===id).length;
+  let cs=DB.clients.filter(c=>!ql||hit||c.name.toLowerCase().includes(ql)).sort((a,b)=>n(b.id)-n(a.id)||a.name.localeCompare(b.name)).slice(0,8);
+  return cs.map(c=>`<button class="opt ${hit&&hit.id===c.id?"on":""}" onmousedown="event.preventDefault()" onclick="F.cq=C('${c.id}').name;F.err='';$('#cq').value=F.cq;drawCsug()">${esc(c.name)}</button>`).join("")
+    +(q&&!hit?`<span class="t2" style="align-self:center;padding:4px 2px">${cs.length?"or ":""}“${esc(q)}” will be added as a new client</span>`:"");
 }
+function drawCsug(){const b=$("#csug");if(b)b.innerHTML=csugHtml()}
+async function resolveClient(){const q=(F.cq||"").trim();if(!q)return null;const ex=clientMatch();if(ex)return ex.id;const c={id:uid(),name:q};await put("clients",c);return c.id}
 function formSite(){
   return `<div class="f"><label>Site name</label><input class="inp" placeholder="e.g. Parramatta" autocapitalize="words" autocomplete="off" value="${esc(F.name)}" oninput="F.name=this.value"></div>
-  ${clientPick("Client")}
-  ${billFields(F,{obj:"F",fn:"drawAdd()"})}
+  ${clientField("Client")}
+  <div class="f"><label>Address <span style="color:var(--mut);font-weight:500">(optional)</span></label><input class="inp" placeholder="e.g. 12 George St, Parramatta" autocomplete="off" value="${esc(F.address||"")}" oninput="F.address=this.value"></div>
+  ${F.showBill?`<div class="f"><label>What the client pays you <span style="color:var(--mut);font-weight:500">(optional)</span></label><div class="pseg" style="margin:0 0 10px">${[["hourly","Per hour"],["fixed","Fixed per month"]].map(([k,l])=>`<button class="${(F.billType||"hourly")===k?"on":""}" onclick="F.billType='${k}';drawAdd()">${l}</button>`).join("")}</div>
+    <input class="inp num" id="bamt" inputmode="decimal" placeholder="${(F.billType||"hourly")==="fixed"?"$ per month, e.g. 4000":"$ per hour, e.g. 35"}" value="${esc(F.billAmt||"")}" oninput="F.billAmt=this.value"><div class="hint" style="margin-top:8px">Used for this site's profit. You can add it later.</div></div>`
+  :`<button class="addrow" onclick="F.showBill=true;drawAdd();setTimeout(()=>$('#bamt')?.focus(),320)"><span><b>What the client pays you</b><small>Optional · for profit — add now or later</small></span><i>+</i></button>`}
   ${F.err?`<div class="err">${F.err}</div>`:""}<button class="btn" onclick="saveSite()">Save site</button>`;
 }
 async function saveSite(){
-  const name=F.name.trim(); if(!name)return F.err="Type a site name",drawAdd(); if(F.newC&&(F.ncName||"").trim())await addClientInline(); if(!F.clientId)return F.err="Pick a client",drawAdd();
+  const name=F.name.trim(); if(!name)return F.err="Type a site name",drawAdd(); if(!(F.cq||"").trim())return F.err="Type or pick a client",drawAdd();
   if(DB.sites.some(s=>s.name.toLowerCase()===name.toLowerCase()))return F.err="That site already exists",drawAdd();
-  const amt=parseFloat(F.billAmt)||0,bt=F.billType||"hourly";
+  F.clientId=await resolveClient();const amt=parseFloat(F.billAmt)||0,bt=F.billType||"hourly";
   const sid=uid();await put("sites",{id:sid,name,clientId:F.clientId,address:(F.address||"").trim(),billType:bt,charge:bt==="hourly"?amt:0,fixed:bt==="fixed"?amt:0});
   if(FBACK.length){backSub({siteId:sid});render();toast(`✓ Site added · ${esc(name)}`);return}
   closeSheet(); render(); toast(`✓ Site added · ${esc(name)}`);
@@ -1425,12 +1438,12 @@ async function saveClient(){
   F={...F,kind:"site",clientId:c.id,name:"",err:"",billAmt:"",address:""}; drawAdd(); toast(`✓ Client added · ${esc(name)} — now add a site`);
 }
 function formMoney(){
-  return `${monthField()}${clientPick("From client")}
+  return `${monthField()}${clientField("From client")}
   <div class="f"><label>Amount ($)</label><input class="inp num" inputmode="decimal" placeholder="0" value="${esc(F.amount)}" oninput="F.amount=this.value"></div>
   ${F.err?`<div class="err">${F.err}</div>`:""}<button class="btn" onclick="saveMoney()">Save money in</button>`;
 }
 async function saveMoney(){
-  const a=parseFloat(F.amount); if(F.newC&&(F.ncName||"").trim())await addClientInline(); if(!F.clientId)return F.err="Pick a client",drawAdd(); if(!(a>0))return F.err="Type the amount",drawAdd();
+  const a=parseFloat(F.amount); if(!(F.cq||"").trim())return F.err="Type or pick a client",drawAdd(); if(!(a>0))return F.err="Type the amount",drawAdd(); F.clientId=await resolveClient();
   await put("income",{id:uid(),clientId:F.clientId,month:F.month,amount:a,note:""}); closeSheet(); render(); toast(`✓ ${money(a)} from ${esc(C(F.clientId).name)} · ${mLabel(F.month)}`);
 }
 
