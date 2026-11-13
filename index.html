@@ -205,7 +205,7 @@ const TABLES=["clients","sites","workers","rates","entries","income"];
 const isGAS = typeof google!=="undefined" && google.script && google.script.run;
 let SHEET_URL="";
 let DB={clients:[],sites:[],workers:[],rates:[],entries:[],income:[]};
-const KEY="crewwages_demo_v1";
+const KEY="crewwages_v2";
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
 
 function gas(fn,...args){return new Promise((res,rej)=>google.script.run.withSuccessHandler(res).withFailureHandler(rej)[fn](...args))}
@@ -213,7 +213,7 @@ function saveLocal(){try{localStorage.setItem(KEY,JSON.stringify(DB))}catch(e){}
 async function load(){
   if(isGAS){const r=await gas("getAll");SHEET_URL=r.sheetUrl;delete r.sheetUrl;DB=r;return}
   try{const s=localStorage.getItem(KEY); if(s){DB=JSON.parse(s);return}}catch(e){}
-  DB=seed(); saveLocal();
+  DB={clients:[],sites:[],workers:[],rates:[],entries:[],income:[]}; saveLocal();
 }
 async function put(table,row){ // insert or update
   const arr=DB[table]; const i=arr.findIndex(r=>r.id===row.id);
@@ -376,6 +376,12 @@ function homePage(){
       </div>`}).join(""):`<div class="empty"><div class="e">✅</div>Nobody is waiting for money</div>`}</div>
     <div class="sec"><h2>Paid in ${mShort(state.month)}</h2><span class="h"><span class="count">${paidThis.length}</span></span></div>
     <div class="list">${paidThis.length?groupPaid(paidThis):`<div class="empty">Nothing paid this month yet</div>`}</div>`;
+  if(!DB.workers.length){
+    const steps=[["client","Add your first client","e.g. Ken",DB.clients.length],["site","Add a site","Where the work happens",DB.sites.length],["worker","Add a worker","Name, site and pay rate",DB.workers.length]];
+    return `<div class="hero"><div class="lbl">Welcome to</div><div class="big">Crew Wages</div><div class="sub">Three quick steps and you're ready to add hours.</div></div>
+    <div class="list" style="margin-top:14px">${steps.map(([k,t,d,done],i)=>`<div class="row tap" onclick="openAdd('${k}')"><div class="av" style="background:${done?"var(--ok-s)":"var(--acc-s)"};color:${done?"var(--ok)":"var(--acc)"}">${done?"✓":i+1}</div><div class="main"><div class="t1">${t}</div><div class="t2">${d}</div></div>${ICON.chev}</div>`).join("")}</div>
+    <button class="btn ghost" style="margin-top:14px" onclick="DB=seed();saveLocal();state.month='2026-11';render();toast('Sample data loaded')">Or try it with sample data</button>`;
+  }
   return `<div class="home"><div>${left}</div><div>${right}</div></div>`;
 }
 const stat=(k,v,c)=>`<div class="stat"><div class="k"><span class="dot" style="background:${c}"></span>${k}</div><div class="v num">${v}</div></div>`;
@@ -464,12 +470,13 @@ function morePage(){
     <div class="row" onclick="exportCSV()"><div class="main"><div class="t1">Download for Excel</div><div class="t2">All hours as a spreadsheet file</div></div>${ICON.chev}</div>
     <div class="row" onclick="backup()"><div class="main"><div class="t1">Download a backup</div><div class="t2">One file with everything</div></div>${ICON.chev}</div>
     <div class="row" onclick="$('#restore').click()"><div class="main"><div class="t1">Restore a backup</div><div class="t2">Replace everything with a backup file</div></div>${ICON.chev}</div>
-    ${isGAS?"":`<div class="row" onclick="resetDemo()"><div class="main"><div class="t1" style="color:var(--pay)">Reset demo data</div><div class="t2">Start again with the sample data</div></div>${ICON.chev}</div>`}
+    ${isGAS?"":`<div class="row" onclick="resetDemo(true)"><div class="main"><div class="t1">Load sample data</div><div class="t2">Try the app with example workers</div></div>${ICON.chev}</div>
+    <div class="row" onclick="resetDemo(false)"><div class="main"><div class="t1" style="color:var(--pay)">Clear all data</div><div class="t2">Start empty</div></div>${ICON.chev}</div>`}
   </div>
   <input type="file" id="restore" accept=".json" hidden onchange="restore(this.files[0])">
   <div class="sec"><h2>Workers</h2><button class="link" onclick="openAdd('worker')">+ New worker</button></div>
   <div class="list">${DB.workers.slice().sort((a,b)=>a.name.localeCompare(b.name)).map(w=>`<div class="row tap" onclick="openPerson('${w.id}')">${av(w.name)}<div class="main"><div class="t1">${esc(w.name)}</div></div>${w.active===false?'<span class="tag mut">Left</span>':""}${ICON.chev}</div>`).join("")}</div>
-  <div class="demo">${isGAS?"Saved to your Google Sheet":"Demo — data is saved in this browser only"}</div>`;
+  <div class="demo">${isGAS?"Saved to your Google Sheet":"Test version — data is saved on this device only"}</div>`;
 }
 
 /* ============ sheets ============ */
@@ -638,7 +645,7 @@ function backup(){try{download(`Crew_Wages_backup_${new Date().toISOString().sli
 function restore(file){if(!file)return;const r=new FileReader();r.onload=async()=>{try{const d=JSON.parse(r.result);if(!TABLES.every(t=>Array.isArray(d[t])))throw 0;
   if(!confirmBox("Replace everything with this backup?"))return; DB=d; if(isGAS)await gas("replaceAll",DB); else saveLocal(); render(); toast("✓ Backup restored")}catch(e){toast("That file isn't a Crew Wages backup")}};r.readAsText(file)}
 function confirmBox(m){try{return window.confirm(m)}catch(e){return true}}
-function resetDemo(){DB=seed();saveLocal();state.person=null;go("home");toast("Demo data reset")}
+function resetDemo(sample){if(!confirmBox(sample?"Replace everything with sample data?":"Delete all data on this device?"))return;DB=sample?seed():{clients:[],sites:[],workers:[],rates:[],entries:[],income:[]};saveLocal();state.person=null;if(sample)state.month="2026-11";go("home");toast(sample?"Sample data loaded":"All data cleared")}
 
 /* ============ start ============ */
 (async()=>{
