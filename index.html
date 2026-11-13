@@ -66,8 +66,19 @@ input,textarea{-webkit-user-select:text;user-select:text}
 .h .count{background:var(--soft);color:var(--ink2);border-radius:20px;padding:1px 8px;font-size:12px}
 .sec{display:flex;align-items:center;justify-content:space-between;margin:26px 4px 10px}
 .sec-first{margin-top:26px}
+.wkgrid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+.f .wkd{display:flex;flex-direction:column;align-items:center;gap:1px;font-size:12px;font-weight:650;color:var(--mut);margin:0!important}
+.f .wkd small{font-size:11px;font-weight:550;margin-bottom:4px}
+.f .wkd.today span,.f .wkd.today small{color:var(--acc)}
+.f .wkd .inp{height:46px;padding:0;text-align:center;font-size:16.5px;border-radius:12px}
+input[type=date].inp{-webkit-appearance:none;appearance:none;display:flex;align-items:center;min-width:0}
+.pseg{display:flex;background:var(--soft);border-radius:11px;padding:3px;gap:3px;margin:4px 6px 8px}
+.pseg button{flex:1;height:34px;border-radius:9px;font-size:13.5px;font-weight:650;color:var(--mut)}
+.pseg button.on{background:var(--card);color:var(--ink);box-shadow:0 1px 3px rgba(14,19,37,.12)}
+.pstep{box-shadow:none!important;background:transparent!important;justify-content:space-between;margin:0 2px}
+.pstep span{flex:1}
 .mcard{padding:0;overflow:hidden}
-.mhead{display:flex;justify-content:center;padding:8px 8px 0}
+.mhead{padding:8px 8px 0}
 .mhead .month{box-shadow:none;background:var(--soft)}
 .mgrid{display:grid;grid-template-columns:1fr 1fr;padding:6px 6px 0}
 .mgrid div{padding:12px 14px}
@@ -273,7 +284,7 @@ textarea.inp{height:76px;padding:12px 15px;resize:none}
 <script>
 function hideToast(){const t=document.getElementById("toast");if(t)t.classList.remove("on")}
 if(window.navigator.standalone===true||matchMedia("(display-mode: standalone)").matches)document.documentElement.classList.add("ios-app");
-const APP_VERSION="2.12";
+const APP_VERSION="2.13";
 /* ============ data layer ============ */
 const TABLES=["clients","sites","workers","rates","entries","income"];
 const EMPTY=()=>({clients:[],sites:[],workers:[],rates:[],entries:[],income:[]});
@@ -364,7 +375,11 @@ function seed(){
       const same=d.rates.filter(x=>x.workerId===w.id); const k=same.indexOf(r); const hh=same.length>1?(k===0?Math.round(h*.6):Math.round(h*.4)):h;
       if(!hh)return;
       const paid = mi<2 || (mi===2 && !["Bishal Pradhan","Selisha"].includes(w.name)) || (mi===3 && ["Akash","Gugun","Binita","Roshan","Pradeep","Ankit Sharma"].includes(w.name));
-      d.entries.push({id:uid(),month:m,workerId:w.id,siteId:r.siteId,hours:hh,rate:r.rate,paid,paidAt:paid?m+"-28":"",notes:"",createdAt:m+"-25"});
+      if(mi===3){ // November: day-by-day entries on weekdays
+        let left=hh,day=2;while(left>0&&day<=13){const dt=new Date(2026,10,day);if(dt.getDay()%6){const hrs=Math.min(8,left);left-=hrs;const ds="2026-11-"+String(day).padStart(2,"0");
+          d.entries.push({id:uid(),month:m,date:ds,workerId:w.id,siteId:r.siteId,hours:hrs,rate:r.rate,paid,paidAt:paid?"2026-11-14":"",notes:"",createdAt:ds})}day++}
+        if(left>0)d.entries.push({id:uid(),month:m,date:"2026-11-13",workerId:w.id,siteId:r.siteId,hours:left,rate:r.rate,paid,paidAt:paid?"2026-11-14":"",notes:"",createdAt:"2026-11-13"});
+      } else d.entries.push({id:uid(),month:m,date:"",workerId:w.id,siteId:r.siteId,hours:hh,rate:r.rate,paid,paidAt:paid?m+"-28":"",notes:"",createdAt:m+"-25"});
     });
     d.income.push({id:uid(),clientId:"c1",month:m,amount:[36000,34000,35500,30000][mi],note:""});
     if(mi>0)d.income.push({id:uid(),clientId:"c2",month:m,amount:[0,1500,1600,1400][mi],note:""});
@@ -413,6 +428,31 @@ const ICON={
 };
 
 /* ============ calculations ============ */
+/* ============ dates & periods ============ */
+const pad2=n=>String(n).padStart(2,"0");
+const isoD=d=>d.getFullYear()+"-"+pad2(d.getMonth()+1)+"-"+pad2(d.getDate());
+const todayD=()=>isoD(new Date());
+const parseD=s=>{const[y,m,d]=s.split("-").map(Number);return new Date(y,m-1,d)};
+const addD=(s,n)=>{const d=parseD(s);d.setDate(d.getDate()+n);return isoD(d)};
+const weekStart=s=>{const d=parseD(s);d.setDate(d.getDate()-((d.getDay()+6)%7));return isoD(d)};
+const DOW=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+const dayLabel=s=>{const d=parseD(s);return `${DOW[d.getDay()]} ${d.getDate()} ${MN[d.getMonth()]}`};
+const dayRel=s=>s===todayD()?"Today":s===addD(todayD(),-1)?"Yesterday":dayLabel(s);
+const weekLabel=s=>{const a=parseD(weekStart(s)),b=parseD(addD(weekStart(s),6));return a.getMonth()===b.getMonth()?`${a.getDate()}–${b.getDate()} ${MN[b.getMonth()]}`:`${a.getDate()} ${MN[a.getMonth()]} – ${b.getDate()} ${MN[b.getMonth()]}`};
+const whenLabel=e=>e.date?dayLabel(e.date):`${mLabel(e.month)} · whole month`;
+const sortKey=e=>(e.date||e.month+"-00");
+function inPer(e,p){if(p.mode==="all")return true;if(p.mode==="month")return e.month===p.d.slice(0,7);if(p.mode==="week")return !!e.date&&weekStart(e.date)===weekStart(p.d);return e.date===p.d}
+function perLabel(p){if(p.mode==="all")return "All time";if(p.mode==="month")return mLabel(p.d.slice(0,7));if(p.mode==="week")return (weekStart(p.d)===weekStart(todayD())?"This week · ":"")+weekLabel(p.d);return dayRel(p.d)}
+function perStep(p,n){if(p.mode==="day")p.d=addD(p.d,n);else if(p.mode==="week")p.d=addD(p.d,7*n);else if(p.mode==="month"){const m=addM(p.d.slice(0,7),n);p.d=m===todayD().slice(0,7)?todayD():m+"-01"}}
+const PERS={home:()=>state.per,person:()=>state.pper};
+function perSwitch(key,modes){const p=PERS[key]();
+  return `<div class="pseg">${modes.map(([k,l])=>`<button class="${p.mode===k?"on":""}" onclick="PERS['${key}']().mode='${k}';render()">${l}</button>`).join("")}</div>
+  ${p.mode==="all"?"":`<div class="month pstep"><button onclick="perStep(PERS['${key}'](),-1);render()" aria-label="Previous">‹</button><span>${perLabel(p)}</span><button onclick="perStep(PERS['${key}'](),1);render()" aria-label="Next">›</button></div>`}`}
+function perStats(p){const es=DB.entries.filter(e=>inPer(e,p));const hours=es.reduce((s,e)=>s+ +e.hours,0),wages=es.reduce((s,e)=>s+wage(e),0);
+  const income=p.mode==="month"?DB.income.filter(i=>i.month===p.d.slice(0,7)).reduce((s,i)=>s+ +i.amount,0):0;
+  const hidden=p.mode==="day"||p.mode==="week"?DB.entries.filter(e=>!e.date&&(e.month===p.d.slice(0,7)||e.month===addD(weekStart(p.d),6).slice(0,7))).length:0;
+  return {es,hours,wages,income,profit:income-wages,people:new Set(es.map(e=>e.workerId)).size,hidden}}
+
 function owedByWorker(){ // all months
   const map={};
   DB.entries.filter(e=>!e.paid && e.hours>0 && e.rate>0).forEach(e=>{
@@ -428,18 +468,21 @@ function monthStats(m){
   return {hours,wages,income,profit:income-wages,count:es.length};
 }
 function problems(){
-  const out=[]; const seen={};
+  const out=[]; const seen={}, dupG={};
   DB.entries.forEach(e=>{
-    const k=e.workerId+"|"+e.siteId+"|"+e.month;
-    if(seen[k]&&seen[k].hours==e.hours) out.push({type:"dup",e,text:`${W(e.workerId).name} — ${Sx(e.siteId).name}, ${mLabel(e.month)}: entered twice`});
+    const k=e.workerId+"|"+e.siteId+"|"+(e.date||"M"+e.month);
+    if(seen[k]&&seen[k].hours==e.hours){const g=e.workerId+"|"+e.siteId+"|"+e.month;dupG[g]=dupG[g]||{e,days:new Set()};dupG[g].days.add(e.date||"M")}
     seen[k]=e;
     if(!(e.rate>0)&&e.hours>0) out.push({type:"rate",e,text:`${W(e.workerId).name} — ${Sx(e.siteId).name}, ${mLabel(e.month)}: no pay rate`});
   });
+  Object.values(dupG).forEach(x=>{const n=[...x.days].filter(d=>d!=="M").length;out.push({type:"dup",e:x.e,text:`${W(x.e.workerId).name} — ${Sx(x.e.siteId).name}, ${mLabel(x.e.month)}: entered twice${n>1?` on ${n} days`:n===1?` on ${dayLabel([...x.days].find(d=>d!=="M"))}`:""}`})});
+  const mix={};DB.entries.forEach(e=>{const k=e.workerId+"|"+e.siteId+"|"+e.month;(mix[k]=mix[k]||{d:0,m:null});if(e.date)mix[k].d++;else mix[k].m=e});
+  Object.values(mix).forEach(x=>{if(x.m&&x.d)out.push({type:"mix",e:x.m,text:`${W(x.m.workerId).name} — ${Sx(x.m.siteId).name}, ${mLabel(x.m.month)}: whole-month total and daily hours — may count twice`})});
   const seenT=new Set(); return out.filter(p=>!seenT.has(p.text)&&seenT.add(p.text));
 }
 
 /* ============ state & router ============ */
-let state={tab:"home",month:null,person:null,pstack:[],q:"",filter:"all",siteFocus:null};
+let state={tab:"home",month:null,person:null,pstack:[],q:"",filter:"all",siteFocus:null,per:{mode:"month",d:todayD()},pper:{mode:"all",d:todayD()}};
 const scrolls=[];let navAnim=false;
 function go(tab,extra={}){hideToast();state={...state,tab,person:null,pstack:[],...extra};scrolls.length=0;render();window.scrollTo({top:0,behavior:"instant"})}
 
@@ -516,8 +559,8 @@ function monthSwitch(){return `<div class="month"><button onclick="state.month=a
 /* ---------- Home ---------- */
 function homePage(){
   const owed=owedByWorker(); const total=owed.reduce((s,o)=>s+o.amount,0);
-  const st=monthStats(state.month); const pr=problems();
-  const paidThis=DB.entries.filter(e=>e.paid&&e.month===state.month);
+  const pr=problems(), P0=state.per, st=perStats(P0);
+  const paidThis=st.es.filter(e=>e.paid), pname=P0.mode==="month"?`${mShort(P0.d.slice(0,7))} work`:P0.mode==="week"?weekLabel(P0.d):dayRel(P0.d);
   const paidTotal=paidThis.reduce((s,e)=>s+wage(e),0);
   const hero=`<div class="hero a-hero">
       <div class="lbl" style="display:flex;justify-content:space-between;position:relative;z-index:1">Still to pay ${online()?syncBadge():""}</div>
@@ -525,7 +568,7 @@ function homePage(){
       <div class="sub">${owed.length?`${plural(owed.length,"person")} waiting · all months`:"Everyone is paid up"}</div>
     </div>`;
   const prob=pr.length?`<div class="a-prob"><div class="sec sec-first"><h2 style="display:flex;align-items:center;gap:8px;color:var(--warn)">${ICON.warn}Needs checking</h2><span class="h"><span class="count">${pr.length}</span></span></div>
-    <div class="list">${pr.slice(0,5).map(p=>`<div class="row tap" onclick="openPerson('${p.e.workerId}')"><div class="av" style="background:var(--warn-s);color:var(--warn)">!</div><div class="main"><div class="t1">${esc(W(p.e.workerId).name)}</div><div class="t2">${esc(Sx(p.e.siteId).name)} · ${mLabel(p.e.month)} · ${p.type==="dup"?"entered twice":"no pay rate"}</div></div>${ICON.chev}</div>`).join("")}</div></div>`:"";
+    <div class="list">${pr.slice(0,5).map(p=>`<div class="row tap" onclick="openPerson('${p.e.workerId}')"><div class="av" style="background:var(--warn-s);color:var(--warn)">!</div><div class="main"><div class="t1">${esc(W(p.e.workerId).name)}</div><div class="t2">${esc(Sx(p.e.siteId).name)} · ${mLabel(p.e.month)} · ${p.type==="dup"?esc(p.text.split(": ")[1]):p.type==="mix"?"month total + daily hours":"no pay rate"}</div></div>${ICON.chev}</div>`).join("")}</div></div>`:"";
   const topay=`<div class="a-topay"><div class="sec sec-first"><h2>To pay</h2><span class="h"><span class="count">${owed.length}</span></span></div>
     <div class="list">${owed.length?owed.map(o=>{const w=W(o.workerId);return `
       <div class="row">
@@ -534,17 +577,18 @@ function homePage(){
           <div class="amt num">${money(o.amount)}</div></div>
         <button class="pay-btn" onclick="openPay('${o.workerId}')">Pay</button>
       </div>`}).join(""):`<div class="empty"><div class="e" style="color:var(--ok)">${ICON.party}</div>Everyone is paid up</div>`}</div></div>`;
-  const month=`<div class="a-month"><div class="sec sec-first"><h2>This month</h2></div>
-    <div class="card mcard"><div class="mhead">${monthSwitch()}</div>
+  const month=`<div class="a-month"><div class="sec sec-first"><h2>${P0.mode==="day"?"Day":P0.mode==="week"?"Week":"Month"}</h2></div>
+    <div class="card mcard"><div class="mhead">${perSwitch("home",[["day","Day"],["week","Week"],["month","Month"]])}</div>
       <div class="mgrid">
         <div><span>Hours</span><b class="num">${st.hours.toLocaleString()}</b></div>
         <div><span>Wages</span><b class="num">${money(st.wages)}</b></div>
-        <div><span>Money in</span><b class="num">${money(st.income)}</b></div>
-        <div><span>Profit</span><b class="num" style="color:${st.profit<0?"var(--pay)":st.profit>0?"var(--ok)":"inherit"}">${money(st.profit)}</b></div>
+        ${P0.mode==="month"?`<div><span>Money in</span><b class="num">${money(st.income)}</b></div>
+        <div><span>Profit</span><b class="num" style="color:${st.profit<0?"var(--pay)":st.profit>0?"var(--ok)":"inherit"}">${money(st.profit)}</b></div>`
+        :`<div><span>People</span><b class="num">${st.people}</b></div><div><span>Entries</span><b class="num">${st.es.length}</b></div>`}
       </div>
-      <div class="mfoot">${paidThis.length?`${money(paidTotal)} paid for ${mShort(state.month)} work · ${plural(paidThis.length,"entry")}`:`Nothing paid for ${mShort(state.month)} work yet`}</div>
+      <div class="mfoot">${paidThis.length?`${money(paidThis.reduce((a,e)=>a+wage(e),0))} paid · ${plural(paidThis.length,"entry")}`:`Nothing paid for ${pname} yet`}${st.hidden?`<br><span style="color:var(--warn)">Whole-month totals are only counted in Month view.</span>`:""}</div>
     </div></div>`;
-  const paid=paidThis.length?`<div class="a-paid"><div class="sec"><h2>Paid · ${mShort(state.month)} work</h2><span class="h"><span class="count">${Object.keys(paidThis.reduce((g,e)=>(g[e.workerId]=1,g),{})).length}</span></span></div>
+  const paid=paidThis.length?`<div class="a-paid"><div class="sec"><h2>Paid · ${pname}</h2><span class="h"><span class="count">${Object.keys(paidThis.reduce((g,e)=>(g[e.workerId]=1,g),{})).length}</span></span></div>
     <div class="list">${groupPaid(paidThis)}</div></div>`:"";
   if(!DB.workers.length){
     const steps=[["client","Add your first client","e.g. Ken",DB.clients.length],["site","Add a site","Where the work happens",DB.sites.length],["worker","Add a worker","Name, site and pay rate",DB.workers.length]];
@@ -585,18 +629,36 @@ function hl(text,q){const t=esc(text); if(!q)return t; const i=text.toLowerCase(
 
 
 function personPage(id){
-  const w=W(id); const es=DB.entries.filter(e=>e.workerId===id).sort((a,b)=>b.month.localeCompare(a.month));
-  const hours=es.reduce((s,e)=>s+ +e.hours,0), total=es.reduce((s,e)=>s+wage(e),0), owe=es.filter(e=>!e.paid).reduce((s,e)=>s+wage(e),0);
+  const w=W(id), all=DB.entries.filter(e=>e.workerId===id), P1=state.pper;
+  const es=all.filter(e=>inPer(e,P1)).sort((a,b)=>sortKey(b).localeCompare(sortKey(a)));
+  const hours=es.reduce((s,e)=>s+ +e.hours,0), total=es.reduce((s,e)=>s+wage(e),0), owe=all.filter(e=>!e.paid&&e.rate>0).reduce((s,e)=>s+wage(e),0);
   const rates=DB.rates.filter(r=>r.workerId===id);
   const pr=problems().filter(p=>p.e.workerId===id);
   const byM={}; es.forEach(e=>(byM[e.month]=byM[e.month]||[]).push(e));
+  const months=Object.keys(byM), cap=P1.mode==="all"&&!state.allHist?3:99;
+  const hidden=(P1.mode==="day"||P1.mode==="week")&&all.some(e=>!e.date&&e.month===P1.d.slice(0,7));
+  const row=e=>`<div class="row tap" onclick="openEntry('${e.id}')"><div class="main"><div class="t1">${e.date?dayLabel(e.date):"Whole month"} · ${esc(Sx(e.siteId).name)}</div><div class="t2">${e.hours} hrs × ${money(e.rate)}${e.notes?" · "+esc(e.notes):""}</div></div>
+          <span class="tag ${e.paid?"ok":"pay"}">${e.paid?"Paid":"To pay"}</span><div class="amt num" style="min-width:72px">${money(wage(e))}</div></div>`;
   return `
     <div style="display:flex;justify-content:space-between;align-items:center"><button class="back" onclick="goBack()">${ICON.back}Back</button><button class="link" style="display:flex;gap:6px;align-items:center;padding:6px 2px 14px" onclick="editWorker('${id}')">${ICON.edit}Edit</button></div>
     <div class="ph">${av(w.name)}<div style="flex:1;min-width:0"><h1>${esc(w.name)}${w.active===false?' <span class="tag mut" style="vertical-align:middle">Left</span>':""}</h1><div class="t2">${rates.length?rates.map(r=>esc(Sx(r.siteId).name)).join(" · "):"No site yet"}</div></div></div>
-    <div class="mini">${stat("Hours",hours.toLocaleString(),"#4F46E5")}${stat("Earned",money(total),"#12A150")}${stat("To pay",money(owe),owe?"#E5484D":"#C7CAD9")}</div>
-    ${owe?`<button class="btn red" style="margin-top:14px" onclick="openPay('${id}')">Pay ${money(owe)}</button>`:""}
-    ${pr.length?`<div class="problems">${pr.map(p=>`<div class="pi" style="cursor:default">${esc(p.text)}</div>`).join("")}</div>`:""}
+    ${owe?`<button class="btn red" style="margin:0 0 14px" onclick="openPay('${id}')">Pay ${money(owe)}</button>`:""}
+    ${pr.length?`<div class="problems" style="margin:0 0 14px">${pr.map(p=>`<div class="pi" style="cursor:default">${esc(p.text)}</div>`).join("")}</div>`:""}
+    <div class="card mcard"><div class="mhead">${perSwitch("person",[["day","Day"],["week","Week"],["month","Month"],["all","All"]])}</div>
+      <div class="mgrid" style="grid-template-columns:1fr 1fr 1fr">
+        <div><span>Hours</span><b class="num">${hours.toLocaleString()}</b></div>
+        <div><span>Earned</span><b class="num">${money(total)}</b></div>
+        <div><span>To pay</span><b class="num" style="color:${owe?"var(--pay)":"var(--ok)"}">${owe?money(owe):"$0"}</b></div>
+      </div>
+      <div class="mfoot">${P1.mode==="all"?`All time · ${plural(all.length,"entry")}`:`${perLabel(P1)} · ${plural(es.length,"entry")}`} · To pay is all time${hidden?`<br><span style="color:var(--warn)">A whole-month total for ${mLabel(P1.d.slice(0,7))} is only counted in Month view.</span>`:""}</div>
+    </div>
     <div class="cols">
+      <div>
+        <div class="sec"><h2>Hours</h2><button class="link" onclick="openAdd('hours','${id}')">+ Add hours</button></div>
+        <div class="list">${es.length?months.slice(0,cap).map(m=>`<div class="grp" style="background:var(--soft2);display:flex;justify-content:space-between"><span>${mLabel(m)} · ${byM[m].reduce((a,e)=>a+ +e.hours,0)} hrs</span><span class="num">${money(byM[m].reduce((a,e)=>a+wage(e),0))}</span></div>`+byM[m].map(row).join("")).join("")
+          +(months.length>cap?`<div class="row tap" style="justify-content:center;color:var(--acc);font-weight:600;font-size:14.5px" onclick="state.allHist=true;render()">Show older (${plural(months.length-cap,"more month")})</div>`:"")
+          :`<div class="empty">No hours ${P1.mode==="all"?"yet":"for "+perLabel(P1)}</div>`}</div>
+      </div>
       <div>
         <div class="sec"><h2>Works at</h2><button class="link" onclick="openAdd('worker','${id}')">+ Add site</button></div>
         <div class="list">${rates.length?rates.map(r=>{const s=Sx(r.siteId); const mates=DB.rates.filter(x=>x.siteId===r.siteId&&x.workerId!==id).map(x=>W(x.workerId));
@@ -604,13 +666,8 @@ function personPage(id){
           <div class="people">${mates.length?mates.map(m=>`<span onclick="openPerson('${m.id}')">${esc(m.name)}</span>`).join(""):`<span style="cursor:default;color:var(--mut)">Works here alone</span>`}</div></div>
           <button class="amt num" style="text-align:right" onclick="editRate('${r.id}')">${money(r.rate)}<small style="color:var(--acc)">per hour · edit</small></button></div>`}).join(""):`<div class="empty">Not linked to a site yet</div>`}</div>
       </div>
-      <div>
-        <div class="sec"><h2>History</h2><button class="link" onclick="openAdd('hours','${id}')">+ Add hours</button></div>
-        <div class="list">${es.length?Object.keys(byM).slice(0,state.allHist?99:3).map(m=>`<div class="grp" style="background:var(--soft2);display:flex;justify-content:space-between"><span>${mLabel(m)}</span><span class="num">${money(byM[m].reduce((a,e)=>a+wage(e),0))}</span></div>`+byM[m].map(e=>`
-          <div class="row tap" onclick="openEntry('${e.id}')"><div class="main"><div class="t1">${esc(Sx(e.siteId).name)}</div><div class="t2">${e.hours} hrs × ${money(e.rate)}${e.notes?" · "+esc(e.notes):""}</div></div>
-          <span class="tag ${e.paid?"ok":"pay"}">${e.paid?"Paid":"To pay"}</span><div class="amt num" style="min-width:80px">${money(wage(e))}</div></div>`).join("")).join("")+(Object.keys(byM).length>3?`<div class="row tap" style="justify-content:center;color:var(--acc);font-weight:600;font-size:14.5px" onclick="state.allHist=!state.allHist;render()">${state.allHist?"Show less":`Show older history (${plural(Object.keys(byM).length-3,"more month")})`}</div>`:""):`<div class="empty">No hours yet</div>`}</div>
-      </div>
-    </div>`;
+    </div>
+    `;
 }
 
 /* ---------- Clients & sites ---------- */
@@ -680,7 +737,8 @@ function toast(msg,undo){const t=$("#toast");t.innerHTML=`<span>${msg}</span>`+(
 /* ---- Add ---- */
 let F={};
 function openAdd(kind="hours",ref=null){hideToast();
-  F={kind,month:state.month||nowM(),workerId:null,siteId:null,hours:"",paid:false,notes:"",name:"",rate:"",clientId:null,amount:"",q:""};
+  const lastMode=(()=>{try{return localStorage.getItem("cw_hmode")||"day"}catch(e){return "day"}})();
+  F={kind,mode:lastMode,date:todayD(),wk:weekStart(todayD()),days:["","","","","","",""],month:state.month||nowM(),workerId:null,siteId:null,hours:"",paid:false,notes:"",name:"",rate:"",clientId:null,amount:"",q:""};
   if(kind==="hours"&&ref){F.workerId=ref;const rs=DB.rates.filter(r=>r.workerId===ref);if(rs.length===1)F.siteId=rs[0].siteId;F.q=W(ref).name}
   if(kind==="worker"&&ref){F.workerId=ref;F.name=W(ref).name}
   if(kind==="money"&&ref)F.clientId=ref;
@@ -711,27 +769,46 @@ function drawAdd(){
   an.onfinish=an.oncancel=()=>{sh.style.overflow=""};
 }
 function monthField(){return `<div class="f"><label>Month</label><div class="month" style="box-shadow:none;border:1.5px solid var(--line);height:52px;border-radius:14px;justify-content:space-between"><button onclick="F.month=addM(F.month,-1);drawAdd()">‹</button><span>${mLabel(F.month)}</span><button onclick="F.month=addM(F.month,1);drawAdd()">›</button></div></div>`}
+function hoursTotal(){return F.mode==="week"?F.days.reduce((a,v)=>a+(parseFloat(v)||0),0):(parseFloat(F.hours)||0)}
+function hoursDup(){
+  if(!(F.workerId&&F.siteId))return "";
+  const mine=DB.entries.filter(e=>e.workerId===F.workerId&&e.siteId===F.siteId), nm=esc(W(F.workerId).name);
+  if(F.mode==="day"){if(mine.some(e=>e.date===F.date))return `⚠ ${nm} already has hours here on ${dayLabel(F.date)}.`;if(mine.some(e=>!e.date&&e.month===F.date.slice(0,7)))return `⚠ ${nm} already has a whole-month total for ${mLabel(F.date.slice(0,7))} — this may count twice.`;return ""}
+  if(F.mode==="week"){const ds=[0,1,2,3,4,5,6].filter(i=>parseFloat(F.days[i])>0).map(i=>addD(F.wk,i));const hit=ds.filter(d=>mine.some(e=>e.date===d));
+    if(hit.length)return `⚠ Already has hours on ${hit.map(dayLabel).join(", ")}.`;if(ds.some(d=>mine.some(e=>!e.date&&e.month===d.slice(0,7))))return `⚠ ${nm} already has a whole-month total for this month — this may count twice.`;return ""}
+  if(mine.some(e=>!e.date&&e.month===F.month))return `⚠ ${nm} already has a whole-month total for ${mLabel(F.month)}.`;
+  if(mine.some(e=>e.date&&e.month===F.month))return `⚠ ${nm} already has daily hours in ${mLabel(F.month)} — a whole-month total may count twice.`;return "";
+}
 function formHours(){
   const rs=F.workerId?DB.rates.filter(r=>r.workerId===F.workerId):[];
   const rate=(rs.find(r=>r.siteId===F.siteId)||{}).rate||0;
-  const h=parseFloat(F.hours)||0;
-  const dup=F.workerId&&F.siteId&&DB.entries.some(e=>e.workerId===F.workerId&&e.siteId===F.siteId&&e.month===F.month);
-  return `${monthField()}
-  <div class="f"><label>Who worked?</label><input class="inp" id="wq" placeholder="Start typing a name" autocapitalize="words" autocorrect="off" spellcheck="false" value="${esc(F.q)}" autocomplete="off" oninput="F.q=this.value;F.workerId=null;F.siteId=null;sugWorkers()" onfocus="sugWorkers()"><div id="sug"></div></div>
-  ${F.workerId?`<div class="f"><label>Which site?</label><div class="opts">${rs.length?rs.map(r=>`<button class="opt ${F.siteId===r.siteId?"on":""}" onclick="F.siteId='${r.siteId}';drawAdd()">${esc(Sx(r.siteId).name)}<small>${money(r.rate)}/hr</small></button>`).join(""):`<span class="t2">No site yet — <button class="link" onclick="openAdd('worker','${F.workerId}')">add one</button></span>`}</div></div>`:""}
-  <div class="two">
+  const h=hoursTotal();
+  const when=F.mode==="day"?`<div class="f"><label>Day</label><div class="two" style="grid-template-columns:1fr auto auto;gap:8px"><input class="inp" type="date" value="${F.date}" max="${addD(todayD(),31)}" onchange="if(this.value){F.date=this.value;drawAdd()}">
+      <button class="opt ${F.date===todayD()?"on":""}" onclick="F.date=todayD();drawAdd()">Today</button><button class="opt ${F.date===addD(todayD(),-1)?"on":""}" onclick="F.date=addD(todayD(),-1);drawAdd()">Yesterday</button></div></div>`
+    :F.mode==="week"?`<div class="f"><label>Week</label><div class="month" style="box-shadow:none;border:1.5px solid var(--line);height:52px;border-radius:14px;justify-content:space-between"><button onclick="F.wk=addD(F.wk,-7);drawAdd()">‹</button><span>${weekStart(todayD())===F.wk?"This week · ":weekStart(addD(todayD(),-7))===F.wk?"Last week · ":""}${weekLabel(F.wk)}</span><button onclick="F.wk=addD(F.wk,7);drawAdd()">›</button></div></div>`
+    :monthField();
+  const hoursField=F.mode==="week"?`<div class="f"><label>Hours each day</label><div class="wkgrid">${[0,1,2,3,4,5,6].map(i=>{const d=addD(F.wk,i);return `<label class="wkd${d===todayD()?" today":""}"><span>${DOW[parseD(d).getDay()]}</span><small>${parseD(d).getDate()}</small><input class="inp num" inputmode="decimal" placeholder="–" value="${esc(F.days[i])}" oninput="F.days[${i}]=this.value.replace(/[^0-9.]/g,'');this.value=F.days[${i}];updPreview()"></label>`}).join("")}</div>
+      <div class="opts" style="margin-top:8px"><button class="opt" style="padding:9px 14px;font-size:14px" onclick="F.days=F.days.map((v,i)=>i<5?'8':v);drawAdd()">8 hrs Mon–Fri</button><button class="opt" style="padding:9px 14px;font-size:14px" onclick="F.days=['','','','','','',''];drawAdd()">Clear</button></div></div>
+      <div class="f"><label>Already paid?</label><button class="toggle" style="width:100%" onclick="F.paid=!F.paid;drawAdd()"><span>${F.paid?"Yes":"Not yet"}</span><span class="sw ${F.paid?"on":""}"></span></button></div>`
+    :`<div class="two">
     <div class="f"><label>Hours</label><input class="inp num" id="hrs" inputmode="decimal" placeholder="0" value="${esc(F.hours)}" oninput="F.hours=this.value.replace(/[^0-9.]/g,'');this.value=F.hours;updPreview()"></div>
     <div class="f"><label>Already paid?</label><button class="toggle" style="width:100%" onclick="F.paid=!F.paid;drawAdd()"><span>${F.paid?"Yes":"Not yet"}</span><span class="sw ${F.paid?"on":""}"></span></button></div>
   </div>
-  <div class="opts" style="margin:-4px 0 14px">${[8,16,38,40].map(n=>`<button class="opt" style="padding:9px 14px;font-size:14px" onclick="F.hours='${n}';drawAdd()">${n} hrs</button>`).join("")}</div>
+  <div class="opts" style="margin:-4px 0 14px">${(F.mode==="day"?[4,6,8,10]:[8,16,38,40]).map(n=>`<button class="opt" style="padding:9px 14px;font-size:14px" onclick="F.hours='${n}';drawAdd()">${n} hrs</button>`).join("")}</div>`;
+  return `<div class="pseg" style="margin:0 0 16px">${[["day","One day"],["week","A week"],["month","Whole month"]].map(([k,l])=>`<button class="${F.mode===k?"on":""}" onclick="F.mode='${k}';try{localStorage.setItem('cw_hmode','${k}')}catch(e){};drawAdd()">${l}</button>`).join("")}</div>
+  ${when}
+  <div class="f"><label>Who worked?</label><input class="inp" id="wq" placeholder="Start typing a name" autocapitalize="words" autocorrect="off" spellcheck="false" value="${esc(F.q)}" autocomplete="off" oninput="F.q=this.value;F.workerId=null;F.siteId=null;sugWorkers()" onfocus="sugWorkers()"><div id="sug"></div></div>
+  ${F.workerId?`<div class="f"><label>Which site?</label><div class="opts">${rs.length?rs.map(r=>`<button class="opt ${F.siteId===r.siteId?"on":""}" onclick="F.siteId='${r.siteId}';drawAdd()">${esc(Sx(r.siteId).name)}<small>${money(r.rate)}/hr</small></button>`).join(""):`<span class="t2">No site yet — <button class="link" onclick="openAdd('worker','${F.workerId}')">add one</button></span>`}</div></div>`:""}
+  ${hoursField}
   <div class="f"><label>Note <span style="color:var(--mut);font-weight:500">(optional)</span></label><input class="inp" placeholder="e.g. Public holiday" value="${esc(F.notes)}" oninput="F.notes=this.value"></div>
   <div class="preview" id="pv"><div><div class="pl">${F.siteId?`${h||0} hrs × ${money(rate)}`:"Pay"}</div><div class="pv num">${money(h*rate)}</div></div><span class="tag ${F.paid?"ok":"pay"}">${F.paid?"Paid":"Goes to To pay"}</span></div>
-<div id="why">${whyHtml(h)}</div>
-  ${dup?`<div class="err">⚠ ${esc(W(F.workerId).name)} already has hours at this site for ${mLabel(F.month)}.</div>`:""}
-  <button class="btn" ${F.workerId&&F.siteId&&h>0?"":"disabled"} onclick="saveHours()">Save hours</button>`;
+  <div id="why">${whyHtml(h)}</div>
+  <button class="btn" ${F.workerId&&F.siteId&&h>0?"":"disabled"} onclick="saveHours()">${F.mode==="week"?"Save week":"Save hours"}</button>`;
 }
-function whyHtml(h){return (!F.workerId?`<div class="hint">Pick who worked to continue</div>`:!F.siteId?`<div class="hint">Pick the site to continue</div>`:!(h>0)?`<div class="hint">Type the hours to continue</div>`:"")+(h>250?`<div class="err">⚠ ${h} hours in one month is a lot — please double-check.</div>`:"")}
-function updPreview(){const wy=$("#why");if(wy)wy.innerHTML=whyHtml(parseFloat(F.hours)||0);const rs=DB.rates.filter(r=>r.workerId===F.workerId);const rate=(rs.find(r=>r.siteId===F.siteId)||{}).rate||0;const h=parseFloat(F.hours)||0;
+function whyHtml(h){const lim=F.mode==="day"?16:F.mode==="week"?80:250,d=hoursDup();
+  return (!F.workerId?`<div class="hint">Pick who worked to continue</div>`:!F.siteId?`<div class="hint">Pick the site to continue</div>`:!(h>0)?`<div class="hint">Type the hours to continue</div>`:"")
+  +(h>lim?`<div class="err">⚠ ${h} hours in ${F.mode==="day"?"one day":F.mode==="week"?"one week":"one month"} is a lot — please double-check.</div>`:"")+(d?`<div class="err">${d}</div>`:"")}
+function updPreview(){const h=hoursTotal();const wy=$("#why");if(wy)wy.innerHTML=whyHtml(h);const rs=DB.rates.filter(r=>r.workerId===F.workerId);const rate=(rs.find(r=>r.siteId===F.siteId)||{}).rate||0;
   const pv=$("#pv"); if(pv){pv.querySelector(".pl").textContent=F.siteId?`${h} hrs × ${money(rate)}`:"Pay";pv.querySelector(".pv").textContent=money(h*rate)}
   const b=$("#sheet .btn"); if(b)b.disabled=!(F.workerId&&F.siteId&&h>0)}
 function sugWorkers(){
@@ -742,10 +819,16 @@ function sugWorkers(){
 }
 function pickW(id){F.workerId=id;F.q=W(id).name;const rs=DB.rates.filter(r=>r.workerId===id);F.siteId=rs.length===1?rs[0].siteId:null;drawAdd();setTimeout(()=>{if(F.siteId)$("#hrs")?.focus()},50)}
 async function saveHours(){
-  const rate=(DB.rates.find(r=>r.workerId===F.workerId&&r.siteId===F.siteId)||{}).rate||0;
-  const e={id:uid(),month:F.month,workerId:F.workerId,siteId:F.siteId,hours:parseFloat(F.hours),rate,paid:F.paid,paidAt:F.paid?new Date().toISOString().slice(0,10):"",notes:F.notes,createdAt:new Date().toISOString().slice(0,10)};
-  await put("entries",e); closeSheet(); render();
-  toast(`✓ Saved · ${esc(W(e.workerId).name)} · ${e.hours} hrs · ${money(wage(e))}`,async()=>{await del("entries",e.id);render()});
+  const rate=(DB.rates.find(r=>r.workerId===F.workerId&&r.siteId===F.siteId)||{}).rate||0, now=todayD();
+  const base={workerId:F.workerId,siteId:F.siteId,rate,paid:F.paid,paidAt:F.paid?now:"",notes:F.notes,createdAt:now};
+  let rows=[];
+  if(F.mode==="week")rows=[0,1,2,3,4,5,6].filter(i=>parseFloat(F.days[i])>0).map(i=>{const d=addD(F.wk,i);return {...base,id:uid(),date:d,month:d.slice(0,7),hours:parseFloat(F.days[i])}});
+  else if(F.mode==="day")rows=[{...base,id:uid(),date:F.date,month:F.date.slice(0,7),hours:parseFloat(F.hours)}];
+  else rows=[{...base,id:uid(),date:"",month:F.month,hours:parseFloat(F.hours)}];
+  if(!rows.length)return;
+  await putMany("entries",rows); closeSheet(); render();
+  const hrs=rows.reduce((a,e)=>a+e.hours,0),amt=rows.reduce((a,e)=>a+wage(e),0);
+  toast(`✓ Saved · ${esc(W(F.workerId).name)} · ${rows.length>1?plural(rows.length,"day")+" · ":""}${hrs} hrs · ${money(amt)}`,async()=>{for(const e of rows)await del("entries",e.id);render()});
 }
 function formWorker(){
   const existing=F.workerId?W(F.workerId):null;
@@ -797,14 +880,14 @@ async function saveMoney(){
 /* ---- Pay ---- */
 let P={};
 function openPay(wid){hideToast();
-  const es=DB.entries.filter(e=>e.workerId===wid&&!e.paid&&e.hours>0&&e.rate>0).sort((a,b)=>a.month.localeCompare(b.month));
+  const es=DB.entries.filter(e=>e.workerId===wid&&!e.paid&&e.hours>0&&e.rate>0).sort((a,b)=>sortKey(a).localeCompare(sortKey(b)));
   P={wid,sel:new Set(es.map(e=>e.id)),es}; drawPay(); $("#sheet").classList.add("on");$("#scrim").classList.add("on");sheetClose=null;
 }
 function drawPay(){
   const w=W(P.wid); const tot=P.es.filter(e=>P.sel.has(e.id)).reduce((s,e)=>s+wage(e),0);
   $("#sheet").innerHTML=`<div class="grab"></div>
   <div style="display:flex;gap:14px;align-items:center;margin-bottom:12px">${av(w.name)}<div><h3 style="margin:0">Pay ${esc(w.name)}</h3><div class="t2">${P.es.length>1?"Untick anything you're not paying today":"Check it, then mark as paid"}</div></div></div>
-  <div style="margin-bottom:16px">${P.es.map(e=>`<div class="check" onclick="P.sel.has('${e.id}')?P.sel.delete('${e.id}'):P.sel.add('${e.id}');drawPay()"><div class="box ${P.sel.has(e.id)?"on":""}">${P.sel.has(e.id)?ICON.check:""}</div><div class="main"><div class="t1">${esc(Sx(e.siteId).name)} · ${mLabel(e.month)}</div><div class="t2">${e.hours} hrs × ${money(e.rate)}</div></div><div class="amt num">${money(wage(e))}</div></div>`).join("")}</div>
+  <div style="margin-bottom:16px">${P.es.map(e=>`<div class="check" onclick="P.sel.has('${e.id}')?P.sel.delete('${e.id}'):P.sel.add('${e.id}');drawPay()"><div class="box ${P.sel.has(e.id)?"on":""}">${P.sel.has(e.id)?ICON.check:""}</div><div class="main"><div class="t1">${e.date?dayLabel(e.date):mLabel(e.month)+" (month)"} · ${esc(Sx(e.siteId).name)}</div><div class="t2">${e.hours} hrs × ${money(e.rate)}</div></div><div class="amt num">${money(wage(e))}</div></div>`).join("")}</div>
   <button class="btn red" ${P.sel.size?"":"disabled"} onclick="doPay()">Mark ${money(tot)} as paid</button>
   <button class="btn ghost" onclick="closeSheet()">Cancel</button>`;
 }
@@ -821,12 +904,14 @@ async function doPay(){
 function openEntry(id){hideToast();
   const e=DB.entries.find(x=>x.id===id); if(!e)return;
   F={kind:"edit",e:{...e}};
-  const draw=()=>{const x=F.e;$("#sheet").innerHTML=`<div class="grab"></div><h3>${esc(W(x.workerId).name)}</h3><div class="lead">${esc(Sx(x.siteId).name)} · ${mLabel(x.month)}</div>
+  const draw=()=>{const x=F.e;$("#sheet").innerHTML=`<div class="grab"></div><h3>${esc(W(x.workerId).name)}</h3><div class="lead">${esc(Sx(x.siteId).name)} · ${x.date?dayLabel(x.date):mLabel(x.month)+" · whole month"}</div>
+    ${x.date?`<div class="f"><label>Day</label><input class="inp" type="date" value="${x.date}" onchange="if(this.value){F.e.date=this.value;F.e.month=this.value.slice(0,7)}"></div>`:`<div class="f"><label>Month</label><div class="month" style="box-shadow:none;border:1.5px solid var(--line);height:52px;border-radius:14px;justify-content:space-between"><button id="em1">‹</button><span>${mLabel(x.month)}</span><button id="em2">›</button></div></div>`}
     <div class="two"><div class="f"><label>Hours</label><input class="inp num" inputmode="decimal" value="${x.hours}" oninput="F.e.hours=parseFloat(this.value)||0"></div>
     <div class="f"><label>Rate ($/hr)</label><input class="inp num" inputmode="decimal" value="${x.rate}" oninput="F.e.rate=parseFloat(this.value)||0"></div></div>
     <div class="f"><label>Paid?</label><button class="toggle" style="width:100%" id="pt"><span>${x.paid?"Paid":"Not yet"}</span><span class="sw ${x.paid?"on":""}"></span></button></div>
     <div class="f"><label>Note</label><input class="inp" value="${esc(x.notes)}" oninput="F.e.notes=this.value"></div>
     <button class="btn" id="sv">Save changes</button><button class="btn ghost" id="dl" style="color:var(--pay)">Delete this entry</button>`;
+    const m1=$("#em1"),m2=$("#em2");if(m1){m1.onclick=()=>{F.e.month=addM(F.e.month,-1);draw()};m2.onclick=()=>{F.e.month=addM(F.e.month,1);draw()}}
     $("#pt").onclick=()=>{F.e.paid=!F.e.paid;F.e.paidAt=F.e.paid?new Date().toISOString().slice(0,10):"";draw()};
     $("#sv").onclick=async()=>{await put("entries",F.e);closeSheet();render();toast("✓ Changes saved")};
     $("#dl").onclick=async()=>{const old={...e};await del("entries",e.id);closeSheet();render();toast("Entry deleted",async()=>{await put("entries",old);render()})};
@@ -988,22 +1073,22 @@ function download(name,text,type){if(location.hostname.includes("claude")){toast
 function exportCSV(){try{exportCSV_()}catch(e){}}
 function exportCSV_(){
   const q=v=>`"${String(v??"").replace(/"/g,'""')}"`;
-  const rows=[["Month","Name","Site","Client","Hours","Rate","Wages","Paid","Paid on","Note"]].concat(
-    DB.entries.slice().sort((a,b)=>a.month.localeCompare(b.month)||W(a.workerId).name.localeCompare(W(b.workerId).name))
-    .map(e=>[mLabel(e.month),W(e.workerId).name,Sx(e.siteId).name,C(Sx(e.siteId).clientId).name,e.hours,e.rate,wage(e),e.paid?"Yes":"No",e.paidAt,e.notes]));
+  const rows=[["Date","Month","Name","Site","Client","Hours","Rate","Wages","Paid","Paid on","Note"]].concat(
+    DB.entries.slice().sort((a,b)=>sortKey(a).localeCompare(sortKey(b))||W(a.workerId).name.localeCompare(W(b.workerId).name))
+    .map(e=>[e.date||"whole month",mLabel(e.month),W(e.workerId).name,Sx(e.siteId).name,C(Sx(e.siteId).clientId).name,e.hours,e.rate,wage(e),e.paid?"Yes":"No",e.paidAt,e.notes]));
   download("Crew_Wages_hours.csv","﻿"+rows.map(r=>r.map(q).join(",")).join("\r\n"),"text/csv");toast("✓ Downloaded — opens in Excel");
 }
 function backup(){try{download(`Crew_Wages_backup_${new Date().toISOString().slice(0,10)}.json`,JSON.stringify(DB),"application/json");toast("✓ Backup downloaded")}catch(e){}}
 function restore(file){if(!file)return;const r=new FileReader();r.onload=async()=>{try{const d=JSON.parse(r.result);if(!TABLES.every(t=>Array.isArray(d[t])))throw 0;
   if(!confirmBox("Replace everything with this backup?"))return; await replaceAll(d); render(); toast("✓ Backup restored")}catch(e){toast("That file isn't a Crew Wages backup")}};r.readAsText(file)}
 function confirmBox(m){try{return window.confirm(m)}catch(e){return true}}
-function resetDemo(sample,quiet){if(!quiet&&!confirmBox(sample?"Replace everything with sample data?":"Delete all data on this device?"))return;DB=sample?seed():{clients:[],sites:[],workers:[],rates:[],entries:[],income:[]};saveLocal();state.person=null;if(sample)state.month="2026-11";go("home");toast(sample?"Sample data loaded":"All data cleared")}
+function resetDemo(sample,quiet){if(!quiet&&!confirmBox(sample?"Replace everything with sample data?":"Delete all data on this device?"))return;DB=sample?seed():{clients:[],sites:[],workers:[],rates:[],entries:[],income:[]};saveLocal();state.person=null;if(sample){state.month="2026-11";state.per={mode:"month",d:todayD().startsWith("2026-11")?todayD():"2026-11-01"}}go("home");toast(sample?"Sample data loaded":"All data cleared")}
 
 /* ============ start ============ */
 (async()=>{
   $("#app").innerHTML=`<div class="empty" style="padding-top:40vh">Loading…</div>`;
   try{await load()}catch(e){$("#app").innerHTML=`<div class="empty" style="padding-top:35vh">Couldn't load your data.<br>Check the internet and refresh.</div>`;return}
-  const ms=DB.entries.map(e=>e.month).sort(); state.month=online()?nowM():(ms[ms.length-1]||nowM());
+  const ms=DB.entries.map(e=>e.month).sort(); state.month=online()?nowM():(ms[ms.length-1]||nowM());state.per.d=state.month===todayD().slice(0,7)?todayD():state.month+"-01";
   render(); lockIfNeeded(); if(online()&&!ls.get(K_PIN,null))unlocked=true; if(unlocked)pull();
 })();
 if("serviceWorker" in navigator&&location.protocol==="https:")navigator.serviceWorker.register("sw.js").catch(()=>{});
