@@ -1706,7 +1706,7 @@ function editWorker(id){hideToast();const w=W(id);let name=w.name,active=w.activ
 function editRate(rid){hideToast();const r=DB.rates.find(x=>x.id===rid);if(!r)return;let rate=r.rate;
   showSheet(`<h3>${esc(W(r.workerId).name)}</h3><div class="lead">${esc(Sx(r.siteId).name)}</div>
   <div class="f"><label>Pay rate ($ per hour)</label><input class="inp num" inputmode="decimal" id="rr" value="${r.rate}"></div>
-  ${(()=>{const n=DB.entries.filter(e=>e.workerId===r.workerId&&e.siteId===r.siteId&&!e.paid&&isWork(e)).length;return n?`<button class="toggle" style="width:100%;margin-bottom:8px" id="rfix"><span>Also fix ${plural(n,"unpaid entry")} already saved</span><span class="sw"></span></button>`:""})()}
+  ${(()=>{const n=DB.entries.filter(e=>e.workerId===r.workerId&&e.siteId===r.siteId&&!e.paid&&isWork(e)).length;return n?`<button class="toggle" style="width:100%;margin-bottom:8px" id="rfix"><span>Also fix ${n} unpaid ${n===1?"entry":"entries"} already saved</span><span class="sw"></span></button>`:""})()}
   <div class="hint" id="rhint">New hours use the new rate. Hours already saved keep their old rate. Paid hours never change.</div>
   <button class="btn" id="rs">Save rate</button><button class="btn ghost" id="rd" style="color:var(--pay)">Remove this site from ${esc(W(r.workerId).name)}</button>`);
   $("#rr").oninput=e=>rate=parseFloat(e.target.value)||0;
