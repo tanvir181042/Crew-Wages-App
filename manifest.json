@@ -1,11 +1,11 @@
 {
- "name": "Crew Wages",
- "short_name": "Crew Wages",
+ "name": "Hourza",
+ "short_name": "Hourza",
  "start_url": "./",
  "scope": "./",
  "display": "standalone",
- "background_color": "#F5F6FA",
- "theme_color": "#F5F6FA",
+ "background_color": "#FFFFFF",
+ "theme_color": "#FFFFFF",
  "icons": [
   {
    "src": "icon-192.png",

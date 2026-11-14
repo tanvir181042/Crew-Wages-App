@@ -5,13 +5,13 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" id="tcl" content="#FFFFFF" media="(prefers-color-scheme: light)">
 <meta name="theme-color" id="tcd" content="#000000" media="(prefers-color-scheme: dark)">
-<title>Crew Wages</title>
+<title>Hourza</title>
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-180.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="Crew Wages">
+<meta name="apple-mobile-web-app-title" content="Hourza">
 <style>
 :root{
   --bg:#F5F6FA; --card:#FFFFFF; --ink:#0E1325; --ink2:#3B4256; --mut:#5F6780; --line:#E9EBF2; --soft:#F0F1F6;
@@ -601,7 +601,7 @@ textarea.inp{height:96px!important;padding:14px 16px!important}
 <script>
 function hideToast(){const t=document.getElementById("toast");if(t)t.classList.remove("on")}
 if(window.navigator.standalone===true||matchMedia("(display-mode: standalone)").matches)document.documentElement.classList.add("ios-app");
-const APP_VERSION="3.16";
+const APP_VERSION="4.0";
 /* ============ data layer ============ */
 const TABLES=["clients","sites","workers","rates","entries","income"];
 const EMPTY=()=>({clients:[],sites:[],workers:[],rates:[],entries:[],income:[]});
@@ -843,7 +843,7 @@ function buildApp(){
   const showMonth=false;
   const bare=state.person||state.tab==="home";
   const top=`<div class="top${bare?" bare":""}">
-    <div class="brand"><div class="logo">C</div><span class="bt">Crew Wages</span></div>
+    <div class="brand"><div class="logo" style="background:none;padding:0"><svg viewBox="0 0 100 100" width="100%" height="100%" aria-hidden="true"><rect width="100" height="100" rx="23.5" fill="#C9F26B"/><circle cx="50" cy="50" r="23" fill="none" stroke="#111" stroke-width="6.6"/><path d="M50 50V35.7M50 50l11 8.4" stroke="#111" stroke-width="6.6" stroke-linecap="round" fill="none"/><circle cx="76.5" cy="25.5" r="5.6" fill="#111"/></svg></div><span class="bt">Hourza</span></div>
     <h1 class="ptitle" style="display:flex;align-items:baseline;gap:10px">${state.person||state.tab==="home"?"":titles[state.tab]}</h1>
     <div class="tabs">${[["home","Overview"],["today","Today"],["people","People"],["sites","Sites"],["pay","Pay run"],["reports","Reports"]].map(([k,l])=>`<button class="${state.tab===k?"on":""}" onclick="go('${k}')">${l}</button>`).join("")}</div>
     <div class="spacer"></div>
@@ -1118,7 +1118,7 @@ function homePage(){
     <div class="list">${groupPaid(paidThis)}</div></div>`:"";
   if(!DB.workers.length){
     const steps=[["client","Add your first client","e.g. Ken",DB.clients.length],["site","Add a site","Where the work happens",DB.sites.length],["worker","Add a worker","Name, site and pay rate",DB.workers.length]];
-    return `<div class="hero"><div class="lbl">Welcome to</div><div class="big">Crew Wages</div><div class="sub">Three quick steps and you're ready to add hours.</div></div>
+    return `<div class="hero"><div class="lbl">Welcome to</div><div class="big">Hourza</div><div class="sub">Three quick steps and you're ready to add hours.</div></div>
     <div class="list" style="margin-top:14px">${steps.map(([k,t,d,done],i)=>`<div class="row tap" onclick="openAdd('${k}')"><div class="av" style="background:${done?"var(--ok-s)":"var(--acc-s)"};color:${done?"var(--ok)":"var(--acc)"}">${done?"✓":i+1}</div><div class="main"><div class="t1">${t}</div><div class="t2">${d}</div></div>${ICON.chev}</div>`).join("")}</div>
     <button class="btn ghost" style="margin-top:14px" onclick="resetDemo(true,true)">Or try it with sample data</button>`;
   }
@@ -1400,7 +1400,7 @@ function reportsPage(){
     ${money2&&rows.some(r=>r.p!=null&&r.p<0)?`<div class="problems"><div class="pt">${ICON.warn} ${plural(rows.filter(r=>r.p!=null&&r.p<0).length,"loss-making "+RP.by)} — wages are higher than what you bill</div></div>`:""}`;
 }
 function reportCSV(){const q=v=>`"${String(v??"").replace(/"/g,'""')}"`,rows=[["Name","Detail","Hours","Money in","Wages","Profit"]].concat(reportData().map(r=>[r.name,r.sub,r.h,r.b??"",r.w,r.p??""]));
-  try{download(`Crew_Wages_report_${RP.by}_${RP.all?"all":state.month}.csv`,"﻿"+rows.map(r=>r.map(q).join(",")).join("\r\n"),"text/csv");toast("✓ Report downloaded")}catch(e){}}
+  try{download(`Hourza_report_${RP.by}_${RP.all?"all":state.month}.csv`,"﻿"+rows.map(r=>r.map(q).join(",")).join("\r\n"),"text/csv");toast("✓ Report downloaded")}catch(e){}}
 
 /* ---------- More ---------- */
 function morePage(){
@@ -1755,13 +1755,13 @@ function openConnect(){hideToast();
   <div class="f"><textarea class="inp" id="cc" placeholder="CW1.…" style="height:90px;font-size:16px" autocapitalize="off" autocorrect="off" spellcheck="false"></textarea></div>
   <div id="cerr"></div>
   <button class="btn ghost" id="cp" style="margin-top:0">Connect with this code</button>
-  <div class="hint" style="margin-top:14px">Get the code from your Google Sheet: <b>Crew Wages → Connect a device</b>.</div>`);
+  <div class="hint" style="margin-top:14px">Get the code from your Google Sheet: <b>Hourza → Connect a device</b>.</div>`);
   $("#cq").onclick=()=>scanQR(code=>tryConnect(code));
   $("#cp").onclick=()=>tryConnect($("#cc").value);
 }
 async function tryConnect(text){
   const c=readCode(text); const err=m=>{const e=$("#cerr");if(e)e.innerHTML=`<div class="err">${m}</div>`;else toast(m)};
-  if(!c)return err("That isn't a Crew Wages connect code.");
+  if(!c)return err("That isn't a Hourza connect code.");
   showSheet(`<div class="empty" style="padding:40px 0">Connecting…</div>`);
   let data;
   try{const prev=CONN;CONN=c;data=await api("getAll");CONN=prev}
@@ -1784,7 +1784,7 @@ function disconnect(){if(!confirmBox("Disconnect this device? Your data stays sa
   CONN=null;[K_CONN,K_CACHE,K_OUT,K_PIN].forEach(k=>ls.del(k));OUT=[];DB=ls.get(KEY,null)||EMPTY();go("more");toast("Disconnected")}
 
 async function showConnectQR(){hideToast();const code=makeCode(CONN);
-  showSheet(`<h3>Connect another device</h3><div class="lead">On the other device open Crew Wages → More → Connect to Google Sheet → Scan QR code.</div>
+  showSheet(`<h3>Connect another device</h3><div class="lead">On the other device open Hourza → More → Connect to Google Sheet → Scan QR code.</div>
   <div id="qrbox" style="background:#fff;border-radius:18px;padding:16px;display:grid;place-items:center;min-height:260px">Loading…</div>
   <div class="hint" style="margin-top:12px">Keep this code private — it opens your data.</div>
   <button class="btn ghost" id="cpy">Copy code instead</button>`);
@@ -1837,7 +1837,7 @@ let unlocked=false;
 function lockIfNeeded(){
   const p=ls.get(K_PIN,null); if(!online()||!p){unlocked=true;return}
   unlocked=false;
-  pinPad("Enter PIN","Crew Wages is locked",async v=>{
+  pinPad("Enter PIN","Hourza is locked",async v=>{
     const p2=ls.get(K_PIN,null); if(await hashPin(v,p2.salt)===p2.h){p2.bad=0;ls.set(K_PIN,p2);unlocked=true;pull();return true}
     p2.bad=(p2.bad||0)+1;ls.set(K_PIN,p2);
     if(p2.bad>=5){CONN=null;[K_CONN,K_CACHE,K_OUT,K_PIN].forEach(k=>ls.del(k));OUT=[];DB=ls.get(KEY,null)||EMPTY();render();toast("Too many wrong PINs — this device was disconnected");return true}
@@ -1854,9 +1854,9 @@ function exportCSV_(){
   const rows=[["Date","Month","Name","Site","Client","Hours","Rate","Wages","Paid","Paid on","Note"]].concat(
     DB.entries.slice().sort((a,b)=>sortKey(a).localeCompare(sortKey(b))||W(a.workerId).name.localeCompare(W(b.workerId).name))
     .map(e=>[e.date||"whole month",mLabel(e.month),W(e.workerId).name,Sx(e.siteId).name,C(Sx(e.siteId).clientId).name,e.hours,e.rate,wage(e),e.paid?"Yes":"No",e.paidAt,e.notes]));
-  download("Crew_Wages_hours.csv","﻿"+rows.map(r=>r.map(q).join(",")).join("\r\n"),"text/csv");toast("✓ Downloaded — opens in Excel");
+  download("Hourza_hours.csv","﻿"+rows.map(r=>r.map(q).join(",")).join("\r\n"),"text/csv");toast("✓ Downloaded — opens in Excel");
 }
-function backup(){try{download(`Crew_Wages_backup_${new Date().toISOString().slice(0,10)}.json`,JSON.stringify(DB),"application/json");toast("✓ Backup downloaded")}catch(e){}}
+function backup(){try{download(`Hourza_backup_${new Date().toISOString().slice(0,10)}.json`,JSON.stringify(DB),"application/json");toast("✓ Backup downloaded")}catch(e){}}
 function restore(file){if(!file)return;const r=new FileReader();r.onload=async()=>{try{const d=JSON.parse(r.result);if(!TABLES.every(t=>Array.isArray(d[t])))throw 0;
   if(!confirmBox("Replace everything with this backup?"))return; await replaceAll(d); render(); toast("✓ Backup restored")}catch(e){toast("That file isn't a Crew Wages backup")}};r.readAsText(file)}
 function confirmBox(m){try{return window.confirm(m)}catch(e){return true}}
