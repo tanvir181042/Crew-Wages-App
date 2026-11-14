@@ -599,7 +599,7 @@ textarea.inp{height:96px!important;padding:14px 16px!important}
 <script>
 function hideToast(){const t=document.getElementById("toast");if(t)t.classList.remove("on")}
 if(window.navigator.standalone===true||matchMedia("(display-mode: standalone)").matches)document.documentElement.classList.add("ios-app");
-const APP_VERSION="3.12";
+const APP_VERSION="3.13";
 /* ============ data layer ============ */
 const TABLES=["clients","sites","workers","rates","entries","income"];
 const EMPTY=()=>({clients:[],sites:[],workers:[],rates:[],entries:[],income:[]});
@@ -971,6 +971,10 @@ function askAnswer(q0){
   const anyR=!!R0, monthR=(()=>{const m=todayD().slice(0,7);return RR(m+"-01",mEnd(m),mLabel(m))})();
   const R=R0||monthR;
   const W1=E.ws[0],S1=E.ss[0],C1=E.cs[0];
+  // plain search: just a name / address / note, no date and no question → show every match
+  if(!R0&&!/\d\s*(h|hr|hrs|hours?)\b/.test(q)&&!has(/\b(owe|owed|owing|unpaid|due|to pay|outstanding|loss|losing|lose|profit|margin|who|top|most|least|busiest|summary|overview|total|add|log)\b/)){
+    const S=askSearch(q),ents=E.ws.length+E.ss.length+E.cs.length;
+    if(S.n&&(S.n>1||!ents))return S.html}
   if(E.unknown.length&&!E.ws.length&&!E.ss.length&&!E.cs.length&&!has(/\b(owe|owed|owing|unpaid|due|to pay|outstanding|loss|losing|profit|who|top|most|summary)\b/))
     {const dym=askNear(E.unknown,q);return ansHead("Couldn't find that",`No worker, site or client called “${esc(E.unknown.join(" "))}”`)+(dym.length?`<div class="asklbl">Did you mean</div>${chipsH(dym)}`:`<div class="asklbl">Try</div>${chipsH(askIdeas())}`)}
   // 1) add hours: "add 8h ali ryde today"
@@ -1030,6 +1034,20 @@ function askAnswer(q0){
   return ansHead("Couldn't find that",E.unknown.length?`No worker, site or client called “${esc(E.unknown.join(" "))}”`:"Try a name, a site or a date")+`<div class="asklbl">Try</div>${chipsH(askIdeas())}`}
 function lev(a,b){const m=a.length,n=b.length,d=Array.from({length:m+1},(_,i)=>[i]);for(let j=1;j<=n;j++)d[0][j]=j;for(let i=1;i<=m;i++)for(let j=1;j<=n;j++)d[i][j]=Math.min(d[i-1][j]+1,d[i][j-1]+1,d[i-1][j-1]+(a[i-1]===b[j-1]?0:1));return d[m][n]}
 function askNear(unk,q){const out=[];[...DB.workers,...DB.sites,...DB.clients].forEach(x=>{const parts=x.name.toLowerCase().split(/\s+/);unk.forEach(u=>{if(parts.some(p=>lev(u,p.slice(0,Math.max(u.length,p.length)))<=(u.length>4?2:1)||(u.length>=2&&p.startsWith(u.slice(0,2))&&Math.abs(p.length-u.length)<=2))){const t=q.replace(u,x.name);if(!out.includes(t))out.push(t)}})});return out.slice(0,6)}
+function askSearch(q){const ql=q.trim().toLowerCase(),words=ql.split(/\s+/).filter(Boolean);
+  const hit=n=>{n=(n||"").toLowerCase();return n.includes(ql)||words.length>1&&words.every(w=>n.includes(w))};
+  const rank=n=>{n=n.toLowerCase();return n.startsWith(ql)?0:n.split(/\s+/).some(p=>p.startsWith(ql))?1:2};
+  const ws=DB.workers.filter(w=>hit(w.name)).sort((a,b)=>rank(a.name)-rank(b.name)||a.name.localeCompare(b.name));
+  const ss=DB.sites.filter(x=>hit(x.name)||hit(x.address)||hit(C(x.clientId).name)).sort((a,b)=>rank(a.name)-rank(b.name)||a.name.localeCompare(b.name));
+  const cs=DB.clients.filter(c=>hit(c.name));
+  const ns=ql.length>=2?DB.entries.filter(e=>hit(e.notes)).sort((a,b)=>sortKey(b).localeCompare(sortKey(a))).slice(0,8):[];
+  const own=Object.fromEntries(owedByWorker().map(o=>[o.workerId,o.amount]));
+  const n=ws.length+ss.length+cs.length+ns.length;let h="";
+  if(ws.length)h+=`<div class="asklbl">People · ${ws.length}</div><div class="list">${ws.slice(0,20).map(w=>`<div class="row tap" onclick="askGo('w','${w.id}')">${av(w.name)}<div class="main"><div class="t1">${hl(w.name,ql)}${w.active===false?' <span class="t2">· inactive</span>':""}</div><div class="t2">${DB.rates.filter(r=>r.workerId===w.id).map(r=>esc(Sx(r.siteId).name)).join(", ")||"No site yet"}</div></div>${own[w.id]?`<div class="amt num" style="color:var(--pay)">${money(own[w.id])}<small>to pay</small></div>`:""}</div>`).join("")}</div>`;
+  if(ss.length)h+=`<div class="asklbl">Sites · ${ss.length}</div><div class="list">${ss.slice(0,20).map(x=>`<div class="row tap" onclick="askGo('s','${x.id}')"><div class="main"><div class="t1">${hl(x.name,ql)}</div><div class="t2">${hl(C(x.clientId).name,ql)}${x.address?" · "+hl(x.address,ql):""}</div></div></div>`).join("")}</div>`;
+  if(cs.length)h+=`<div class="asklbl">Clients · ${cs.length}</div><div class="list">${cs.map(c=>`<div class="row tap" onclick="askChip(C('${c.id}').name+' this month')"><div class="main"><div class="t1">${hl(c.name,ql)}</div><div class="t2">${plural(DB.sites.filter(x=>x.clientId===c.id).length,"site")}</div></div></div>`).join("")}</div>`;
+  if(ns.length)h+=`<div class="asklbl">In notes · ${ns.length}</div><div class="list">${ns.map(e=>`<div class="row tap" onclick="openEntry('${e.id}')"><div class="main"><div class="t1">${esc(W(e.workerId).name)} · ${esc(Sx(e.siteId).name)}</div><div class="t2">${whenLabel(e)} · ${hl(e.notes,ql)}</div></div><div class="amt num">${hrs(+e.hours)}</div></div>`).join("")}</div>`;
+  return {n,html:`<div class="ans"><div class="anss" style="margin:0">${plural(n,"result")} for “${esc(q.trim())}” · add a date like “last week” for totals</div></div>`+h}}
 function note(n){return n?`<div class="t2" style="color:var(--warn);margin:8px 2px 0">${plural(n,"whole-month entry")} not counted — ask for the whole month to include ${n===1?"it":"them"}.</div>`:""}
 function siteRowA(r){return `<div class="row tap" onclick="askGo('s','${r.x.id}')"><div class="main"><div class="t1">${esc(r.x.name)}</div><div class="t2">${esc(C(r.x.clientId).name)} · ${hrs(r.h)}</div></div><div class="amt num" style="color:${r.p==null?"var(--mut)":r.p<0?"var(--pay)":"var(--ok)"}">${r.p==null?"–":money(r.p)}<small>${r.p==null?"not set":r.p<0?"loss":"profit"}</small></div></div>`}
 function workerAns(w,R,ss,anyR){
