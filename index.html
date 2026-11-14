@@ -153,6 +153,7 @@ input[type=date].inp{-webkit-appearance:none;appearance:none;display:flex;align-
 .askk{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:0 0 12px}.askk>div{background:var(--card);border-radius:var(--r-md);padding:12px 14px}.askk span{display:block;font-size:12.5px;color:var(--mut);font-weight:600}.askk b{display:block;font-size:19px;font-weight:750;margin-top:2px}.askk em{font-style:normal;font-size:12.5px;color:var(--mut)}
 #askres .amt small{display:block;font-size:12px;color:var(--mut);font-weight:500;text-align:right}
 .tdlock{display:grid;place-items:center;background:var(--ok-s,#EAF6EC)!important;color:var(--ok)!important;font-weight:700}
+.dupbox{background:#FFF7E6;border-radius:var(--r-md);padding:14px;margin:-2px 0 16px}.dupbox b{color:#8A5A00;font-size:15px}
 .subback{display:flex;align-items:center;min-height:44px;margin:-6px 0 6px;color:var(--ink);font-size:15px;font-weight:650}
 
 .hero{background:linear-gradient(150deg,#1B1F3B 0%,#0E1325 70%);color:#fff;border-radius:24px;padding:22px;position:relative;overflow:hidden}
@@ -600,7 +601,7 @@ textarea.inp{height:96px!important;padding:14px 16px!important}
 <script>
 function hideToast(){const t=document.getElementById("toast");if(t)t.classList.remove("on")}
 if(window.navigator.standalone===true||matchMedia("(display-mode: standalone)").matches)document.documentElement.classList.add("ios-app");
-const APP_VERSION="3.14";
+const APP_VERSION="3.15";
 /* ============ data layer ============ */
 const TABLES=["clients","sites","workers","rates","entries","income"];
 const EMPTY=()=>({clients:[],sites:[],workers:[],rates:[],entries:[],income:[]});
@@ -814,7 +815,7 @@ function problems(){
   const out=[]; const seen={}, dupG={};
   DB.entries.forEach(e=>{
     const k=e.workerId+"|"+e.siteId+"|"+(e.date||"M"+e.month);
-    if(seen[k]&&seen[k].hours==e.hours){const g=e.workerId+"|"+e.siteId+"|"+e.month;dupG[g]=dupG[g]||{e,days:new Set()};dupG[g].days.add(e.date||"M")}
+    if(seen[k]&&isWork(e)&&isWork(seen[k])&&(e.date||seen[k].hours==e.hours)){const g=e.workerId+"|"+e.siteId+"|"+e.month;dupG[g]=dupG[g]||{e,days:new Set()};dupG[g].days.add(e.date||"M")}
     seen[k]=e;
     if(!(e.rate>0)&&e.hours>0) out.push({type:"rate",e,text:`${W(e.workerId).name} — ${Sx(e.siteId).name}, ${mLabel(e.month)}: no pay rate`});
   });
@@ -1457,7 +1458,7 @@ function goSub(kind,preset={}){FBACK.push({...F});F={kind,name:"",err:"",clientI
 function backSub(sel={}){const prev=FBACK.pop();F={...prev,...sel,err:""};drawAdd()}
 function openAdd(kind="hours",ref=null){hideToast();FBACK=[];
   const lastMode=(()=>{try{return localStorage.getItem("cw_hmode")||"day"}catch(e){return "day"}})();
-  F={kind,mode:lastMode,date:todayD(),wk:weekStart(todayD()),days:["","","","","","",""],month:state.month||nowM(),workerId:null,siteId:null,hours:"",paid:false,notes:"",name:"",rate:"",clientId:null,amount:"",q:""};
+  F={dupAct:null,kind,mode:lastMode,date:todayD(),wk:weekStart(todayD()),days:["","","","","","",""],month:state.month||nowM(),workerId:null,siteId:null,hours:"",paid:false,notes:"",name:"",rate:"",clientId:null,amount:"",q:""};
   if(kind==="hours"&&ref){F.workerId=ref;const rs=DB.rates.filter(r=>r.workerId===ref);if(rs.length===1)F.siteId=rs[0].siteId;F.q=W(ref).name}
   if(kind==="worker"&&ref){F.workerId=ref;F.name=W(ref).name}
   if(kind==="money"&&ref)F.clientId=ref;
@@ -1497,6 +1498,15 @@ function drawAdd(){
 }
 function monthField(){return `<div class="f"><label>Month</label><div class="month" style="box-shadow:none;border:1.5px solid var(--line);height:52px;border-radius:14px;justify-content:space-between"><button onclick="F.month=addM(F.month,-1);drawAdd()">‹</button><span>${mLabel(F.month)}</span><button onclick="F.month=addM(F.month,1);drawAdd()">›</button></div></div>`}
 function hoursTotal(){return F.mode==="week"?F.days.reduce((a,v)=>a+(parseFloat(v)||0),0):(parseFloat(F.hours)||0)}
+function dupDays(){if(!(F.workerId&&F.siteId)||F.mode==="month")return[];const ds=F.mode==="day"?(parseFloat(F.hours)>0?[F.date]:[]):[0,1,2,3,4,5,6].filter(i=>parseFloat(F.days[i])>0).map(i=>addD(F.wk,i));
+  return ds.filter(d=>DB.entries.some(e=>e.workerId===F.workerId&&e.siteId===F.siteId&&e.date===d&&isWork(e)))}
+function dupBox(h){const dd=dupDays();if(!dd.length)return "";
+  const ex=DB.entries.filter(e=>e.workerId===F.workerId&&e.siteId===F.siteId&&dd.includes(e.date)&&isWork(e)),exH=ex.reduce((a,e)=>a+ +e.hours,0),unp=ex.filter(e=>!e.paid),allPaid=!unp.length;
+  if(allPaid)F.dupAct="add";else F.dupAct=F.dupAct||"replace";
+  const newH=F.mode==="day"?h:dd.reduce((a,d)=>a+(parseFloat(F.days[(parseD(d)-parseD(F.wk))/864e5|0])||0),0);
+  const when=dd.length===1?dayLabel(dd[0]):plural(dd.length,"day")+" this week";
+  return `<div class="dupbox"><b>⚠ Already entered</b><div class="t2" style="white-space:normal;margin:3px 0 10px">${esc(W(F.workerId).name)} already has ${exH} hrs at ${esc(Sx(F.siteId).name)} on ${when}${allPaid?" — already paid":ex.some(e=>e.paid)?" (some paid)":""}.</div>
+  ${allPaid?`<div class="t2" style="white-space:normal">These ${newH} hrs will be added as extra hours.</div>`:`<div class="pseg" style="margin:0"><button class="${F.dupAct==="replace"?"on":""}" onclick="F.dupAct='replace';updPreview()">Replace · ${newH+(exH-unp.reduce((a,e)=>a+ +e.hours,0))} hrs</button><button class="${F.dupAct==="add"?"on":""}" onclick="F.dupAct='add';updPreview()">Keep both · ${exH+newH} hrs</button></div>`}</div>`}
 function hoursDup(){
   if(!(F.workerId&&F.siteId))return "";
   const mine=DB.entries.filter(e=>e.workerId===F.workerId&&e.siteId===F.siteId), nm=esc(W(F.workerId).name);
@@ -1527,15 +1537,17 @@ function formHours(){
   <div class="f"><label>Who worked?</label><input class="inp" id="wq" placeholder="Start typing a name" autocapitalize="words" autocorrect="off" spellcheck="false" value="${esc(F.q)}" autocomplete="off" oninput="F.q=this.value;F.workerId=null;F.siteId=null;sugWorkers()" onfocus="sugWorkers()"><div id="sug"></div></div>
   ${F.workerId?`<div class="f"><label>Which site?</label><div class="opts">${rs.length?rs.map(r=>`<button class="opt ${F.siteId===r.siteId?"on":""}" onclick="F.siteId='${r.siteId}';drawAdd()">${esc(Sx(r.siteId).name)}<small>${money(r.rate)}/hr</small></button>`).join(""):`<span class="t2">No site yet — <button class="link" onclick="goSub('worker',{workerId:'${F.workerId}',name:W('${F.workerId}').name})">add one</button></span>`}</div></div>`:""}
   ${hoursField}
+  <div id="dupw">${dupDays().length&&h>0?dupBox(h):""}</div>
   <div class="f"><label>Note <span style="color:var(--mut);font-weight:500">(optional)</span></label><input class="inp" placeholder="e.g. Public holiday" value="${esc(F.notes)}" oninput="F.notes=this.value"></div>
   <div class="preview" id="pv"><div><div class="pl">${F.siteId?`${h||0} hrs × ${money(rate)}`:"Pay"}</div><div class="pv num">${money(h*rate)}</div></div><span class="tag ${F.paid?"ok":"pay"}">${F.paid?"Paid":"Goes to To pay"}</span></div>
   <div id="why">${whyHtml(h)}</div>
-  <button class="btn" ${F.workerId&&F.siteId&&h>0?"":"disabled"} onclick="saveHours()">${F.mode==="week"?"Save week":"Save hours"}</button>`;
+  <button class="btn" id="hsave" ${F.workerId&&F.siteId&&h>0?"":"disabled"} onclick="saveHours()">${hsaveLabel(h)}</button>`;
 }
 function whyHtml(h){const lim=F.mode==="day"?16:F.mode==="week"?80:250,d=hoursDup();
   return (!F.workerId?`<div class="hint">Pick who worked to continue</div>`:!F.siteId?`<div class="hint">Pick the site to continue</div>`:!(h>0)?`<div class="hint">Type the hours to continue</div>`:"")
-  +(h>lim?`<div class="err">⚠ ${h} hours in ${F.mode==="day"?"one day":F.mode==="week"?"one week":"one month"} is a lot — please double-check.</div>`:"")+(d?`<div class="err">${d}</div>`:"")}
-function updPreview(){const h=hoursTotal();const wy=$("#why");if(wy)wy.innerHTML=whyHtml(h);const rs=DB.rates.filter(r=>r.workerId===F.workerId);const rate=(rs.find(r=>r.siteId===F.siteId)||{}).rate||0;
+  +(h>lim?`<div class="err">⚠ ${h} hours in ${F.mode==="day"?"one day":F.mode==="week"?"one week":"one month"} is a lot — please double-check.</div>`:"")+(dupDays().length&&h>0?"":d?`<div class="err">${d}</div>`:"")}
+function hsaveLabel(h){return dupDays().length&&h>0?(F.dupAct==="replace"?"Replace hours":"Save · keep both"):F.mode==="week"?"Save week":"Save hours"}
+function updPreview(){const h=hoursTotal();const wy=$("#why");if(wy)wy.innerHTML=whyHtml(h);const dw=$("#dupw");if(dw)dw.innerHTML=dupDays().length&&h>0?dupBox(h):"";const hs=$("#hsave");if(hs)hs.textContent=hsaveLabel(h);const rs=DB.rates.filter(r=>r.workerId===F.workerId);const rate=(rs.find(r=>r.siteId===F.siteId)||{}).rate||0;
   const pv=$("#pv"); if(pv){pv.querySelector(".pl").textContent=F.siteId?`${h} hrs × ${money(rate)}`:"Pay";pv.querySelector(".pv").textContent=money(h*rate)}
   const b=$("#sheet .btn"); if(b)b.disabled=!(F.workerId&&F.siteId&&h>0)}
 function sugWorkers(){
@@ -1553,9 +1565,11 @@ async function saveHours(){
   else if(F.mode==="day")rows=[{...base,id:uid(),date:F.date,month:F.date.slice(0,7),hours:parseFloat(F.hours)}];
   else rows=[{...base,id:uid(),date:"",month:F.month,hours:parseFloat(F.hours)}];
   if(!rows.length)return;
+  let old=[];
+  if(F.mode!=="month"&&F.dupAct==="replace"){const dd=dupDays();old=DB.entries.filter(e=>e.workerId===F.workerId&&e.siteId===F.siteId&&dd.includes(e.date)&&isWork(e)&&!e.paid).map(e=>({...e}));for(const e of old)await del("entries",e.id)}
   await putMany("entries",rows); closeSheet(); render();
   const hrs=rows.reduce((a,e)=>a+e.hours,0),amt=rows.reduce((a,e)=>a+wage(e),0);
-  toast(`✓ Saved · ${esc(W(F.workerId).name)} · ${rows.length>1?plural(rows.length,"day")+" · ":""}${hrs} hrs · ${money(amt)}`,async()=>{for(const e of rows)await del("entries",e.id);render()});
+  toast(`✓ Saved · ${esc(W(F.workerId).name)} · ${rows.length>1?plural(rows.length,"day")+" · ":""}${hrs} hrs · ${money(amt)}${old.length?" · replaced":""}`,async()=>{for(const e of rows)await del("entries",e.id);if(old.length)await putMany("entries",old);render()});
 }
 function formWorker(){
   const existing=F.workerId?W(F.workerId):null;
