@@ -152,6 +152,7 @@ input[type=date].inp{-webkit-appearance:none;appearance:none;display:flex;align-
 @keyframes ansIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 .askk{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:0 0 12px}.askk>div{background:var(--card);border-radius:var(--r-md);padding:12px 14px}.askk span{display:block;font-size:12.5px;color:var(--mut);font-weight:600}.askk b{display:block;font-size:19px;font-weight:750;margin-top:2px}.askk em{font-style:normal;font-size:12.5px;color:var(--mut)}
 #askres .amt small{display:block;font-size:12px;color:var(--mut);font-weight:500;text-align:right}
+.tdlock{display:grid;place-items:center;background:var(--ok-s,#EAF6EC)!important;color:var(--ok)!important;font-weight:700}
 .subback{display:flex;align-items:center;min-height:44px;margin:-6px 0 6px;color:var(--ink);font-size:15px;font-weight:650}
 
 .hero{background:linear-gradient(150deg,#1B1F3B 0%,#0E1325 70%);color:#fff;border-radius:24px;padding:22px;position:relative;overflow:hidden}
@@ -599,7 +600,7 @@ textarea.inp{height:96px!important;padding:14px 16px!important}
 <script>
 function hideToast(){const t=document.getElementById("toast");if(t)t.classList.remove("on")}
 if(window.navigator.standalone===true||matchMedia("(display-mode: standalone)").matches)document.documentElement.classList.add("ios-app");
-const APP_VERSION="3.13";
+const APP_VERSION="3.14";
 /* ============ data layer ============ */
 const TABLES=["clients","sites","workers","rates","entries","income"];
 const EMPTY=()=>({clients:[],sites:[],workers:[],rates:[],entries:[],income:[]});
@@ -1313,6 +1314,7 @@ const subBack=`<button class="back" onclick="go('home')">${ICON.back}Overview</b
 let TD={date:null,vals:{},dirty:false};
 function tdLoad(date){TD={date,vals:{},dirty:false};DB.entries.filter(e=>e.date===date&&isWork(e)).forEach(e=>{const k=e.workerId+"|"+e.siteId;TD.vals[k]=String((parseFloat(TD.vals[k])||0)+ +e.hours)})}
 function tdRates(){return DB.rates.filter(r=>W(r.workerId).active!==false&&DB.workers.some(w=>w.id===r.workerId)&&DB.sites.some(s=>s.id===r.siteId))}
+function tdPaid(k,date){const[w,si]=k.split("|");return DB.entries.filter(e=>e.date===(date||TD.date)&&e.workerId===w&&e.siteId===si&&isWork(e)&&e.paid).reduce((a,e)=>a+ +e.hours,0)}
 function tdTotals(){let h=0,w=0;const ppl=new Set();tdRates().forEach(r=>{const v=parseFloat(TD.vals[r.workerId+"|"+r.siteId])||0;if(v>0){h+=v;w+=v*r.rate;ppl.add(r.workerId)}});return {h,w,p:ppl.size}}
 function todayPage(){
   if(!TD.date)tdLoad(todayD());else if(!TD.dirty)tdLoad(TD.date);
@@ -1326,21 +1328,24 @@ function todayPage(){
       <div class="mfoot" style="display:flex;gap:16px;flex-wrap:wrap">${d!==todayD()?`<button class="link" style="padding:0" onclick="tdJump()">Go to today</button>`:""}${prev?`<button class="link" style="padding:0" onclick="tdCopy('${prev}')">Copy ${dayRel(prev)===dayLabel(prev)?dayLabel(prev):dayRel(prev).toLowerCase()}'s hours</button>`:""}${t.h?`<button class="link" style="padding:0;color:var(--pay)" onclick="tdClear()">Clear all</button>`:""}</div></div>
     ${sites.map(sid=>`<div class="sec" style="margin-top:18px"><h2 style="font-size:16px">${esc(Sx(sid).name)}</h2><span class="h">${esc(C(Sx(sid).clientId).name)}</span></div>
       <div class="list">${bySite[sid].sort((a,b)=>W(a.workerId).name.localeCompare(W(b.workerId).name)).map(r=>{const k=r.workerId+"|"+r.siteId;return `<div class="row">${av(W(r.workerId).name)}<div class="main"><div class="t1">${esc(W(r.workerId).name)}</div><div class="t2">${money(r.rate)}/hr</div></div>
-        <input class="inp num tdin" inputmode="decimal" placeholder="–" value="${esc(TD.vals[k]||"")}" oninput="tdSet('${k}',this)" aria-label="Hours for ${esc(W(r.workerId).name)}"><span class="t2">hrs</span></div>`}).join("")}</div>`).join("")}
+        ${tdPaid(k)?`<button class="inp num tdin tdlock" onclick="openPerson('${r.workerId}')" aria-label="Paid — open ${esc(W(r.workerId).name)}">${esc(TD.vals[k]||"")}</button><span class="t2" style="color:var(--ok);font-weight:650">paid</span>`:`<input class="inp num tdin" inputmode="decimal" placeholder="–" value="${esc(TD.vals[k]||"")}" oninput="tdSet('${k}',this)" aria-label="Hours for ${esc(W(r.workerId).name)}"><span class="t2">hrs</span>`}</div>`}).join("")}</div>`).join("")}
     <div class="tdbar" style="${TD.dirty?"":"display:none"}"><button class="btn" id="tdsave" ${TD.dirty?"":"disabled"} onclick="tdSave()">${TD.dirty?"Save "+dayRel(d).toLowerCase()+"'s hours":"Saved"}</button></div>`;
 }
 function tdSet(k,el){el.value=el.value.replace(/[^0-9.]/g,"");TD.vals[k]=el.value;TD.dirty=true;const t=tdTotals();$("#tdh").textContent=t.h;$("#tdw").textContent=money(t.w);$("#tdp").textContent=t.p;const b=$("#tdsave");b.parentNode.style.display="";b.disabled=false;b.textContent="Save "+dayRel(TD.date).toLowerCase()+"'s hours"}
 function tdGo(n){if(TD.dirty&&!confirmBox("Leave this day without saving?"))return;tdLoad(addD(TD.date,n));render()}
 function tdJump(){if(TD.dirty&&!confirmBox("Leave this day without saving?"))return;tdLoad(todayD());render()}
-function tdCopy(from){const v={};DB.entries.filter(e=>e.date===from&&isWork(e)).forEach(e=>{const k=e.workerId+"|"+e.siteId;v[k]=String((parseFloat(v[k])||0)+ +e.hours)});TD.vals=v;TD.dirty=true;render();toast("Copied — check, then Save")}
-function tdClear(){TD.vals={};TD.dirty=true;render()}
+function tdKeepPaid(v){Object.keys(TD.vals).forEach(k=>{if(tdPaid(k))v[k]=TD.vals[k]});return v}
+function tdCopy(from){const v={};DB.entries.filter(e=>e.date===from&&isWork(e)).forEach(e=>{const k=e.workerId+"|"+e.siteId;v[k]=String((parseFloat(v[k])||0)+ +e.hours)});TD.vals=tdKeepPaid(v);TD.dirty=true;render();toast("Copied — check, then Save")}
+function tdClear(){const before={...TD.vals},wasDirty=TD.dirty;TD.vals=tdKeepPaid({});TD.dirty=true;render();
+  const kept=Object.keys(TD.vals).length;toast(`Cleared${kept?` · ${kept} paid kept`:""} · Save to confirm`,()=>{TD.vals=before;TD.dirty=wasDirty;render()})}
 async function tdSave(){
-  const d=TD.date,now=todayD(),ups=[],dels=[];let n=0;
+  const d=TD.date,now=todayD(),ups=[],dels=[],gone=[];let n=0;
   tdRates().forEach(r=>{const want=parseFloat(TD.vals[r.workerId+"|"+r.siteId])||0;
     const ex=DB.entries.filter(e=>e.date===d&&e.workerId===r.workerId&&e.siteId===r.siteId&&isWork(e)),cur=ex.reduce((a,e)=>a+ +e.hours,0);
-    if(want===cur)return;n++;
+    if(want===cur||ex.some(e=>e.paid))return;n++;if(cur>0&&!want)gone.push(`${W(r.workerId).name} · ${Sx(r.siteId).name} · ${cur} hrs`);
     if(ex.length){if(want>0)ups.push({...ex[0],hours:want});else dels.push(ex[0]);ex.slice(1).forEach(e=>dels.push(e))}
     else ups.push({id:uid(),date:d,month:d.slice(0,7),workerId:r.workerId,siteId:r.siteId,hours:want,rate:r.rate,paid:false,paidAt:"",notes:"",createdAt:now,kind:"work"})});
+  if(gone.length&&!confirmBox(`Delete hours for ${plural(new Set(gone.map(g=>g.split(" · ")[0])).size,"person")} on ${dayLabel(d)}?\nPaid hours are kept.\n\n${gone.slice(0,8).join("\n")}${gone.length>8?"\n…":""}`))return;
   if(ups.length)await putMany("entries",ups);for(const e of dels)await del("entries",e.id);
   TD.dirty=false;render();toast(n?`✓ Saved ${dayRel(d).toLowerCase()} · ${plural(n,"change")}`:"Nothing to save");
 }
