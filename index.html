@@ -140,6 +140,18 @@ input[type=date].inp{-webkit-appearance:none;appearance:none;display:flex;align-
 .sec h2{font-size:18px;font-weight:720;letter-spacing:-.01em}
 .link{color:var(--acc);font-weight:600;font-size:14.5px;padding:8px 0}
 .addrow{display:flex;width:100%;align-items:center;justify-content:space-between;gap:12px;text-align:left;min-height:60px;padding:10px 16px;margin:0 0 16px;border-radius:var(--r-md);border:1.5px dashed var(--line);color:var(--ink)}.addrow b{display:block;font-size:15.5px;font-weight:650}.addrow small{display:block;font-size:13px;color:var(--mut);margin-top:2px}.addrow i{font-style:normal;font-size:22px;width:32px;height:32px;display:grid;place-items:center;border-radius:var(--r-xs);background:var(--card)}
+.askbar{display:flex;align-items:center;gap:10px;width:100%;height:52px;padding:0 6px 0 16px;margin:0 0 14px;border-radius:var(--r-md);background:var(--card);color:var(--mut);font-size:15.5px;text-align:left}
+.askbar span{flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.askbar i{font-style:normal;height:40px;padding:0 16px;display:grid;place-items:center;border-radius:var(--r-sm);background:#C9F26B;color:#111;font-weight:700;font-size:14.5px}
+.askw{min-height:min(70vh,620px)}
+.askin{position:relative;display:flex;align-items:center}.askin svg{position:absolute;left:16px;pointer-events:none}.askin #askq{padding-left:46px!important;padding-right:48px!important;font-size:17px}
+#askres .t2{white-space:normal;overflow:visible}
+.askx{position:absolute;right:6px;width:40px;height:40px;border-radius:var(--r-sm);font-size:22px;color:var(--mut)}
+.asklbl{font-size:12.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--mut);margin:18px 2px 8px}
+.askchips{display:flex;flex-wrap:wrap;gap:8px}.askchips button{min-height:40px;padding:0 14px;border-radius:var(--r-sm);background:var(--card);font-size:14.5px;font-weight:600;color:var(--ink)}
+.ans{margin:18px 2px 12px;animation:ansIn .32s cubic-bezier(.32,.72,0,1)}.ansb{font-size:24px;font-weight:780;letter-spacing:-.025em;line-height:1.2}.anss{color:var(--mut);font-size:14.5px;margin-top:5px;line-height:1.4}
+@keyframes ansIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.askk{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:0 0 12px}.askk>div{background:var(--card);border-radius:var(--r-md);padding:12px 14px}.askk span{display:block;font-size:12.5px;color:var(--mut);font-weight:600}.askk b{display:block;font-size:19px;font-weight:750;margin-top:2px}.askk em{font-style:normal;font-size:12.5px;color:var(--mut)}
+#askres .amt small{display:block;font-size:12px;color:var(--mut);font-weight:500;text-align:right}
 .subback{display:flex;align-items:center;min-height:44px;margin:-6px 0 6px;color:var(--ink);font-size:15px;font-weight:650}
 
 .hero{background:linear-gradient(150deg,#1B1F3B 0%,#0E1325 70%);color:#fff;border-radius:24px;padding:22px;position:relative;overflow:hidden}
@@ -587,7 +599,7 @@ textarea.inp{height:96px!important;padding:14px 16px!important}
 <script>
 function hideToast(){const t=document.getElementById("toast");if(t)t.classList.remove("on")}
 if(window.navigator.standalone===true||matchMedia("(display-mode: standalone)").matches)document.documentElement.classList.add("ios-app");
-const APP_VERSION="3.11";
+const APP_VERSION="3.12";
 /* ============ data layer ============ */
 const TABLES=["clients","sites","workers","rates","entries","income"];
 const EMPTY=()=>({clients:[],sites:[],workers:[],rates:[],entries:[],income:[]});
@@ -891,6 +903,152 @@ function goBack(){if(navAnim||!state.person)return;const y=scrolls.pop()||0;slid
 const navBtn=([k,l,i])=>`<button class="${state.tab===k?"on":""}" onclick="go('${k}')">${i}<span>${l}</span></button>`;
 function monthSwitch(){return `<div class="month"><button onclick="state.month=addM(state.month,-1);render()" aria-label="Previous month">‹</button><span>${mLabel(state.month)}</span><button onclick="state.month=addM(state.month,1);render()" aria-label="Next month">›</button></div>`}
 
+/* ---------- Ask: offline smart search (no AI service, nothing leaves the phone) ---------- */
+const MONI={jan:0,feb:1,mar:2,apr:3,may:4,jun:5,jul:6,aug:7,sep:8,oct:9,nov:10,dec:11};
+const DOWI={sun:0,mon:1,tue:2,wed:3,thu:4,fri:5,sat:6};
+const ASK_STOP=new Set("a an the and or of to for in on at by from with is was were are be been did do does done has have had i me my we our us you your it its this that these those what whats which who whom whose how many much when where show tell give list find get see check total totals so far ever all time hours hour hrs hr h worked work working works earn earned earning earnings made make pay paid payment owe owed owing unpaid due wage wages money profit loss losing lost site sites client clients worker workers people staff anyone everyone someone today yesterday week weeks month months year years day days last this past previous current next please summary overview any every each top most least best worst busiest highest lowest add log put record enter there here than more".split(" "));
+const mEnd=m=>{const[y,mm]=m.split("-").map(Number);return isoD(new Date(y,mm,0))};
+const RR=(from,to,label)=>({from,to,label});
+function dayR(d,mi,y){const td=todayD();let yy=y?(+y<100?2000+ +y:+y):+td.slice(0,4);let s=isoD(new Date(yy,mi,d));if(!y&&s>td)s=isoD(new Date(yy-1,mi,d));return RR(s,s,dayRel(s)+(dayRel(s)===dayLabel(s)?"":" · "+dayLabel(s)))}
+function askRange(t){const td=todayD();let R=null;
+  const take=(re,fn)=>{if(R)return;const m=t.match(re);if(m){R=fn(m);t=t.replace(m[0]," ")}};
+  const MN3="(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*";
+  take(/\b(all[- ]time|ever|so far|in total|altogether|overall|since (the )?start)\b/,()=>({all:true,label:"All time"}));
+  take(/\btoday\b|\btonight\b/,()=>RR(td,td,"Today"));
+  take(/\byesterday\b/,()=>{const d=addD(td,-1);return RR(d,d,"Yesterday")});
+  take(/\b(this|current) week\b/,()=>RR(weekStart(td),addD(weekStart(td),6),"This week"));
+  take(/\b(last|previous) week\b/,()=>{const s=addD(weekStart(td),-7);return RR(s,addD(s,6),"Last week · "+weekLabel(s))});
+  take(/\b(last|past) (fortnight|2 weeks|two weeks)\b/,()=>RR(addD(td,-13),td,"Last 2 weeks"));
+  take(/\b(last|past) (\d{1,3}) days?\b/,m=>RR(addD(td,-(+m[2]-1)),td,`Last ${m[2]} days`));
+  take(/\b(this|current) month\b/,()=>{const m=td.slice(0,7);return RR(m+"-01",mEnd(m),mLabel(m))});
+  take(/\b(last|previous) month\b/,()=>{const m=addM(td.slice(0,7),-1);return RR(m+"-01",mEnd(m),mLabel(m))});
+  take(/\bthis year\b/,()=>{const y=td.slice(0,4);return RR(y+"-01-01",y+"-12-31",y)});
+  take(/\blast year\b/,()=>{const y=String(+td.slice(0,4)-1);return RR(y+"-01-01",y+"-12-31",y)});
+  take(new RegExp("\\b(\\d{1,2})(?:st|nd|rd|th)?(?: of)?\\s+"+MN3+"\\.?(?:,?\\s+(\\d{4}))?\\b"),m=>dayR(+m[1],MONI[m[2]],m[3]));
+  take(new RegExp("\\b"+MN3+"\\.?\\s+(\\d{1,2})(?:st|nd|rd|th)?\\b(?:,?\\s+(\\d{4}))?"),m=>dayR(+m[2],MONI[m[1]],m[3]));
+  take(/\b(\d{1,2})[\/.-](\d{1,2})(?:[\/.-](\d{2,4}))?\b/,m=>dayR(+m[1],+m[2]-1,m[3]));
+  take(/\b(january|february|march|april|may|june|july|august|september|october|november|december|jan|feb|mar|apr|jun|jul|aug|sept?|oct|nov|dec)\b(?:\s+(\d{4}))?/,m=>{const mi=MONI[m[1].slice(0,3)],td7=td.slice(0,7);let y=m[2]?+m[2]:+td.slice(0,4);let mm=y+"-"+pad2(mi+1);if(!m[2]&&mm>td7)mm=(y-1)+"-"+pad2(mi+1);return RR(mm+"-01",mEnd(mm),mLabel(mm))});
+  take(/\b(?:on |last )?(monday|tuesday|wednesday|thursday|friday|saturday|sunday|mon|tues?|wed|thurs?|fri|sat|sun)\b/,m=>{const w=DOWI[m[1].slice(0,3)];let d=td;while(parseD(d).getDay()!==w)d=addD(d,-1);return RR(d,d,dayRel(d)+(dayRel(d)===dayLabel(d)?"":" · "+dayLabel(d)))});
+  return {R,t}}
+function askEnt(t){const out={ws:[],ss:[],cs:[]};
+  const whole=(list,key)=>[...list].sort((a,b)=>b.name.length-a.name.length).forEach(x=>{const n=x.name.toLowerCase().trim();if(n.length<2)return;const re=new RegExp("(^|[^a-z0-9])"+n.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")+"(?=$|[^a-z0-9])");if(re.test(t)){out[key].push(x);t=t.replace(re,"$1 ")}});
+  whole(DB.sites,"ss");whole(DB.clients,"cs");whole(DB.workers,"ws");
+  const unknown=[];
+  t.split(/[^a-z0-9']+/).filter(w=>w.length>=3&&!ASK_STOP.has(w)&&!/^\d/.test(w)).forEach(w=>{
+    const part=(list,key)=>list.filter(x=>!out[key].includes(x)&&x.name.toLowerCase().split(/\s+/).some(p=>p.startsWith(w)));
+    const ws=part(DB.workers,"ws"),ss=part(DB.sites,"ss"),cs=part(DB.clients,"cs");
+    if(ws.length||ss.length||cs.length){out.ws.push(...ws);out.ss.push(...ss);out.cs.push(...cs);t=t.replace(w," ")}else unknown.push(w)});
+  return {...out,t,unknown}}
+function inR(e,R){if(!R||R.all)return true;if(e.date)return e.date>=R.from&&e.date<=R.to;return R.from<=e.month+"-01"&&R.to>=mEnd(e.month)}
+function missR(es,R){if(!R||R.all)return 0;return es.filter(e=>!e.date&&!inR(e,R)&&e.month+"-01"<=R.to&&mEnd(e.month)>=R.from).length}
+function monthsIn(R,es){if(!R||R.all)return new Set(es.map(e=>e.month)).size;let n=0,m=R.from.slice(0,7);while(m<=R.to.slice(0,7)){if(R.from<=m+"-01"&&R.to>=mEnd(m))n++;m=addM(m,1)}return n}
+function siteR(x,R,wid){const es=DB.entries.filter(e=>e.siteId===x.id&&inR(e,R)&&(!wid||e.workerId===wid)),work=es.filter(isWork);
+  const h=work.reduce((a,e)=>a+ +e.hours,0),w=es.reduce((a,e)=>a+wage(e),0);let b=null;
+  if(hasBill(x))b=x.billType==="fixed"?(+x.fixed||0)*monthsIn(R,es):h*(+x.charge||0);
+  if(x.billType==="fixed"&&b===0&&es.length)b=null;
+  return {x,es,h,w,b,p:b==null?null:b-w,people:new Set(work.map(e=>e.workerId)).size}}
+const hrs=n=>(Math.round(n*100)/100).toLocaleString()+" hrs";
+const ASKREC="cw_askrec";
+function askRecent(){try{return JSON.parse(localStorage.getItem(ASKREC)||"[]")}catch(e){return[]}}
+function askRemember(q){q=q.trim();if(q.length<3)return;try{const a=askRecent().filter(x=>x.toLowerCase()!==q.toLowerCase());a.unshift(q);localStorage.setItem(ASKREC,JSON.stringify(a.slice(0,5)))}catch(e){}}
+function askIdeas(){const w=DB.workers.filter(x=>x.active!==false),wn=w[0]?w[0].name.split(" ")[0]:"Ali";
+  const s=[...DB.sites].sort((a,b)=>DB.entries.filter(e=>e.siteId===b.id).length-DB.entries.filter(e=>e.siteId===a.id).length)[0];
+  return [`${wn} last week`,"Who worked today",s?`${s.name} this month`:"This month","Who do I owe","Sites losing money","Top workers this month",`Add 8h ${wn} today`,"Summary last month"]}
+function openAsk(q=""){hideToast();
+  showSheet(`<div class="askw"><h3 style="margin-bottom:12px">Ask</h3>
+    <div class="askin">${ICON.search||""}<input id="askq" class="inp" placeholder="e.g. ${esc(askIdeas()[0])}" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="search" value="${esc(q)}" oninput="askRun(this.value)" onkeydown="if(event.key==='Enter'){askRemember(this.value);this.blur()}"><button class="askx" onclick="const i=$('#askq');i.value='';askRun('');i.focus()" aria-label="Clear">×</button></div>
+    <div id="askres"></div></div>`);
+  askRun(q);setTimeout(()=>{const i=$("#askq");if(i&&!q)i.focus()},280)}
+function askChip(q){const i=$("#askq");if(i){i.value=q;askRemember(q);askRun(q)}}
+function askGo(kind,id){askRemember($("#askq")?.value||"");closeSheet();setTimeout(()=>{if(kind==="w")openPerson(id);else if(kind==="s")openSite(id);else go(id)},180)}
+const chipsH=a=>`<div class="askchips">${a.map(x=>`<button onclick="askChip(this.textContent)">${esc(x)}</button>`).join("")}</div>`;
+function askRun(q){const box=$("#askres");if(!box)return;box.innerHTML=askAnswer(q)}
+function ansHead(big,sub){return `<div class="ans"><div class="ansb">${big}</div>${sub?`<div class="anss">${sub}</div>`:""}</div>`}
+function askAnswer(q0){
+  const q=(q0||"").toLowerCase().replace(/[’']/g,"'").trim();
+  if(!q){const rec=askRecent();return `${rec.length?`<div class="asklbl">Recent</div>${chipsH(rec)}`:""}<div class="asklbl">Try</div>${chipsH(askIdeas())}<div class="t2" style="margin:14px 2px 0;line-height:1.5">Type a name, site, client or date — like “Ryde last week”, “12 Nov”, “who worked Monday”. Tap the 🎤 on your keyboard to say it instead. Works offline; nothing leaves this phone.</div>`}
+  const E=askEnt(q),{R:R0,t:rest}=askRange(E.t),has=re=>re.test(q);
+  const anyR=!!R0, monthR=(()=>{const m=todayD().slice(0,7);return RR(m+"-01",mEnd(m),mLabel(m))})();
+  const R=R0||monthR;
+  const W1=E.ws[0],S1=E.ss[0],C1=E.cs[0];
+  if(E.unknown.length&&!E.ws.length&&!E.ss.length&&!E.cs.length&&!has(/\b(owe|owed|owing|unpaid|due|to pay|outstanding|loss|losing|profit|who|top|most|summary)\b/))
+    {const dym=askNear(E.unknown,q);return ansHead("Couldn't find that",`No worker, site or client called “${esc(E.unknown.join(" "))}”`)+(dym.length?`<div class="asklbl">Did you mean</div>${chipsH(dym)}`:`<div class="asklbl">Try</div>${chipsH(askIdeas())}`)}
+  // 1) add hours: "add 8h ali ryde today"
+  const hm=q.match(/(\d+(?:\.\d+)?)\s*(h|hr|hrs|hour|hours)\b/);
+  if(hm&&W1&&(has(/\b(add|log|put|record|enter|book)\b/)||!has(/\b(how|what|who|which|did|does|show|when)\b|\?/))){
+    const d=R0&&R0.from===R0.to?R0.from:todayD(),sid=S1?S1.id:(DB.rates.filter(r=>r.workerId===W1.id).length===1?DB.rates.find(r=>r.workerId===W1.id).siteId:null);
+    const rate=sid?(DB.rates.find(r=>r.workerId===W1.id&&r.siteId===sid)||{}).rate:null;
+    return ansHead(`Add ${hm[1]} hrs for ${esc(W1.name)}`,`${dayRel(d)}${sid?" · "+esc(Sx(sid).name):" · pick the site next"}${rate?" · "+money(hm[1]*rate):""}`)
+      +`<button class="btn" style="margin-top:14px" onclick="askAdd('${W1.id}','${sid||""}','${d}','${hm[1]}')">Review and save</button>`}
+  // 2) owed
+  if(has(/\b(owe|owed|owing|unpaid|due|to pay|outstanding|waiting|pending)\b/)){
+    let o=owedByWorker();if(E.ws.length)o=o.filter(x=>E.ws.some(w=>w.id===x.workerId));
+    const tot=o.reduce((a,x)=>a+x.amount,0);
+    if(!o.length)return ansHead(E.ws.length?`${esc(E.ws.map(w=>w.name).join(", "))} ${E.ws.length>1?"are":"is"} paid up`:"Everyone is paid up","Nothing waiting to be paid");
+    return ansHead(`${money(tot)} to pay`,`${plural(o.length,"person")} waiting`)+`<div class="list">${o.map(x=>`<div class="row tap" onclick="askGo('w','${x.workerId}')">${av(W(x.workerId).name)}<div class="main"><div class="t1">${esc(W(x.workerId).name)}</div><div class="t2">${[...x.sites].map(esc).join(", ")}</div></div><div class="amt num">${money(x.amount)}</div></div>`).join("")}</div>`
+      +`<button class="btn ghost" style="margin-top:12px" onclick="askGo('t','pay')">Open pay run</button>`}
+  // 3) sites losing / profit ranking
+  if(!S1&&has(/\b(loss|losing|lose|lost|profit|profitable|margin|best|worst)\b/)&&!W1){
+    const rs=DB.sites.filter(x=>!C1||x.clientId===C1.id).map(x=>siteR(x,R)).filter(r=>r.h||r.w),known=rs.filter(r=>r.p!=null),unset=rs.filter(r=>r.p==null);
+    const lossOnly=has(/\b(loss|losing|lose|lost|worst)\b/);let list=known.sort((a,b)=>lossOnly?a.p-b.p:b.p-a.p);if(lossOnly)list=list.filter(r=>r.p<0);
+    const tp=known.reduce((a,r)=>a+r.p,0);
+    const head=lossOnly?(list.length?ansHead(`${plural(list.length,"site")} losing money`,R.label):ansHead("No site is losing money",R.label+(known.length?` · ${money(tp)} profit from ${plural(known.length,"site")}`:""))):ansHead(`${money(tp)} profit`,`${R.label} · from ${plural(known.length,"site")}`);
+    return head+(list.length?`<div class="list">${list.map(r=>siteRowA(r)).join("")}</div>`:"")+(unset.length?`<div class="t2" style="color:var(--warn);margin:10px 2px 0">${plural(unset.length,"site")} without money-in set: ${unset.map(r=>esc(r.x.name)).join(", ")}</div>`:"")}
+  // 4) who worked / top
+  const isWho=has(/\b(who|anyone|everyone|which (workers|people|staff))\b/),isTop=has(/\b(top|most|busiest|highest|least|lowest|ranking)\b/);
+  if((isWho||isTop)&&!W1){
+    const Rw=R0||(isWho?RR(todayD(),todayD(),"Today"):monthR);
+    const es=DB.entries.filter(e=>isWork(e)&&inR(e,Rw)&&(!E.ss.length||E.ss.some(s=>s.id===e.siteId))&&(!C1||Sx(e.siteId).clientId===C1.id));
+    const g={};es.forEach(e=>{const x=g[e.workerId]||(g[e.workerId]={id:e.workerId,h:0,w:0,s:new Set()});x.h+= +e.hours;x.w+=wage(e);x.s.add(Sx(e.siteId).name)});
+    let a=Object.values(g).sort((x,y)=>has(/\b(least|lowest)\b/)?x.h-y.h:y.h-x.h);if(isTop&&!isWho)a=a.slice(0,5);
+    const where=E.ss.length?" at "+E.ss.map(s=>esc(s.name)).join(", "):C1?" for "+esc(C1.name):"";
+    if(!a.length)return ansHead(`Nobody worked${where}`,Rw.label)+note(missR(DB.entries,Rw));
+    return ansHead(isTop&&!isWho?`${has(/\b(least|lowest)\b/)?"Fewest":"Most"} hours${where}`:`${plural(Object.keys(g).length,"person")} worked${where}`,`${Rw.label} · ${hrs(es.reduce((s,e)=>s+ +e.hours,0))} · ${money(es.reduce((s,e)=>s+wage(e),0))}`)
+      +`<div class="list">${a.map(x=>`<div class="row tap" onclick="askGo('w','${x.id}')">${av(W(x.id).name)}<div class="main"><div class="t1">${esc(W(x.id).name)}</div><div class="t2">${[...x.s].map(esc).join(", ")}</div></div><div class="amt num">${hrs(x.h)}<small>${money(x.w)}</small></div></div>`).join("")}</div>`+note(missR(DB.entries,Rw))}
+  // 5) worker(s)
+  if(E.ws.length){return E.ws.slice(0,4).map(w=>workerAns(w,R,E.ss,anyR)).join('<div style="height:18px"></div>')}
+  // 6) site(s)
+  if(E.ss.length){return E.ss.slice(0,4).map(s=>{const r=siteR(s,R),g={};r.es.filter(isWork).forEach(e=>{const x=g[e.workerId]||(g[e.workerId]={h:0,w:0});x.h+= +e.hours;x.w+=wage(e)});
+    return ansHead(`${esc(s.name)} · ${hrs(r.h)}`,`${R.label} · ${esc(C(s.clientId).name)}${s.address?" · "+esc(s.address):""}`)
+      +`<div class="askk"><div><span>Wages</span><b class="num">${money(r.w)}</b></div><div><span>Billed</span><b class="num">${r.b==null?"Not set":money(r.b)}</b></div><div><span>${r.p<0?"Loss":"Profit"}</span><b class="num" style="color:${r.p==null?"var(--mut)":r.p<0?"var(--pay)":"var(--ok)"}">${r.p==null?"–":money(r.p)}</b></div><div><span>People</span><b class="num">${r.people}</b></div></div>`
+      +(Object.keys(g).length?`<div class="list">${Object.entries(g).sort((a,b)=>b[1].h-a[1].h).map(([id,x])=>`<div class="row tap" onclick="askGo('w','${id}')">${av(W(id).name)}<div class="main"><div class="t1">${esc(W(id).name)}</div></div><div class="amt num">${hrs(x.h)}<small>${money(x.w)}</small></div></div>`).join("")}</div>`:"")
+      +note(missR(DB.entries.filter(e=>e.siteId===s.id),R))+`<button class="btn ghost" style="margin-top:12px" onclick="askGo('s','${s.id}')">Open ${esc(s.name)}</button>`}).join('<div style="height:18px"></div>')}
+  // 7) client
+  if(C1){const rs=DB.sites.filter(x=>x.clientId===C1.id).map(x=>siteR(x,R)),h=rs.reduce((a,r)=>a+r.h,0),w=rs.reduce((a,r)=>a+r.w,0),k=rs.filter(r=>r.p!=null),p=k.reduce((a,r)=>a+r.p,0);
+    return ansHead(`${esc(C1.name)} · ${plural(rs.length,"site")}`,`${R.label} · ${hrs(h)} · ${money(w)} wages${k.length?` · ${money(p)} ${p<0?"loss":"profit"}`:""}`)+`<div class="list">${rs.map(r=>siteRowA(r)).join("")}</div>`}
+  // 8) summary for a period
+  if(anyR||has(/\b(summary|overview|how are we|how's it|total|totals|hours|wages|profit)\b/)){
+    const es=DB.entries.filter(e=>inR(e,R)),work=es.filter(isWork),h=work.reduce((a,e)=>a+ +e.hours,0),w=es.reduce((a,e)=>a+wage(e),0);
+    const rs=DB.sites.map(x=>siteR(x,R)).filter(r=>r.h||r.w),k=rs.filter(r=>r.p!=null),b=k.reduce((a,r)=>a+r.b,0),p=k.reduce((a,r)=>a+r.p,0);
+    const tw={};work.forEach(e=>tw[e.workerId]=(tw[e.workerId]||0)+ +e.hours);const topW=Object.entries(tw).sort((a,b)=>b[1]-a[1])[0],topS=[...rs].sort((a,b)=>b.h-a.h)[0];
+    if(!es.length)return ansHead("No hours yet",R.label)+note(missR(DB.entries,R));
+    return ansHead(`${hrs(h)} · ${money(w)} wages`,R.label)
+      +`<div class="askk"><div><span>Billed</span><b class="num">${money(b)}</b></div><div><span>${p<0?"Loss":"Profit"}</span><b class="num" style="color:${p<0?"var(--pay)":"var(--ok)"}">${money(p)}</b></div><div><span>People</span><b class="num">${Object.keys(tw).length}</b></div><div><span>Sites</span><b class="num">${rs.length}</b></div></div>`
+      +`<div class="list">${topW?`<div class="row tap" onclick="askGo('w','${topW[0]}')">${av(W(topW[0]).name)}<div class="main"><div class="t2">Most hours</div><div class="t1">${esc(W(topW[0]).name)}</div></div><div class="amt num">${hrs(topW[1])}</div></div>`:""}${topS?`<div class="row tap" onclick="askGo('s','${topS.x.id}')"><div class="av" style="background:var(--soft2)">${ICON.sites?ICON.sites.replace(/width="\d+" height="\d+"/,'width="18" height="18"'):"S"}</div><div class="main"><div class="t2">Busiest site</div><div class="t1">${esc(topS.x.name)}</div></div><div class="amt num">${hrs(topS.h)}</div></div>`:""}</div>`
+      +(k.length<rs.length?`<div class="t2" style="color:var(--warn);margin:10px 2px 0">${plural(rs.length-k.length,"site")} without money-in set aren't in profit</div>`:"")+note(missR(DB.entries,R))}
+  // nothing matched
+  return ansHead("Couldn't find that",E.unknown.length?`No worker, site or client called “${esc(E.unknown.join(" "))}”`:"Try a name, a site or a date")+`<div class="asklbl">Try</div>${chipsH(askIdeas())}`}
+function lev(a,b){const m=a.length,n=b.length,d=Array.from({length:m+1},(_,i)=>[i]);for(let j=1;j<=n;j++)d[0][j]=j;for(let i=1;i<=m;i++)for(let j=1;j<=n;j++)d[i][j]=Math.min(d[i-1][j]+1,d[i][j-1]+1,d[i-1][j-1]+(a[i-1]===b[j-1]?0:1));return d[m][n]}
+function askNear(unk,q){const out=[];[...DB.workers,...DB.sites,...DB.clients].forEach(x=>{const parts=x.name.toLowerCase().split(/\s+/);unk.forEach(u=>{if(parts.some(p=>lev(u,p.slice(0,Math.max(u.length,p.length)))<=(u.length>4?2:1)||(u.length>=2&&p.startsWith(u.slice(0,2))&&Math.abs(p.length-u.length)<=2))){const t=q.replace(u,x.name);if(!out.includes(t))out.push(t)}})});return out.slice(0,6)}
+function note(n){return n?`<div class="t2" style="color:var(--warn);margin:8px 2px 0">${plural(n,"whole-month entry")} not counted — ask for the whole month to include ${n===1?"it":"them"}.</div>`:""}
+function siteRowA(r){return `<div class="row tap" onclick="askGo('s','${r.x.id}')"><div class="main"><div class="t1">${esc(r.x.name)}</div><div class="t2">${esc(C(r.x.clientId).name)} · ${hrs(r.h)}</div></div><div class="amt num" style="color:${r.p==null?"var(--mut)":r.p<0?"var(--pay)":"var(--ok)"}">${r.p==null?"–":money(r.p)}<small>${r.p==null?"not set":r.p<0?"loss":"profit"}</small></div></div>`}
+function workerAns(w,R,ss,anyR){
+  const es=DB.entries.filter(e=>e.workerId===w.id&&inR(e,R)&&(!ss.length||ss.some(s=>s.id===e.siteId))),work=es.filter(isWork);
+  const h=work.reduce((a,e)=>a+ +e.hours,0),wg=es.reduce((a,e)=>a+wage(e),0),unpaid=es.filter(e=>!e.paid).reduce((a,e)=>a+wage(e),0);
+  const all=DB.entries.filter(e=>e.workerId===w.id&&(!ss.length||ss.some(s=>s.id===e.siteId))),allH=all.filter(isWork).reduce((a,e)=>a+ +e.hours,0),allW=all.reduce((a,e)=>a+wage(e),0);
+  const days=new Set(work.filter(e=>e.date).map(e=>e.date)).size;
+  const where=ss.length?" at "+ss.map(s=>esc(s.name)).join(", "):"";
+  const short=!R.all&&R.from&&(parseD(R.to)-parseD(R.from))/864e5<=15;
+  let rows="";
+  if(short){const d=[...work].sort((a,b)=>sortKey(b).localeCompare(sortKey(a)));rows=d.map(e=>`<div class="row"><div class="main"><div class="t1">${whenLabel(e)}</div><div class="t2">${esc(Sx(e.siteId).name)}${e.paid?" · paid":""}</div></div><div class="amt num">${hrs(+e.hours)}<small>${money(wage(e))}</small></div></div>`).join("")}
+  else{const g={};work.forEach(e=>{const x=g[e.siteId]||(g[e.siteId]={h:0,w:0});x.h+= +e.hours;x.w+=wage(e)});rows=Object.entries(g).sort((a,b)=>b[1].h-a[1].h).map(([sid,x])=>`<div class="row tap" onclick="askGo('s','${sid}')"><div class="main"><div class="t1">${esc(Sx(sid).name)}</div><div class="t2">${esc(C(Sx(sid).clientId).name)}</div></div><div class="amt num">${hrs(x.h)}<small>${money(x.w)}</small></div></div>`).join("")}
+  const big=h?`${esc(w.name.split(" ")[0])} worked ${hrs(h)}`:`${esc(w.name)} didn't work${where}`;
+  const sub=`${R.label}${where}${h?` · earned ${money(wg)}`:""}${days&&!R.all?` · ${plural(days,"day")}`:""}`;
+  return ansHead(big,sub)
+    +(h||unpaid?`<div class="askk"><div><span>Still to pay</span><b class="num" style="color:${unpaid>0?"var(--pay)":"var(--ok)"}">${money(unpaid)}</b></div><div><span>All time${where?"":" total"}</span><b class="num">${hrs(allH)}</b><em>${money(allW)}</em></div></div>`:"")
+    +(rows?`<div class="list">${rows}</div>`:"")+note(missR(DB.entries.filter(e=>e.workerId===w.id),R))
+    +`<div style="display:flex;gap:10px;margin-top:12px"><button class="btn ghost" style="flex:1" onclick="askGo('w','${w.id}')">Open ${esc(w.name.split(" ")[0])}</button><button class="btn ghost" style="flex:1" onclick="askAdd('${w.id}','','${todayD()}','')">Add hours</button></div>`}
+function askAdd(wid,sid,d,h){askRemember($("#askq")?.value||"");openAdd("hours",wid);F.mode="day";F.date=d;if(sid)F.siteId=sid;if(h)F.hours=h;drawAdd();setTimeout(()=>{if(!F.siteId)return;const i=$("#hrs");if(i&&!h)i.focus()},120)}
 /* ---------- Home ---------- */
 function homePage(){
   const owed=owedByWorker(); const total=owed.reduce((s,o)=>s+o.amount,0);
@@ -901,6 +1059,7 @@ function homePage(){
   const wk=[];for(let i=7;i>=0;i--){const ws=addD(weekStart(todayD()),-7*i);wk.push(DB.entries.filter(e=>e.date&&weekStart(e.date)===ws).reduce((a,e)=>a+wage(e),0))}
   const mx=Math.max(1,...wk);
   const hero=`<div class="a-hero"><div class="greet"><div><small>${DOW[new Date().getDay()]} ${new Date().getDate()} ${MN[new Date().getMonth()]}</small><h1>${greet}</h1></div><button class="me" onclick="go('more')" aria-label="Settings">${ICON.more.replace('width="24" height="24"','width="20" height="20"')}</button></div>
+    <button class="askbar" onclick="openAsk()">${ICON.search}<span>Ask: “${esc(askIdeas()[0])}”</span><i>Ask</i></button>
     <div class="hero">
       <div class="lbl" style="display:flex;justify-content:space-between;position:relative;z-index:1">Still to pay ${online()?syncBadge():""}</div>
       <div class="big num">${money(total)}</div>
