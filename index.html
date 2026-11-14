@@ -601,7 +601,7 @@ textarea.inp{height:96px!important;padding:14px 16px!important}
 <script>
 function hideToast(){const t=document.getElementById("toast");if(t)t.classList.remove("on")}
 if(window.navigator.standalone===true||matchMedia("(display-mode: standalone)").matches)document.documentElement.classList.add("ios-app");
-const APP_VERSION="3.15";
+const APP_VERSION="3.16";
 /* ============ data layer ============ */
 const TABLES=["clients","sites","workers","rates","entries","income"];
 const EMPTY=()=>({clients:[],sites:[],workers:[],rates:[],entries:[],income:[]});
@@ -1060,7 +1060,7 @@ function workerAns(w,R,ss,anyR){
   const where=ss.length?" at "+ss.map(s=>esc(s.name)).join(", "):"";
   const short=!R.all&&R.from&&(parseD(R.to)-parseD(R.from))/864e5<=15;
   let rows="";
-  if(short){const d=[...work].sort((a,b)=>sortKey(b).localeCompare(sortKey(a)));rows=d.map(e=>`<div class="row"><div class="main"><div class="t1">${whenLabel(e)}</div><div class="t2">${esc(Sx(e.siteId).name)}${e.paid?" · paid":""}</div></div><div class="amt num">${hrs(+e.hours)}<small>${money(wage(e))}</small></div></div>`).join("")}
+  if(short){const d=[...work].sort((a,b)=>sortKey(b).localeCompare(sortKey(a)));rows=d.map(e=>`<div class="row tap" onclick="openEntry('${e.id}')"><div class="main"><div class="t1">${whenLabel(e)}</div><div class="t2">${esc(Sx(e.siteId).name)}${e.paid?" · paid":""} · tap to fix</div></div><div class="amt num">${hrs(+e.hours)}<small>${money(wage(e))}</small></div></div>`).join("")}
   else{const g={};work.forEach(e=>{const x=g[e.siteId]||(g[e.siteId]={h:0,w:0});x.h+= +e.hours;x.w+=wage(e)});rows=Object.entries(g).sort((a,b)=>b[1].h-a[1].h).map(([sid,x])=>`<div class="row tap" onclick="askGo('s','${sid}')"><div class="main"><div class="t1">${esc(Sx(sid).name)}</div><div class="t2">${esc(C(Sx(sid).clientId).name)}</div></div><div class="amt num">${hrs(x.h)}<small>${money(x.w)}</small></div></div>`).join("")}
   const big=h?`${esc(w.name.split(" ")[0])} worked ${hrs(h)}`:`${esc(w.name)} didn't work${where}`;
   const sub=`${R.label}${where}${h?` · earned ${money(wg)}`:""}${days&&!R.all?` · ${plural(days,"day")}`:""}`;
@@ -1680,10 +1680,13 @@ function openEntry(id){hideToast();
     <div class="f"><label>Rate ($/hr)</label><input class="inp num" inputmode="decimal" value="${x.rate}" oninput="F.e.rate=parseFloat(this.value)||0"></div></div>
     <div class="f"><label>Paid?</label><button class="toggle" style="width:100%" id="pt"><span>${x.paid?"Paid":"Not yet"}</span><span class="sw ${x.paid?"on":""}"></span></button></div>
     <div class="f"><label>Note</label><input class="inp" value="${esc(x.notes)}" oninput="F.e.notes=this.value"></div>
+    <div id="ediff"></div>
     <button class="btn" id="sv">Save changes</button><button class="btn ghost" id="dl" style="color:var(--pay)">Delete this entry</button>`;
+    const diff=()=>{const el=$("#ediff");if(!el)return;const a0=wage(e),a1=(+F.e.hours||0)*(+F.e.rate||0);el.innerHTML=e.paid&&F.e.paid&&Math.abs(a1-a0)>.005?`<div class="dupbox"><b>⚠ Already paid ${money(a0)}</b><div class="t2" style="white-space:normal;margin-top:3px">New amount is ${money(a1)} — ${a1>a0?`you still owe ${money(a1-a0)}. Turn Paid off and add the rest, or pay the difference.`:`${money(a0-a1)} was overpaid. Take it off their next pay.`}</div></div>`:Math.abs(a1-a0)>.005?`<div class="hint">Pay changes from ${money(a0)} to ${money(a1)}</div>`:""};
+    $("#sheet").querySelectorAll(".inp.num").forEach(i=>i.addEventListener("input",diff));diff();
     const m1=$("#em1"),m2=$("#em2");if(m1){m1.onclick=()=>{F.e.month=addM(F.e.month,-1);draw()};m2.onclick=()=>{F.e.month=addM(F.e.month,1);draw()}}
     $("#pt").onclick=()=>{F.e.paid=!F.e.paid;F.e.paidAt=F.e.paid?new Date().toISOString().slice(0,10):"";draw()};
-    $("#sv").onclick=async()=>{await put("entries",F.e);closeSheet();render();toast("✓ Changes saved")};
+    $("#sv").onclick=async()=>{const old={...e};await put("entries",F.e);closeSheet();render();toast("✓ Changes saved",async()=>{await put("entries",old);render()})};
     $("#dl").onclick=async()=>{const old={...e};await del("entries",e.id);closeSheet();render();toast("Entry deleted",async()=>{await put("entries",old);render()})};
   };
   draw(); $("#sheet").classList.add("on");$("#scrim").classList.add("on");sheetClose=null;
@@ -1703,10 +1706,14 @@ function editWorker(id){hideToast();const w=W(id);let name=w.name,active=w.activ
 function editRate(rid){hideToast();const r=DB.rates.find(x=>x.id===rid);if(!r)return;let rate=r.rate;
   showSheet(`<h3>${esc(W(r.workerId).name)}</h3><div class="lead">${esc(Sx(r.siteId).name)}</div>
   <div class="f"><label>Pay rate ($ per hour)</label><input class="inp num" inputmode="decimal" id="rr" value="${r.rate}"></div>
-  <div class="hint">New hours use the new rate. Hours already saved keep their old rate.</div>
+  ${(()=>{const n=DB.entries.filter(e=>e.workerId===r.workerId&&e.siteId===r.siteId&&!e.paid&&isWork(e)).length;return n?`<button class="toggle" style="width:100%;margin-bottom:8px" id="rfix"><span>Also fix ${plural(n,"unpaid entry")} already saved</span><span class="sw"></span></button>`:""})()}
+  <div class="hint" id="rhint">New hours use the new rate. Hours already saved keep their old rate. Paid hours never change.</div>
   <button class="btn" id="rs">Save rate</button><button class="btn ghost" id="rd" style="color:var(--pay)">Remove this site from ${esc(W(r.workerId).name)}</button>`);
   $("#rr").oninput=e=>rate=parseFloat(e.target.value)||0;
-  $("#rs").onclick=async()=>{if(!(rate>0))return;await put("rates",{...r,rate});closeSheet();render();toast("✓ Rate updated")};
+  let fix=false;const fb=$("#rfix");if(fb)fb.onclick=()=>{fix=!fix;fb.querySelector(".sw").classList.toggle("on",fix);$("#rhint").textContent=fix?"Unpaid hours already saved will use the new rate too. Paid hours never change.":"New hours use the new rate. Hours already saved keep their old rate. Paid hours never change."};
+  $("#rs").onclick=async()=>{if(!(rate>0))return;await put("rates",{...r,rate});let ch=[];
+    if(fix){ch=DB.entries.filter(e=>e.workerId===r.workerId&&e.siteId===r.siteId&&!e.paid&&isWork(e)&&e.rate!==rate);const old=ch.map(e=>({...e}));if(ch.length)await putMany("entries",ch.map(e=>({...e,rate})));closeSheet();render();toast(`✓ Rate updated${ch.length?` · ${plural(ch.length,"entry")} fixed`:""}`,async()=>{await put("rates",r);if(old.length)await putMany("entries",old);render()});return}
+    closeSheet();render();toast("✓ Rate updated",async()=>{await put("rates",r);render()})};
   $("#rd").onclick=async()=>{await del("rates",r.id);closeSheet();render();toast("Site removed",async()=>{await put("rates",r);render()})}}
 function editClient(cid){hideToast();const c=C(cid);let name=c.name;const used=DB.sites.some(s=>s.clientId===cid)||DB.income.some(i=>i.clientId===cid);
   showSheet(`<h3>Edit client</h3><div class="f" style="margin-top:12px"><label>Client name</label><input class="inp" id="cn" value="${esc(name)}"></div>
