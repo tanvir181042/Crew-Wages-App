@@ -154,6 +154,7 @@ input[type=date].inp{-webkit-appearance:none;appearance:none;display:flex;align-
 #askres .amt small{display:block;font-size:12px;color:var(--mut);font-weight:500;text-align:right}
 .tdlock{display:grid;place-items:center;background:var(--ok-s,#EAF6EC)!important;color:var(--ok)!important;font-weight:700}
 .dupbox{background:#FFF7E6;border-radius:var(--r-md);padding:14px;margin:-2px 0 16px}.dupbox b{color:#8A5A00;font-size:15px}
+.joincard{display:flex;align-items:center;gap:14px;width:100%;text-align:left;margin-top:14px;padding:16px;border-radius:var(--r-lg);background:#111;color:#fff}.joincard .ji{width:44px;height:44px;flex:none;border-radius:var(--r-sm);background:#C9F26B;color:#111;display:grid;place-items:center}.joincard b{display:block;font-size:16.5px}.joincard small{display:block;color:#bbb;font-size:13.5px;margin-top:2px;line-height:1.35}.joincard>span:nth-child(2){flex:1}.joincard svg:last-child{color:#888}
 .subback{display:flex;align-items:center;min-height:44px;margin:-6px 0 6px;color:var(--ink);font-size:15px;font-weight:650}
 
 .hero{background:linear-gradient(150deg,#1B1F3B 0%,#0E1325 70%);color:#fff;border-radius:24px;padding:22px;position:relative;overflow:hidden}
@@ -601,7 +602,7 @@ textarea.inp{height:96px!important;padding:14px 16px!important}
 <script>
 function hideToast(){const t=document.getElementById("toast");if(t)t.classList.remove("on")}
 if(window.navigator.standalone===true||matchMedia("(display-mode: standalone)").matches)document.documentElement.classList.add("ios-app");
-const APP_VERSION="4.0";
+const APP_VERSION="4.1";
 /* ============ data layer ============ */
 const TABLES=["clients","sites","workers","rates","entries","income"];
 const EMPTY=()=>({clients:[],sites:[],workers:[],rates:[],entries:[],income:[]});
@@ -1120,6 +1121,7 @@ function homePage(){
     const steps=[["client","Add your first client","e.g. Ken",DB.clients.length],["site","Add a site","Where the work happens",DB.sites.length],["worker","Add a worker","Name, site and pay rate",DB.workers.length]];
     return `<div class="hero"><div class="lbl">Welcome to</div><div class="big">Hourza</div><div class="sub">Three quick steps and you're ready to add hours.</div></div>
     <div class="list" style="margin-top:14px">${steps.map(([k,t,d,done],i)=>`<div class="row tap" onclick="openAdd('${k}')"><div class="av" style="background:${done?"var(--ok-s)":"var(--acc-s)"};color:${done?"var(--ok)":"var(--acc)"}">${done?"✓":i+1}</div><div class="main"><div class="t1">${t}</div><div class="t2">${d}</div></div>${ICON.chev}</div>`).join("")}</div>
+    ${online()?"":`<button class="joincard" onclick="openConnect()"><span class="ji">${ICON.sheet}</span><span><b>Got an invite?</b><small>Join your team's data — scan their QR or paste the code</small></span>${ICON.chev}</button>`}
     <button class="btn ghost" style="margin-top:14px" onclick="resetDemo(true,true)">Or try it with sample data</button>`;
   }
   const since=addD(todayD(),-30);
@@ -1408,7 +1410,7 @@ function morePage(){
   ${online()?`<div class="list settings" style="margin-bottom:22px">
     <div class="row" style="cursor:default"><div class="av" style="background:var(--ok-s);color:var(--ok)">${ICON.sheet}</div><div class="main"><div class="t1">Google Sheet</div><div class="t2">${syncBadge()}</div></div><button class="link" onclick="pull()">Sync now</button></div>
     ${CONN.s?`<div class="row" onclick="window.open('${CONN.s}','_blank')"><div class="main"><div class="t1">Open my Google Sheet</div><div class="t2">See or download everything as Excel</div></div>${ICON.chev}</div>`:""}
-    <div class="row" onclick="showConnectQR()"><div class="main"><div class="t1">Connect another device</div><div class="t2">Show a QR code for your phone or laptop</div></div>${ICON.chev}</div>
+    <div class="row" onclick="showConnectQR()"><div class="main"><div class="t1">Add a person or device</div><div class="t2">Show a QR or send an invite</div></div>${ICON.chev}</div>
     <div class="row" onclick="setPin(()=>toast('✓ PIN changed'))"><div class="main"><div class="t1">Change PIN</div></div>${ICON.chev}</div>
     <div class="row" onclick="disconnect()"><div class="main"><div class="t1" style="color:var(--pay)">Disconnect this device</div><div class="t2">Your data stays in the Sheet</div></div>${ICON.chev}</div>
   </div>`:`<div class="list settings" style="margin-bottom:22px"><div class="row" onclick="openConnect()"><div class="av" style="background:var(--acc-s);color:var(--acc)">${ICON.sheet}</div><div class="main"><div class="t1">Connect to Google Sheet</div><div class="t2">Use on phone and laptop</div></div>${ICON.chev}</div></div>`}
@@ -1749,13 +1751,14 @@ function makeCode(c){return "CW1."+b64u.enc(JSON.stringify({u:c.u,k:c.k}))}
 function readCode(t){t=(t||"").trim().replace(/\s+/g,"");const i=t.indexOf("CW1.");if(i<0)return null;try{const o=JSON.parse(b64u.dec(t.slice(i+4)));return o.u&&o.k?o:null}catch(e){return null}}
 
 function openConnect(){hideToast();
-  showSheet(`<h3>Connect to Google Sheet</h3><div class="lead">Your data will be saved in your own Google Sheet and shared between your phone and laptop.</div>
+  showSheet(`<h3>Join with an invite</h3><div class="lead">Scan the QR on the owner's phone, or paste the invite code. Everyone connected sees the same data.</div>
   <button class="btn" id="cq">Scan QR code</button>
   <div class="grp" style="text-align:center;padding:16px 0 8px">or paste the connect code</div>
   <div class="f"><textarea class="inp" id="cc" placeholder="CW1.…" style="height:90px;font-size:16px" autocapitalize="off" autocorrect="off" spellcheck="false"></textarea></div>
   <div id="cerr"></div>
   <button class="btn ghost" id="cp" style="margin-top:0">Connect with this code</button>
-  <div class="hint" style="margin-top:14px">Get the code from your Google Sheet: <b>Hourza → Connect a device</b>.</div>`);
+  <div class="hint" style="margin-top:14px">Get it from the owner's phone (<b>More → Add a person or device</b>) or from the Google Sheet (<b>Hourza → Connect a device</b>).</div>`);
+  try{navigator.clipboard.readText().then(t=>{if(readCode(t)&&$("#cc")&&!$("#cc").value){$("#cc").value=t.trim();toast("Invite code found — tap Connect")}}).catch(()=>{})}catch(e){}
   $("#cq").onclick=()=>scanQR(code=>tryConnect(code));
   $("#cp").onclick=()=>tryConnect($("#cc").value);
 }
@@ -1784,10 +1787,14 @@ function disconnect(){if(!confirmBox("Disconnect this device? Your data stays sa
   CONN=null;[K_CONN,K_CACHE,K_OUT,K_PIN].forEach(k=>ls.del(k));OUT=[];DB=ls.get(KEY,null)||EMPTY();go("more");toast("Disconnected")}
 
 async function showConnectQR(){hideToast();const code=makeCode(CONN);
-  showSheet(`<h3>Connect another device</h3><div class="lead">On the other device open Hourza → More → Connect to Google Sheet → Scan QR code.</div>
+  const appUrl=location.origin+location.pathname;
+  showSheet(`<h3>Add a person or device</h3><div class="lead">On their phone: open Hourza, tap <b>Got an invite?</b> and scan this. They'll set their own PIN.</div>
   <div id="qrbox" style="background:#fff;border-radius:18px;padding:16px;display:grid;place-items:center;min-height:260px">Loading…</div>
   <div class="hint" style="margin-top:12px">Keep this code private — it opens your data.</div>
-  <button class="btn ghost" id="cpy">Copy code instead</button>`);
+  <button class="btn" id="shr">Send invite by message</button>
+  <button class="btn ghost" id="cpy">Copy code only</button>`);
+  $("#shr").onclick=async()=>{const txt=`You're invited to Hourza.\n\n1) Open this in Safari: ${appUrl}\n2) Tap Share → Add to Home Screen\n3) Open Hourza → "Got an invite?" → Paste code\n\nCode:\n${code}`;
+    try{if(navigator.share){await navigator.share({title:"Hourza invite",text:txt})}else{await navigator.clipboard.writeText(txt);toast("✓ Invite copied — paste it in a message")}}catch(e){}};
   $("#cpy").onclick=async()=>{try{await navigator.clipboard.writeText(code);toast("✓ Code copied")}catch(e){toast("Couldn't copy")}};
   try{await loadScript(CDN_QR);const q=qrcode(0,"M");q.addData(code);q.make();$("#qrbox").innerHTML=q.createSvgTag({cellSize:5,margin:2,scalable:true});const sv=$("#qrbox svg");if(sv){sv.style.width="240px";sv.style.height="240px"}}
   catch(e){$("#qrbox").textContent="Couldn't draw the QR — use Copy code."}
