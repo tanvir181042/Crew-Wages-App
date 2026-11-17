@@ -164,7 +164,8 @@ input[type=date].inp{-webkit-appearance:none;appearance:none;display:flex;align-
 .igsteps em{display:inline-grid;place-items:center;width:36px;height:32px;border-radius:9px;background:#2a2a2c;color:#fff}.igsteps b{color:#fff}
 .igarrow{margin:8px 14px 0 auto;width:40px;height:40px;border-radius:12px;background:#111;color:#C9F26B;font-size:24px;font-weight:700;display:grid;place-items:center;animation:igb 1.2s ease-in-out infinite}
 @keyframes igb{0%,100%{transform:translateY(0)}50%{transform:translateY(7px)}}
-body:has(.sheet.on) #ig,body:has(.lock) #ig{display:none}
+body.sheet-open #ig{display:none}
+.sheet{will-change:transform}
 .subback{display:flex;align-items:center;min-height:44px;margin:-6px 0 6px;color:var(--ink);font-size:15px;font-weight:650}
 
 .hero{background:linear-gradient(150deg,#1B1F3B 0%,#0E1325 70%);color:#fff;border-radius:24px;padding:22px;position:relative;overflow:hidden}
@@ -619,7 +620,7 @@ const JOIN=(()=>{const m=(location.hash||"").match(/join=(CW1\.[A-Za-z0-9_\-]+)/
 if(JOIN&&!IS_APP){const l=document.querySelector('link[rel="manifest"]');if(l)l.remove()}
 let deferredInstall=null;
 addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredInstall=e;setTimeout(showInstallGuide,50)});
-const APP_VERSION="4.3";
+const APP_VERSION="4.4";
 /* ============ data layer ============ */
 const TABLES=["clients","sites","workers","rates","entries","income"];
 const EMPTY=()=>({clients:[],sites:[],workers:[],rates:[],entries:[],income:[]});
@@ -1449,7 +1450,7 @@ function morePage(){
 
 /* ============ sheets ============ */
 let sheetClose=null;
-function openSheet(html,onClose){$("#sheet").innerHTML=`<div class="grab"></div>`+html;$("#sheet").classList.add("on");$("#scrim").classList.add("on");sheetClose=onClose||null;$("#sheet").scrollTop=0}
+function openSheet(html,onClose){$("#sheet").innerHTML=`<div class="grab"></div>`+html;void $("#sheet").offsetHeight;$("#sheet").classList.add("on");$("#scrim").classList.add("on");sheetClose=onClose||null;$("#sheet").scrollTop=0}
 function closeSheet(){document.body.classList.remove("sheet-open");const sh=$("#sheet");if(sh.style.transform){sh.style.transition="transform .25s";sh.style.transform="translateY(110%)";setTimeout(()=>{sh.style.transition="";sh.style.transform=""},300)}sh.classList.remove("on");$("#scrim").classList.remove("on");if(sheetClose)sheetClose()}
 $("#scrim").onclick=closeSheet;
 document.addEventListener("touchstart",()=>{},{passive:true});
@@ -1712,7 +1713,7 @@ function openEntry(id){hideToast();
 }
 
 /* ---- edit worker / rate / client / site / money ---- */
-function showSheet(html){$("#sheet").innerHTML=`<div class="grab"></div>`+html;$("#sheet").classList.add("on");$("#scrim").classList.add("on");sheetClose=null;$("#sheet").scrollTop=0}
+function showSheet(html){$("#sheet").innerHTML=`<div class="grab"></div>`+html;void $("#sheet").offsetHeight;$("#sheet").classList.add("on");$("#scrim").classList.add("on");sheetClose=null;$("#sheet").scrollTop=0}
 function editWorker(id){hideToast();const w=W(id);let name=w.name,active=w.active!==false;
   const draw=()=>{showSheet(`<h3>Edit worker</h3><div class="lead">Change the name, or mark them as left.</div>
     <div class="f"><label>Name</label><input class="inp" id="en" autocapitalize="words" value="${esc(name)}"></div>
