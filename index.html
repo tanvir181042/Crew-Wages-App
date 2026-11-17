@@ -155,7 +155,7 @@ input[type=date].inp{-webkit-appearance:none;appearance:none;display:flex;align-
 .tdlock{display:grid;place-items:center;background:var(--ok-s,#EAF6EC)!important;color:var(--ok)!important;font-weight:700}
 .dupbox{background:#FFF7E6;border-radius:var(--r-md);padding:14px;margin:-2px 0 16px}.dupbox b{color:#8A5A00;font-size:15px}
 .joincard{display:flex;align-items:center;gap:14px;width:100%;text-align:left;margin-top:14px;padding:16px;border-radius:var(--r-lg);background:#111;color:#fff}.joincard .ji{width:44px;height:44px;flex:none;border-radius:var(--r-sm);background:#C9F26B;color:#111;display:grid;place-items:center}.joincard b{display:block;font-size:16.5px}.joincard small{display:block;color:#bbb;font-size:13.5px;margin-top:2px;line-height:1.35}.joincard>span:nth-child(2){flex:1}.joincard svg:last-child{color:#888}
-#ig{position:fixed;left:12px;right:12px;bottom:calc(env(safe-area-inset-bottom) + 14px);z-index:200;animation:igin .5s cubic-bezier(.32,.72,0,1)}
+#ig{position:fixed;left:12px;right:12px;bottom:calc(env(safe-area-inset-bottom) + 14px);z-index:45;animation:igin .5s cubic-bezier(.32,.72,0,1)}
 @keyframes igin{from{transform:translateY(120%);opacity:0}to{transform:none;opacity:1}}
 .igcard{position:relative;background:#111;color:#fff;border-radius:var(--r-lg);padding:18px 18px 16px;box-shadow:0 18px 50px rgba(0,0,0,.28)}.igcard>b{display:block;font-size:18px;font-weight:750;padding-right:36px}
 .igtag{display:inline-block;background:#C9F26B;color:#111;font-weight:700;font-size:12.5px;border-radius:8px;padding:3px 8px;margin-bottom:8px}
@@ -164,6 +164,7 @@ input[type=date].inp{-webkit-appearance:none;appearance:none;display:flex;align-
 .igsteps em{display:inline-grid;place-items:center;width:36px;height:32px;border-radius:9px;background:#2a2a2c;color:#fff}.igsteps b{color:#fff}
 .igarrow{margin:8px 14px 0 auto;width:40px;height:40px;border-radius:12px;background:#111;color:#C9F26B;font-size:24px;font-weight:700;display:grid;place-items:center;animation:igb 1.2s ease-in-out infinite}
 @keyframes igb{0%,100%{transform:translateY(0)}50%{transform:translateY(7px)}}
+body:has(.sheet.on) #ig,body:has(.lock) #ig{display:none}
 .subback{display:flex;align-items:center;min-height:44px;margin:-6px 0 6px;color:var(--ink);font-size:15px;font-weight:650}
 
 .hero{background:linear-gradient(150deg,#1B1F3B 0%,#0E1325 70%);color:#fff;border-radius:24px;padding:22px;position:relative;overflow:hidden}
@@ -618,7 +619,7 @@ const JOIN=(()=>{const m=(location.hash||"").match(/join=(CW1\.[A-Za-z0-9_\-]+)/
 if(JOIN&&!IS_APP){const l=document.querySelector('link[rel="manifest"]');if(l)l.remove()}
 let deferredInstall=null;
 addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredInstall=e;setTimeout(showInstallGuide,50)});
-const APP_VERSION="4.2";
+const APP_VERSION="4.3";
 /* ============ data layer ============ */
 const TABLES=["clients","sites","workers","rates","entries","income"];
 const EMPTY=()=>({clients:[],sites:[],workers:[],rates:[],entries:[],income:[]});
@@ -1767,16 +1768,18 @@ function makeCode(c){return "CW1."+b64u.enc(JSON.stringify({u:c.u,k:c.k}))}
 function readCode(t){t=(t||"").trim().replace(/\s+/g,"");const i=t.indexOf("CW1.");if(i<0)return null;try{const o=JSON.parse(b64u.dec(t.slice(i+4)));return o.u&&o.k?o:null}catch(e){return null}}
 
 function openConnect(){hideToast();
-  showSheet(`<h3>Join with an invite</h3><div class="lead">Scan the QR on the owner's phone, or paste the invite code. Everyone connected sees the same data.</div>
+  showSheet(`<h3>Connect your data</h3><div class="lead">Scan the QR from your Google Sheet or from an owner's phone. Everyone connected sees the same data.</div>
   <button class="btn" id="cq">Scan QR code</button>
-  <div class="grp" style="text-align:center;padding:16px 0 8px">or paste the connect code</div>
+  <div class="grp" style="text-align:center;padding:16px 0 8px">or got the invite in a message?</div>
+  <button class="btn ghost" id="cpaste" style="margin:0 0 10px">Paste invite</button>
   <div class="f"><textarea class="inp" id="cc" placeholder="CW1.…" style="height:90px;font-size:16px" autocapitalize="off" autocorrect="off" spellcheck="false"></textarea></div>
   <div id="cerr"></div>
   <button class="btn ghost" id="cp" style="margin-top:0">Connect with this code</button>
   <div class="hint" style="margin-top:14px">Get it from the owner's phone (<b>More → Add a person or device</b>) or from the Google Sheet (<b>Hourza → Connect a device</b>).</div>`);
-  try{navigator.clipboard.readText().then(t=>{if(readCode(t)&&$("#cc")&&!$("#cc").value){$("#cc").value=t.trim();toast("Invite code found — tap Connect")}}).catch(()=>{})}catch(e){}
+
   $("#cq").onclick=()=>scanQR(code=>tryConnect(code));
   $("#cp").onclick=()=>tryConnect($("#cc").value);
+  $("#cpaste").onclick=async()=>{try{const t=await navigator.clipboard.readText();if(readCode(t)){$("#cc").value=t.trim();tryConnect(t)}else{$("#cc").value=t||"";$("#cerr").innerHTML='<div class="err">That isn\'t an invite. Copy the whole invite message or link, then tap Paste.</div>'}}catch(e){$("#cc").focus();toast("Long-press the box and tap Paste")}};
 }
 const IC_DOTS='<svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>';
 const IC_SHARE='<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 8l5-5 5 5"/><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/></svg>';
