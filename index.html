@@ -620,7 +620,7 @@ const JOIN=(()=>{const m=(location.hash||"").match(/join=(CW1\.[A-Za-z0-9_\-]+)/
 if(JOIN&&!IS_APP){const l=document.querySelector('link[rel="manifest"]');if(l)l.remove()}
 let deferredInstall=null;
 addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredInstall=e;setTimeout(showInstallGuide,50)});
-const APP_VERSION="4.4";
+const APP_VERSION="4.5";
 /* ============ data layer ============ */
 const TABLES=["clients","sites","workers","rates","entries","income"];
 const EMPTY=()=>({clients:[],sites:[],workers:[],rates:[],entries:[],income:[]});
@@ -1431,7 +1431,7 @@ function morePage(){
     <div class="row" onclick="showConnectQR()"><div class="main"><div class="t1">Add a person or device</div><div class="t2">Show a QR or send an invite</div></div>${ICON.chev}</div>
     <div class="row" onclick="setPin(()=>toast('✓ PIN changed'))"><div class="main"><div class="t1">Change PIN</div></div>${ICON.chev}</div>
     <div class="row" onclick="disconnect()"><div class="main"><div class="t1" style="color:var(--pay)">Disconnect this device</div><div class="t2">Your data stays in the Sheet</div></div>${ICON.chev}</div>
-  </div>`:`<div class="list settings" style="margin-bottom:22px"><div class="row" onclick="openConnect()"><div class="av" style="background:var(--acc-s);color:var(--acc)">${ICON.sheet}</div><div class="main"><div class="t1">Connect to Google Sheet</div><div class="t2">Use on phone and laptop</div></div>${ICON.chev}</div></div>`}
+  </div>`:`<div class="list settings" style="margin-bottom:22px"><div class="row" onclick="openConnect()"><div class="av" style="background:var(--acc-s);color:var(--acc)">${ICON.sheet}</div><div class="main"><div class="t1">Connect to Google Sheet</div><div class="t2">Use on phone and laptop</div></div>${ICON.chev}</div><div class="row" onclick="needSheetForInvite()"><div class="av" style="background:var(--card2,#ECECE8)">${ICON.people||ICON.sheet}</div><div class="main"><div class="t1">Add a person or device</div><div class="t2">Share the same data with another owner</div></div>${ICON.chev}</div></div>`}
   <div class="list settings" style="margin-bottom:22px">
     <div class="row" onclick="go('pay')"><div class="main"><div class="t1">Pay run</div><div class="t2">Pay everyone for a week, fortnight or month</div></div>${ICON.chev}</div>
     <div class="row" onclick="go('reports')"><div class="main"><div class="t1">Reports</div><div class="t2">Money in, wages and profit by site, client or worker</div></div>${ICON.chev}</div>
@@ -1809,6 +1809,13 @@ function autoJoin(){
   if(CONN&&CONN.k===c.k&&CONN.u===c.u){ls.set("cw_join_used",JOIN);return false}
   ls.set("cw_join_used",JOIN);setTimeout(()=>tryConnect(JOIN),400);return true;
 }
+function needSheetForInvite(){hideToast();
+  showSheet(`<h3>First, connect a Google Sheet</h3><div class="lead">Everyone you add shares one Google Sheet — that's where the data lives. Right now this phone keeps data only on itself, so there's nothing to share yet.</div>
+  <div class="list" style="margin:6px 0 16px">
+    <div class="row"><div class="av">1</div><div class="main"><div class="t1">Set up the Sheet once</div><div class="t2" style="white-space:normal">On a laptop: new Google Sheet → Extensions → Apps Script → paste the Hourza script → Deploy</div></div></div>
+    <div class="row"><div class="av">2</div><div class="main"><div class="t1">Connect this phone</div><div class="t2" style="white-space:normal">In the Sheet: Hourza → Connect a device, then scan the QR here</div></div></div>
+    <div class="row"><div class="av">3</div><div class="main"><div class="t1">Add people</div><div class="t2" style="white-space:normal">Then this button shows a QR that others scan with their Camera</div></div></div></div>
+  <button class="btn" onclick="openConnect()">I have the Sheet — connect now</button><button class="btn ghost" onclick="closeSheet()">Later</button>`)}
 async function tryConnect(text){
   const c=readCode(text); const err=m=>{const e=$("#cerr");if(e)e.innerHTML=`<div class="err">${m}</div>`;else toast(m)};
   if(!c)return err("That isn't a Hourza connect code.");
