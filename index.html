@@ -643,7 +643,7 @@ const JOIN=(()=>{const m=(location.hash||"").match(/join=(CW1\.[A-Za-z0-9_\-]+)/
 if(JOIN&&!IS_APP){const l=document.querySelector('link[rel="manifest"]');if(l)l.remove()}
 let deferredInstall=null;
 addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredInstall=e;setTimeout(showInstallGuide,50)});
-const APP_VERSION="5.4";
+const APP_VERSION="5.5";
 /* ============ data layer ============ */
 const TABLES=["clients","sites","workers","rates","entries","income"];
 const EMPTY=()=>({clients:[],sites:[],workers:[],rates:[],entries:[],income:[]});
@@ -1374,7 +1374,24 @@ const subBack=`<button class="back" onclick="go('home')">${ICON.back}Home</butto
 /* ---------- Today: everyone's hours for one day ---------- */
 let TD={date:null,vals:{},dirty:false};
 function tdLoad(date){TD={date,vals:{},dirty:false};DB.entries.filter(e=>e.date===date&&isWork(e)).forEach(e=>{const k=e.workerId+"|"+e.siteId;TD.vals[k]=String((parseFloat(TD.vals[k])||0)+ +e.hours)})}
-function tdRates(){return DB.rates.filter(r=>W(r.workerId).active!==false&&DB.workers.some(w=>w.id===r.workerId)&&(r.siteId===SUP||DB.sites.some(s=>s.id===r.siteId)))}
+function coverLive(r){if(!r.cover)return true;const d=TD.date||todayD(),k=r.workerId+"|"+r.siteId;if(TD.vals&&TD.vals[k])return true;if(r.addedAt&&r.addedAt>=addD(d,-14)&&r.addedAt<=addD(d,14))return true;
+  return DB.entries.some(e=>e.workerId===r.workerId&&e.siteId===r.siteId&&e.date&&e.date>=addD(d,-14)&&e.date<=addD(d,14))}
+function tdRates(){return DB.rates.filter(r=>W(r.workerId).active!==false&&DB.workers.some(w=>w.id===r.workerId)&&(r.siteId===SUP||DB.sites.some(s=>s.id===r.siteId))&&coverLive(r))}
+function usualRate(wid,sid){const rs=DB.rates.filter(r=>r.workerId===wid&&!r.cover).map(r=>+r.rate).filter(x=>x>0);if(rs.length){const c={};rs.forEach(x=>c[x]=(c[x]||0)+1);return +Object.entries(c).sort((a,b)=>b[1]-a[1])[0][0]}
+  const at=DB.rates.filter(r=>r.siteId===sid).map(r=>+r.rate).filter(x=>x>0);return at.length?Math.round(at.reduce((a,b)=>a+b,0)/at.length*100)/100:0}
+function coverPick(sid,q=""){hideToast();const ql=q.trim().toLowerCase(),here=new Set(tdRates().filter(r=>r.siteId===sid).map(r=>r.workerId));
+  const ws=DB.workers.filter(w=>w.active!==false&&!isSup(w)&&!here.has(w.id)&&(!ql||w.name.toLowerCase().includes(ql))).sort((a,b)=>a.name.localeCompare(b.name));
+  const list=ws.map(w=>{const ur=usualRate(w.id,sid),home=DB.rates.filter(r=>r.workerId===w.id&&!r.cover).map(r=>Sx(r.siteId).name).join(", ");return `<div class="row tap" onclick="coverAdd('${sid}','${w.id}')">${av(w.name)}<div class="main"><div class="t1">${esc(w.name)}</div><div class="t2">${home?"Usually at "+esc(home):"No regular site"}</div></div><div class="amt num">${ur?money(ur):"–"}<small>per hour</small></div></div>`}).join("");
+  showSheet(`<h3>Who covered at ${esc(Sx(sid).name)}?</h3><div class="lead">Pick the person who worked here instead — for example when someone was sick. They'll show here for the next two weeks.</div>
+  <input class="inp" id="cvq" placeholder="Search a name" autocomplete="off" value="${esc(q)}" oninput="const v=this.value,p=this.selectionStart;coverPick('${sid}',v);const i=$('#cvq');i.focus();i.setSelectionRange(p,p)" style="margin-bottom:10px">
+  <div class="list" style="margin-bottom:12px">${list||`<div class="empty" style="padding:18px">No one found</div>`}</div>
+  <button class="btn ghost" onclick="closeSheet();openAdd('worker')">Someone new</button>`)}
+async function coverAdd(sid,wid){let rate=usualRate(wid,sid);
+  if(!(rate>0)){const t=prompt(`Pay rate for ${W(wid).name} at ${Sx(sid).name} ($ per hour)`);rate=parseFloat(t);if(!(rate>0))return}
+  const ex=DB.rates.find(r=>r.workerId===wid&&r.siteId===sid);
+  if(ex){if(ex.cover)await put("rates",{...ex,addedAt:TD.date||todayD()})}else await put("rates",{id:uid(),workerId:wid,siteId:sid,rate,cover:true,addedAt:TD.date||todayD()});
+  closeSheet();render();toast(`✓ ${esc(W(wid).name)} covering · ${money(rate)}/hr`);
+  setTimeout(()=>{const i=document.querySelector(`input.tdin[aria-label="Hours for ${W(wid).name.replace(/"/g,'')}"]`);if(i){i.scrollIntoView({block:"center"});i.focus()}},350)}
 function tdPaid(k,date){const[w,si]=k.split("|");return DB.entries.filter(e=>e.date===(date||TD.date)&&e.workerId===w&&e.siteId===si&&isWork(e)&&e.paid).reduce((a,e)=>a+ +e.hours,0)}
 function tdTotals(){let h=0,w=0;const ppl=new Set();tdRates().forEach(r=>{const v=parseFloat(TD.vals[r.workerId+"|"+r.siteId])||0;if(v>0){h+=v;w+=v*r.rate;ppl.add(r.workerId)}});return {h,w,p:ppl.size}}
 function todayPage(){
@@ -1390,8 +1407,8 @@ function todayPage(){
     <div class="card mcard" style="margin-bottom:14px"><div class="mhead" style="padding:14px 18px 4px"><b style="font-size:17px">${dayLabel(d)}${d===todayD()?" · Today":d===addD(todayD(),-1)?" · Yesterday":""}</b></div>
       <div class="mgrid" style="grid-template-columns:1fr 1fr 1fr"><div><span>Hours</span><b class="num" id="tdh">${t.h}</b></div><div><span>Wages</span><b class="num" id="tdw">${money(t.w)}</b></div><div><span>People</span><b class="num" id="tdp">${t.p}</b></div></div>
       <div class="mfoot" style="display:flex;gap:16px;flex-wrap:wrap">${d!==todayD()?`<button class="link" style="padding:0" onclick="tdJump()">Go to today</button>`:""}${prev?`<button class="link" style="padding:0" onclick="tdCopy('${prev}')">Copy ${dayRel(prev)===dayLabel(prev)?dayLabel(prev):dayRel(prev).toLowerCase()}'s hours</button>`:""}${t.h?`<button class="link" style="padding:0;color:var(--pay)" onclick="tdClear()">Clear all</button>`:""}</div></div>
-    ${sites.map(sid=>`<div class="sec" style="margin-top:18px"><h2 style="font-size:16px">${esc(Sx(sid).name)}</h2><span class="h">${esc(C(Sx(sid).clientId).name)}</span></div>
-      <div class="list">${bySite[sid].sort((a,b)=>W(a.workerId).name.localeCompare(W(b.workerId).name)).map(r=>{const k=r.workerId+"|"+r.siteId;return `<div class="row">${av(W(r.workerId).name)}<div class="main"><div class="t1">${esc(W(r.workerId).name)}</div><div class="t2">${money(r.rate)}/hr</div></div>
+    ${sites.map(sid=>`<div class="sec" style="margin-top:18px"><h2 style="font-size:16px">${esc(Sx(sid).name)}</h2>${sid===SUP?`<span class="h">Company</span>`:`<button class="link" style="font-size:14px" onclick="coverPick('${sid}')">+ Cover</button>`}</div>
+      <div class="list">${bySite[sid].sort((a,b)=>W(a.workerId).name.localeCompare(W(b.workerId).name)).map(r=>{const k=r.workerId+"|"+r.siteId;return `<div class="row">${av(W(r.workerId).name)}<div class="main"><div class="t1">${esc(W(r.workerId).name)}${r.cover?' <span class="tag mut" style="font-size:11.5px;vertical-align:1px">cover</span>':""}</div><div class="t2">${money(r.rate)}/hr</div></div>
         ${tdPaid(k)?`<button class="inp num tdin tdlock" onclick="openPerson('${r.workerId}')" aria-label="Paid — open ${esc(W(r.workerId).name)}">${esc(TD.vals[k]||"")}</button><span class="t2" style="color:var(--ok);font-weight:650">paid</span>`:`<input class="inp num tdin" inputmode="decimal" placeholder="–" value="${esc(TD.vals[k]||"")}" oninput="tdSet('${k}',this)" aria-label="Hours for ${esc(W(r.workerId).name)}"><span class="t2">hrs</span>`}</div>`}).join("")}</div>`).join("")}
     <div class="list" style="margin-top:18px"><div class="row tap" onclick="openAdd('worker')"><div class="av">+</div><div class="main"><div class="t1">Someone new</div><div class="t2">Add a worker, then type their hours</div></div>${ICON.chev}</div>
       <div class="row tap" onclick="openAdd('hours')"><div class="av">${ICON.today.replace(/width="\d+" height="\d+"/,'width="18" height="18"')}</div><div class="main"><div class="t1">A whole week or month</div><div class="t2">Enter many days at once</div></div>${ICON.chev}</div></div>
