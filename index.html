@@ -643,7 +643,7 @@ const JOIN=(()=>{const m=(location.hash||"").match(/join=(CW1\.[A-Za-z0-9_\-]+)/
 if(JOIN&&!IS_APP){const l=document.querySelector('link[rel="manifest"]');if(l)l.remove()}
 let deferredInstall=null;
 addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredInstall=e;setTimeout(showInstallGuide,50)});
-const APP_VERSION="5.3";
+const APP_VERSION="5.4";
 /* ============ data layer ============ */
 const TABLES=["clients","sites","workers","rates","entries","income"];
 const EMPTY=()=>({clients:[],sites:[],workers:[],rates:[],entries:[],income:[]});
@@ -859,7 +859,7 @@ function profitTotals(p,cut,filter){let billed=0,wK=0,unsetN=0,unsetW=0,feeN=0;
   DB.sites.filter(filter||(()=>true)).forEach(x=>{const r=siteStats(x,p,cut);if(r.b!=null){billed+=r.b;wK+=r.w}else if(r.w>0||r.h>0){if(r.note)feeN++;else unsetN++;unsetW+=r.w}});
   const supW=filter?0:DB.entries.filter(e=>e.siteId===SUP&&inPer(e,p)&&(!cut||!e.date||e.date<=cut)).reduce((a,e)=>a+wage(e),0);
   return {billed,wK,supW,profit:billed-wK-supW,unsetN,unsetW,feeN}}
-function profitNote(T){const a=[];if(T.supW)a.push(`includes ${money(T.supW)} supervisors (company cost)`);if(T.unsetN)a.push(`${plural(T.unsetN,"site")} without money in set (${money(T.unsetW)} wages) not in profit`);if(T.feeN)a.push(`${plural(T.feeN,"fixed-fee site")} only counted in Month view`);return a.join(" · ")}
+function profitNote(T){const a=[];if(T.supW)a.push(`includes ${money(T.supW)} supervisors (company cost)`);if(T.unsetN)a.push(`${plural(T.unsetN,"site")} without a charge rate (${money(T.unsetW)} wages) not counted`);if(T.feeN)a.push(`${plural(T.feeN,"fixed-fee site")} only counted in Month view`);return a.join(" · ")}
 /* Fair comparison: if the period is still running, compare with the same point in the previous one */
 function prevCompare(p){const pp={...p};perStep(pp,-1);const t=todayD();let cut=null,lbl;
   const running=inPer({date:t,month:t.slice(0,7)},p);
@@ -900,7 +900,7 @@ function problems(){
   Object.values(mix).forEach(x=>{if(x.m&&x.d)out.push({type:"mix",e:x.m,text:`${W(x.m.workerId).name} — ${Sx(x.m.siteId).name}, ${mLabel(x.m.month)}: whole-month total and daily hours — may count twice`})});
   DB.workers.filter(w=>isSup(w)&&w.active!==false&&w.payType==="fixed"&&+w.salary>0).forEach(w=>{const prevEnd=addD(salaryRange(w.salaryPer,todayD())[0],-1);const created=(w.createdAt||"").slice(0,10);
     if(!salaryAdded(w,prevEnd)&&(!created||created<=prevEnd))out.push({type:"salary",e:{workerId:w.id},text:`${w.name}: salary for ${salaryLabel(w.salaryPer,prevEnd)} not added`})});
-  DB.sites.forEach(x=>{if(hasBill(x))return;const e=DB.entries.find(q=>q.siteId===x.id&&q.hours>0&&(q.kind||"work")==="work");if(e)out.push({type:"bill",site:x,e,text:`${x.name}: money in not set`})});
+  DB.sites.forEach(x=>{if(hasBill(x))return;const e=DB.entries.find(q=>q.siteId===x.id&&q.hours>0&&(q.kind||"work")==="work");if(e)out.push({type:"bill",site:x,e,text:`${x.name}: charge rate not set`})});
   const seenT=new Set(); return out.filter(p=>!seenT.has(p.text)&&seenT.add(p.text));
 }
 
@@ -926,7 +926,7 @@ function buildApp(){
     <div class="tabs">${[["home","Home"],["today","Hours"],["people","People"],["sites","Sites"],["pay","Pay people"],["reports","Reports"]].map(([k,l])=>`<button class="${state.tab===k?"on":""}" onclick="go('${k}')">${l}</button>`).join("")}</div>
     <div class="spacer"></div>
     ${online()&&!state.person?syncBadge():""}${showMonth?monthSwitch():""}
-    <button class="add-top" onclick="openAdd()">${ICON.plus.replace('width="24" height="24"','width="18" height="18"')}Add</button>
+    <button class="add-top" onclick="addMenu()">${ICON.plus.replace('width="24" height="24"','width="18" height="18"')}Add</button>
     <button class="icon-btn gear" onclick="go('more')" aria-label="Settings">${ICON.more.replace('width="24" height="24"','width="20" height="20"')}</button>
   </div>`;
   let body="";
@@ -1099,7 +1099,7 @@ function askAnswer(q0){
       +note(missR(DB.entries.filter(e=>e.siteId===s.id),R))+`<button class="btn ghost" style="margin-top:12px" onclick="askGo('s','${s.id}')">Open ${esc(s.name)}</button>`}).join('<div style="height:18px"></div>')}
   // 7) client
   if(C1){const rs=DB.sites.filter(x=>x.clientId===C1.id).map(x=>siteR(x,R)),h=rs.reduce((a,r)=>a+r.h,0),w=rs.reduce((a,r)=>a+r.w,0),k=rs.filter(r=>r.p!=null),p=k.reduce((a,r)=>a+r.p,0);
-    return ansHead(`${esc(C1.name)} · ${plural(rs.length,"site")}`,`${R.label} · ${hrs(h)} · ${money(w)} wages${k.length?` · ${money(p)} ${p<0?"loss":"profit"}`:""}`)+`<div class="list">${rs.map(r=>siteRowA(r)).join("")}</div>`}
+    return ansHead(`${esc(C1.name)} · ${plural(rs.length,"site")}`,`${R.label} · ${hrs(h)} · ${money(w)} wages${k.length?` · ${money(p)} ${p<0?"you lose":"you keep"}`:""}`)+`<div class="list">${rs.map(r=>siteRowA(r)).join("")}</div>`}
   // 8) summary for a period
   if(anyR||has(/\b(summary|overview|how are we|how's it|total|totals|hours|wages|profit)\b/)){
     const es=DB.entries.filter(e=>inR(e,R)),work=es.filter(isWork),h=work.reduce((a,e)=>a+ +e.hours,0),w=es.reduce((a,e)=>a+wage(e),0);
@@ -1129,7 +1129,7 @@ function askSearch(q){const ql=q.trim().toLowerCase(),words=ql.split(/\s+/).filt
   if(ns.length)h+=`<div class="asklbl">In notes · ${ns.length}</div><div class="list">${ns.map(e=>`<div class="row tap" onclick="openEntry('${e.id}')"><div class="main"><div class="t1">${esc(W(e.workerId).name)} · ${esc(Sx(e.siteId).name)}</div><div class="t2">${whenLabel(e)} · ${hl(e.notes,ql)}</div></div><div class="amt num">${hrs(+e.hours)}</div></div>`).join("")}</div>`;
   return {n,html:`<div class="ans"><div class="anss" style="margin:0">${plural(n,"result")} for “${esc(q.trim())}” · add a date like “last week” for totals</div></div>`+h}}
 function note(n){return n?`<div class="t2" style="color:var(--warn);margin:8px 2px 0">${plural(n,"whole-month entry")} not counted — ask for the whole month to include ${n===1?"it":"them"}.</div>`:""}
-function siteRowA(r){return `<div class="row tap" onclick="askGo('s','${r.x.id}')"><div class="main"><div class="t1">${esc(r.x.name)}</div><div class="t2">${esc(C(r.x.clientId).name)} · ${hrs(r.h)}</div></div><div class="amt num" style="color:${r.p==null?"var(--mut)":r.p<0?"var(--pay)":"var(--ok)"}">${r.p==null?"–":money(r.p)}<small>${r.p==null?"not set":r.p<0?"loss":"profit"}</small></div></div>`}
+function siteRowA(r){return `<div class="row tap" onclick="askGo('s','${r.x.id}')"><div class="main"><div class="t1">${esc(r.x.name)}</div><div class="t2">${esc(C(r.x.clientId).name)} · ${hrs(r.h)}</div></div><div class="amt num" style="color:${r.p==null?"var(--mut)":r.p<0?"var(--pay)":"var(--ok)"}">${r.p==null?"–":money(r.p)}<small>${r.p==null?"not set":r.p<0?"you lose":"you keep"}</small></div></div>`}
 function workerAns(w,R,ss,anyR){
   const es=DB.entries.filter(e=>e.workerId===w.id&&inR(e,R)&&(!ss.length||ss.some(s=>s.id===e.siteId))),work=es.filter(isWork);
   const h=work.reduce((a,e)=>a+ +e.hours,0),wg=es.reduce((a,e)=>a+wage(e),0),unpaid=es.filter(e=>!e.paid).reduce((a,e)=>a+wage(e),0);
@@ -1193,7 +1193,7 @@ function homePage(){
     <div class="tiles3">
       <button onclick="go('today')"><i>${ICON.clockq}</i>Add hours</button>
       <button onclick="openAsk()"><i>${ICON.search}</i>Find a worker</button>
-      <button onclick="go('sites')"><i>${ICON.sites}</i>Sites</button>
+      <button onclick="go('reports')"><i>${ICON.chart}</i>Reports</button>
     </div>
     ${pr.length?`<button class="checkrow" onclick="showProblems()"><span class="cw">!</span><span>${plural(pr.length,"thing")} to check</span>${ICON.chev}</button>`:""}
     ${whoWorked(HP)}
@@ -1290,7 +1290,7 @@ function sitesPage(){
   const ids=new Set(rows.map(r=>r.x.id)),PT=profitTotals(P,null,x=>ids.has(x.id)),tot={b:PT.billed,w:rows.reduce((a,r)=>a+r.w,0)},tp=PT.profit;
   const row=r=>{const x=r.x,ws=new Set(DB.rates.filter(q=>q.siteId===x.id).map(q=>q.workerId)).size;
     return `<div class="row tap" onclick="openSite('${x.id}')"><span class="sdot ${r.act?"on":""}"></span><div class="main"><div class="t1">${esc(x.name)}</div><div class="t2">${esc(C(x.clientId).name)}${x.address?" · "+esc(x.address):""} · ${plural(ws,"worker")}</div></div>
-      <div class="amt num" style="color:${r.p==null?"var(--mut)":r.p<0?"var(--pay)":r.p>0?"var(--ok)":"var(--mut)"}">${r.h||r.w?(r.p==null?"–":money(r.p)):"–"}<small>${r.h||r.w?(r.p==null?(r.note?"monthly fee":"money in not set"):(r.p<0?"loss":"profit")):"no hours"}</small></div>${ICON.chev}</div>`};
+      <div class="amt num" style="color:${r.p==null?"var(--mut)":r.p<0?"var(--pay)":r.p>0?"var(--ok)":"var(--mut)"}">${r.h||r.w?(r.p==null?"–":money(r.p)):"–"}<small>${r.h||r.w?(r.p==null?(r.note?"monthly fee":"charge rate not set"):(r.p<0?"you lose":"you keep")):"no hours"}</small></div>${ICON.chev}</div>`};
   if(!DB.sites.length)return `<div class="card empty" style="padding:36px 20px"><div class="e" style="color:var(--mut)">${ICON.sites}</div><div style="font-size:17px;font-weight:700;color:var(--ink)">No sites yet</div>Add a client, then the places where your crew works.<br><br><button class="btn" style="max-width:260px;margin:0 auto" onclick="openAdd(DB.clients.length?'site':'client')">${DB.clients.length?"+ Add a site":"+ Add a client first"}</button></div>`;
   return `
   <div class="card scount">
@@ -1308,7 +1308,7 @@ function sitesPage(){
   <button class="btn" style="margin-top:14px" onclick="openAdd('site')">+ New site</button>
   <div class="sec"><h2>Clients</h2><button class="link" onclick="openAdd('client')">+ New client</button></div>
   <div class="list">${DB.clients.map(c=>{const ss=DB.sites.filter(x=>x.clientId===c.id),billed=ss.map(x=>siteStats(x,{mode:"month",d:P.d})).reduce((a,r)=>a+(r.b||0),0),rec=DB.income.filter(i=>i.clientId===c.id&&i.month===P.d.slice(0,7)).reduce((a,i)=>a+ +i.amount,0);
-    return `<div class="row"><div class="main" style="cursor:pointer" onclick="editClient('${c.id}')"><div class="t1">${esc(c.name)}</div><div class="t2">${plural(ss.length,"site")} · ${mShort(P.d.slice(0,7))}: billed ${money(billed)} · received ${money(rec)}</div></div>
+    return `<div class="row"><div class="main" style="cursor:pointer" onclick="editClient('${c.id}')"><div class="t1">${esc(c.name)}</div><div class="t2">${plural(ss.length,"site")} · ${mShort(P.d.slice(0,7))}: charged ${money(billed)} · received ${money(rec)}</div></div>
       ${billed-rec>0?`<div class="amt num" style="color:var(--warn)">${money(billed-rec)}<small>owed to you</small></div>`:""}<button class="link" style="padding-left:10px" onclick="moneyList('${c.id}')">Money in</button></div>`}).join("")||`<div class="empty">No clients yet</div>`}</div>`;
 }
 
@@ -1334,7 +1334,7 @@ function sitePage(key){
     <div class="kpis">
       <div class="kpi"><span>Charged</span><b class="num">${st.b==null?"–":money(st.b)}</b></div>
       <div class="kpi"><span>Wages</span><b class="num">${money(st.w)}</b></div>
-      <div class="kpi"><span>${st.p!=null&&st.p<0?"You lose":"You keep"}</span><b class="num" style="color:${st.p==null?"inherit":st.p<0?"var(--pay)":"var(--ok)"}">${st.p==null?"–":money(st.p)}</b>${margin!=null?`<em class="fl">${margin}% margin</em>`:""}</div>
+      <div class="kpi"><span>${st.p!=null&&st.p<0?"You lose":"You keep"}</span><b class="num" style="color:${st.p==null?"inherit":st.p<0?"var(--pay)":"var(--ok)"}">${st.p==null?"–":money(st.p)}</b>${margin!=null?`<em class="fl">${margin}% kept</em>`:""}</div>
       <div class="kpi"><span>Hours</span><b class="num">${st.h.toLocaleString()}</b><em class="fl">${plural(st.people,"worker")}</em></div>
     </div>
     ${st.b?`<div style="padding:0 14px 6px"><div class="mbar" style="height:10px;border-radius:5px">${st.w>0?`<i class="w" style="width:${Math.min(100,st.w/st.b*100)}%;background:var(--pay)"></i>`:""}${st.p>0?`<i class="p" style="width:${st.p/st.b*100}%"></i>`:""}</div><div class="t2" style="display:flex;justify-content:space-between;margin-top:6px"><span>Wages ${Math.round(Math.min(100,st.w/st.b*100))}%</span><span>Profit ${Math.max(0,margin)}%</span></div></div>`:""}
@@ -1387,7 +1387,7 @@ function todayPage(){
   const td=todayD(),yd=addD(td,-1),other=d!==td&&d!==yd;
   return `${tipHtml("hours","Pick the day, type each person's hours, then tap <b>Save</b>. Leave blank if they didn't work.")}
     <div class="daychips"><button class="${d===td?"on":""}" onclick="tdTo('${td}')">Today</button><button class="${d===yd?"on":""}" onclick="tdTo('${yd}')">Yesterday</button><label class="${other?"on":""}">${other?dayLabel(d):"Pick a day"}<input type="date" value="${d}" max="${addD(td,31)}" onchange="if(this.value)tdTo(this.value)"></label></div>
-    <div class="card mcard" style="margin-bottom:14px"><div class="mhead"><div class="month pstep" style="margin:0"><button onclick="tdGo(-1)" aria-label="Previous day">‹</button><span>${dayRel(d)}${d===todayD()||d===addD(todayD(),-1)?" · "+dayLabel(d):""}</span><button onclick="tdGo(1)" aria-label="Next day">›</button></div></div>
+    <div class="card mcard" style="margin-bottom:14px"><div class="mhead" style="padding:14px 18px 4px"><b style="font-size:17px">${dayLabel(d)}${d===todayD()?" · Today":d===addD(todayD(),-1)?" · Yesterday":""}</b></div>
       <div class="mgrid" style="grid-template-columns:1fr 1fr 1fr"><div><span>Hours</span><b class="num" id="tdh">${t.h}</b></div><div><span>Wages</span><b class="num" id="tdw">${money(t.w)}</b></div><div><span>People</span><b class="num" id="tdp">${t.p}</b></div></div>
       <div class="mfoot" style="display:flex;gap:16px;flex-wrap:wrap">${d!==todayD()?`<button class="link" style="padding:0" onclick="tdJump()">Go to today</button>`:""}${prev?`<button class="link" style="padding:0" onclick="tdCopy('${prev}')">Copy ${dayRel(prev)===dayLabel(prev)?dayLabel(prev):dayRel(prev).toLowerCase()}'s hours</button>`:""}${t.h?`<button class="link" style="padding:0;color:var(--pay)" onclick="tdClear()">Clear all</button>`:""}</div></div>
     ${sites.map(sid=>`<div class="sec" style="margin-top:18px"><h2 style="font-size:16px">${esc(Sx(sid).name)}</h2><span class="h">${esc(C(Sx(sid).clientId).name)}</span></div>
@@ -1463,8 +1463,8 @@ function reportsPage(){
       ${RP.all?"":`<div class="month pstep"><button onclick="state.month=addM(state.month,-1);render()" aria-label="Previous month">‹</button><span>${mLabel(state.month)}</span><button onclick="state.month=addM(state.month,1);render()" aria-label="Next month">›</button></div>`}</div>
       <div class="mgrid">${money2?`<div><span>Charged</span><b class="num">${money(T.b)}</b></div><div><span>Wages</span><b class="num">${money(T.w)}</b></div><div><span>${T0.profit<0?"You lose":"You keep"}</span><b class="num" style="color:${T0.profit<0?"var(--pay)":"var(--ok)"}">${money(T0.profit)}</b></div><div><span>Margin</span><b class="num">${T.b?Math.round(T0.profit/T.b*100)+"%":"–"}</b></div>`:`<div><span>Hours</span><b class="num">${T.h.toLocaleString()}</b></div><div><span>Wages</span><b class="num">${money(T.w)}</b></div>`}</div></div>
     <div class="sec"><h2>${RP.by==="site"?"Sites":RP.by==="client"?"Clients":"Workers"}</h2><button class="link" onclick="reportCSV()">Download</button></div>
-    <div class="list">${rows.length?rows.map(r=>`<div class="row"><div class="main"><div class="t1">${esc(r.name)}</div><div class="t2 num">${r.h} hrs${money2?` · billed ${r.b==null?"–":money(r.b)} · wages ${money(r.w)}`:""}${r.sub?" · "+esc(r.sub):""}</div></div>
-      ${money2?(r.p==null?`<span class="tag warn">No charge rate</span>`:`<div class="amt num" style="color:${r.p<0?"var(--pay)":"var(--ok)"}">${money(r.p)}<small>${r.b?Math.round(r.p/r.b*100)+"% margin":"profit"}</small></div>`):`<div class="amt num">${money(r.w)}</div>`}</div>`).join(""):`<div class="empty">Nothing for this period</div>`}</div>
+    <div class="list">${rows.length?rows.map(r=>`<div class="row"><div class="main"><div class="t1">${esc(r.name)}</div><div class="t2 num">${r.h} hrs${money2?` · charged ${r.b==null?"–":money(r.b)} · wages ${money(r.w)}`:""}${r.sub?" · "+esc(r.sub):""}</div></div>
+      ${money2?(r.p==null?`<span class="tag warn">No charge rate</span>`:`<div class="amt num" style="color:${r.p<0?"var(--pay)":"var(--ok)"}">${money(r.p)}<small>${r.b?Math.round(r.p/r.b*100)+"% kept":"you keep"}</small></div>`):`<div class="amt num">${money(r.w)}</div>`}</div>`).join(""):`<div class="empty">Nothing for this period</div>`}</div>
     ${money2&&rows.some(r=>r.p!=null&&r.p<0)?`<div class="problems"><div class="pt">${ICON.warn} ${plural(rows.filter(r=>r.p!=null&&r.p<0).length,"loss-making "+RP.by)} — wages are higher than what you bill</div></div>`:""}`;
 }
 function reportCSV(){const q=v=>`"${String(v??"").replace(/"/g,'""')}"`,rows=[["Name","Detail","Hours","Money in","Wages","Profit"]].concat(reportData().map(r=>[r.name,r.sub,r.h,r.b??"",r.w,r.p??""]));
@@ -1482,7 +1482,7 @@ function morePage(){
   </div>`:`<div class="list settings" style="margin-bottom:22px"><div class="row" onclick="openConnect()"><div class="av" style="background:var(--acc-s);color:var(--acc)">${ICON.sheet}</div><div class="main"><div class="t1">Connect to Google Sheet</div><div class="t2">Use on phone and laptop</div></div>${ICON.chev}</div><div class="row" onclick="needSheetForInvite()"><div class="av" style="background:var(--card2,#ECECE8)">${ICON.people||ICON.sheet}</div><div class="main"><div class="t1">Add a person or device</div><div class="t2">Share the same data with another owner</div></div>${ICON.chev}</div></div>`}
   <div class="list settings" style="margin-bottom:22px">
     <div class="row" onclick="go('pay')"><div class="main"><div class="t1">Pay people</div><div class="t2">Pay everyone for a fortnight, or everything owed</div></div>${ICON.chev}</div>
-    <div class="row" onclick="go('reports')"><div class="main"><div class="t1">Reports</div><div class="t2">Money in, wages and profit by site, client or worker</div></div>${ICON.chev}</div>
+    <div class="row" onclick="go('reports')"><div class="main"><div class="t1">Reports</div><div class="t2">What you charged, paid and kept — by site, company or worker</div></div>${ICON.chev}</div>
     <div class="row" onclick="setLeave(!leaveOn())"><div class="main"><div class="t1">Leave</div><div class="t2">Record annual and sick leave hours</div></div><span class="sw ${leaveOn()?"on":""}"></span></div>
   </div>
   <div class="list settings">
@@ -1834,7 +1834,7 @@ function editSite(sid){hideToast();const s0=Sx(sid);const used=DB.entries.some(e
   drawES()}
 function moneyList(cid){hideToast();const m=state.month;
   const draw=()=>{const items=DB.income.filter(i=>i.clientId===cid&&i.month===m);
-  showSheet(`<h3>Money in · ${esc(C(cid).name)}</h3><div class="lead">${mLabel(m)}</div>
+  showSheet(`<h3>Money received · ${esc(C(cid).name)}</h3><div class="lead">${mLabel(m)}</div>
   <div style="margin-bottom:16px">${items.length?items.map(i=>`<div class="check" style="cursor:default"><div class="main"><div class="t1 num">${money(i.amount)}</div>${i.note?`<div class="t2">${esc(i.note)}</div>`:""}</div><button class="link" style="color:var(--pay)" data-d="${i.id}">Delete</button></div>`).join(""):`<div class="empty">Nothing received this month</div>`}</div>
   <button class="btn" id="ma">+ Add money in</button>`);
   document.querySelectorAll("#sheet [data-d]").forEach(b=>b.onclick=async()=>{const old=DB.income.find(x=>x.id===b.dataset.d);await del("income",old.id);render();draw();toast("Deleted",async()=>{await put("income",old);render()})});
