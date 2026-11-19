@@ -624,7 +624,7 @@ const JOIN=(()=>{const m=(location.hash||"").match(/join=(CW1\.[A-Za-z0-9_\-]+)/
 if(JOIN&&!IS_APP){const l=document.querySelector('link[rel="manifest"]');if(l)l.remove()}
 let deferredInstall=null;
 addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredInstall=e;setTimeout(showInstallGuide,50)});
-const APP_VERSION="4.9";
+const APP_VERSION="4.10";
 /* ============ data layer ============ */
 const TABLES=["clients","sites","workers","rates","entries","income"];
 const EMPTY=()=>({clients:[],sites:[],workers:[],rates:[],entries:[],income:[]});
@@ -1480,7 +1480,7 @@ function morePage(){
     <div class="row" onclick="backup()"><div class="main"><div class="t1">Download a backup</div><div class="t2">One file with everything</div></div>${ICON.chev}</div>
     <div class="row" onclick="$('#restore').click()"><div class="main"><div class="t1">Restore a backup</div><div class="t2">Replace everything with a backup file</div></div>${ICON.chev}</div>
     ${online()?"":`<div class="row" onclick="resetDemo(true)"><div class="main"><div class="t1">Load sample data</div><div class="t2">Try the app with example workers</div></div>${ICON.chev}</div>`}
-    <div class="row" onclick="wipeAll()"><div class="main"><div class="t1" style="color:var(--pay)">Clear all data</div><div class="t2">${online()?"Empties the Google Sheet and every connected device":"Start empty"}</div></div>${ICON.chev}</div>
+    ${online()?"":`<div class="row" onclick="wipeAll()"><div class="main"><div class="t1" style="color:var(--pay)">Clear all data</div><div class="t2">Start empty</div></div>${ICON.chev}</div>`}
   </div>
   <input type="file" id="restore" accept=".json" hidden onchange="restore(this.files[0])">
   <div class="demo">${online()?"Saved to your Google Sheet":"Not connected — data is saved on this device only"} · v${APP_VERSION}</div>`;
