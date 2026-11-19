@@ -624,7 +624,7 @@ const JOIN=(()=>{const m=(location.hash||"").match(/join=(CW1\.[A-Za-z0-9_\-]+)/
 if(JOIN&&!IS_APP){const l=document.querySelector('link[rel="manifest"]');if(l)l.remove()}
 let deferredInstall=null;
 addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredInstall=e;setTimeout(showInstallGuide,50)});
-const APP_VERSION="4.8";
+const APP_VERSION="4.9";
 /* ============ data layer ============ */
 const TABLES=["clients","sites","workers","rates","entries","income"];
 const EMPTY=()=>({clients:[],sites:[],workers:[],rates:[],entries:[],income:[]});
@@ -692,6 +692,23 @@ async function putMany(table,rows){
   for(const row of rows){const i=DB[table].findIndex(r=>r.id===row.id); if(i>=0)DB[table][i]=row; else DB[table].push(row)}
   saveLocal(); if(online())queue({action:"upsertMany",table,rows});
 }
+async function delMany(table,ids){if(!ids.length)return;const set=new Set(ids);DB[table]=DB[table].filter(r=>!set.has(r.id));saveLocal();if(online())queue({action:"removeMany",table,ids})}
+/* delete several things at once, with one Undo for all of it */
+async function cascadeDelete(parts,msg){const old={};for(const[t,rows]of parts){old[t]=rows.map(r=>({...r}));await delMany(t,rows.map(r=>r.id))}
+  closeSheet();if(state.person&&!DB.workers.some(w=>w.id===state.person)&&!DB.sites.some(x=>"s:"+x.id===state.person)){state.pstack=state.pstack.filter(p=>DB.workers.some(w=>w.id===p)||DB.sites.some(x=>"s:"+x.id===p));state.person=state.pstack[state.pstack.length-1]||null}render();
+  toast(msg,async()=>{for(const t of Object.keys(old))if(old[t].length)await putMany(t,old[t]);render()})}
+function delWorker(id){const w=W(id),es=DB.entries.filter(e=>e.workerId===id),paid=es.filter(e=>e.paid).length;
+  if(!confirmBox(`Delete ${w.name}?\n\nThis also deletes ${plural(es.length,"hour entry")}${paid?` (${paid} already paid)`:""}. You can tap Undo right after.`))return;
+  cascadeDelete([["entries",es],["rates",DB.rates.filter(r=>r.workerId===id)],["workers",[w]]],`${esc(w.name)} deleted`)}
+function delSiteAll(sid){const x=Sx(sid),es=DB.entries.filter(e=>e.siteId===sid);
+  if(!confirmBox(`Delete ${x.name}?\n\nThis also deletes ${plural(es.length,"hour entry")} at this site. You can tap Undo right after.`))return;
+  cascadeDelete([["entries",es],["rates",DB.rates.filter(r=>r.siteId===sid)],["sites",[x]]],`${esc(x.name)} deleted`)}
+function delClientAll(cid){const c=C(cid),ss=DB.sites.filter(x=>x.clientId===cid),ids=new Set(ss.map(x=>x.id)),es=DB.entries.filter(e=>ids.has(e.siteId)),inc=DB.income.filter(i=>i.clientId===cid);
+  if(!confirmBox(`Delete ${c.name}?\n\nThis also deletes ${plural(ss.length,"site")}, ${plural(es.length,"hour entry")} and ${plural(inc.length,"money-in record")}. You can tap Undo right after.`))return;
+  cascadeDelete([["entries",es],["rates",DB.rates.filter(r=>ids.has(r.siteId))],["income",inc],["sites",ss],["clients",[c]]],`${esc(c.name)} deleted`)}
+function wipeAll(){const t=prompt(online()?"This deletes EVERYTHING for every connected phone and laptop, and empties the Google Sheet.\n\nType DELETE to confirm.":"This deletes everything on this device.\n\nType DELETE to confirm.");
+  if((t||"").trim().toUpperCase()!=="DELETE")return toast("Nothing deleted");const old=JSON.parse(JSON.stringify(DB));
+  replaceAll({clients:[],sites:[],workers:[],rates:[],entries:[],income:[]}).then(()=>{state.person=null;go("home");toast("Everything deleted",async()=>{await replaceAll(old);render()})})}
 async function replaceAll(d){DB=d;saveLocal();if(online()){OUT=[];queue({action:"replaceAll",db:d})}}
 document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")pull()});
 window.addEventListener("online",()=>flush());
@@ -1462,8 +1479,8 @@ function morePage(){
     <div class="row" onclick="exportCSV()"><div class="main"><div class="t1">Download for Excel</div><div class="t2">All hours as a spreadsheet file</div></div>${ICON.chev}</div>
     <div class="row" onclick="backup()"><div class="main"><div class="t1">Download a backup</div><div class="t2">One file with everything</div></div>${ICON.chev}</div>
     <div class="row" onclick="$('#restore').click()"><div class="main"><div class="t1">Restore a backup</div><div class="t2">Replace everything with a backup file</div></div>${ICON.chev}</div>
-    ${online()?"":`<div class="row" onclick="resetDemo(true)"><div class="main"><div class="t1">Load sample data</div><div class="t2">Try the app with example workers</div></div>${ICON.chev}</div>
-    <div class="row" onclick="resetDemo(false)"><div class="main"><div class="t1" style="color:var(--pay)">Clear all data</div><div class="t2">Start empty</div></div>${ICON.chev}</div>`}
+    ${online()?"":`<div class="row" onclick="resetDemo(true)"><div class="main"><div class="t1">Load sample data</div><div class="t2">Try the app with example workers</div></div>${ICON.chev}</div>`}
+    <div class="row" onclick="wipeAll()"><div class="main"><div class="t1" style="color:var(--pay)">Clear all data</div><div class="t2">${online()?"Empties the Google Sheet and every connected device":"Start empty"}</div></div>${ICON.chev}</div>
   </div>
   <input type="file" id="restore" accept=".json" hidden onchange="restore(this.files[0])">
   <div class="demo">${online()?"Saved to your Google Sheet":"Not connected — data is saved on this device only"} · v${APP_VERSION}</div>`;
@@ -1772,7 +1789,7 @@ function editWorker(id){hideToast();const w=W(id);let name=w.name,active=w.activ
     <div class="f"><label>Name</label><input class="inp" id="en" autocapitalize="words" value="${esc(name)}"></div>
     <div class="f"><label>Still working?</label><button class="toggle" style="width:100%" id="ea"><span>${active?"Yes, working":"Left the crew"}</span><span class="sw ${active?"on":""}"></span></button></div>
     <div class="hint">People who left are hidden from lists, but their history stays.</div>
-    <button class="btn" id="es">Save</button><button class="btn ghost" onclick="closeSheet()">Cancel</button>`);
+    <button class="btn" id="es">Save</button><button class="btn ghost" style="color:var(--pay)" onclick="delWorker('${id}')">Delete ${esc(w.name.split(" ")[0])}</button>`);
     $("#en").oninput=e=>name=e.target.value; $("#ea").onclick=()=>{active=!active;draw()};
     $("#es").onclick=async()=>{if(!name.trim())return;await put("workers",{...w,name:name.trim(),active});closeSheet();render();toast("✓ Saved")}};
   draw()}
@@ -1790,9 +1807,10 @@ function editRate(rid){hideToast();const r=DB.rates.find(x=>x.id===rid);if(!r)re
   $("#rd").onclick=async()=>{await del("rates",r.id);closeSheet();render();toast("Site removed",async()=>{await put("rates",r);render()})}}
 function editClient(cid){hideToast();const c=C(cid);let name=c.name;const used=DB.sites.some(s=>s.clientId===cid)||DB.income.some(i=>i.clientId===cid);
   showSheet(`<h3>Edit client</h3><div class="f" style="margin-top:12px"><label>Client name</label><input class="inp" id="cn" value="${esc(name)}"></div>
-  <button class="btn" id="cs">Save</button>${used?`<div class="hint" style="margin-top:12px;text-align:center">To delete a client, first move or delete its sites.</div>`:`<button class="btn ghost" id="cd" style="color:var(--pay)">Delete client</button>`}`);
+  <button class="btn" id="cs">Save</button><button class="btn ghost" id="cd" style="color:var(--pay)">Delete client</button>`);
   $("#cn").oninput=e=>name=e.target.value;
   $("#cs").onclick=async()=>{if(!name.trim())return;await put("clients",{...c,name:name.trim()});closeSheet();render();toast("✓ Saved")};
+  if(used)$("#cd").onclick=()=>delClientAll(cid);
   if(!used)$("#cd").onclick=async()=>{await del("clients",cid);closeSheet();render();toast("Client deleted",async()=>{await put("clients",c);render()})}}
 let ES={};
 function editSite(sid){hideToast();const s0=Sx(sid);const used=DB.entries.some(e=>e.siteId===sid);
@@ -1800,9 +1818,9 @@ function editSite(sid){hideToast();const s0=Sx(sid);const used=DB.entries.some(e
   window.drawES=()=>{showSheet(`<h3>Edit site</h3><div class="f" style="margin-top:12px"><label>Site name</label><input class="inp" id="sn" value="${esc(ES.name)}" oninput="ES.name=this.value"></div>
   <div class="f"><label>Client</label><div class="opts">${DB.clients.map(c=>`<button class="opt ${ES.cl===c.id?"on":""}" onclick="ES.cl='${c.id}';drawES()">${esc(c.name)}</button>`).join("")}</div></div>
   ${billFields(ES,{obj:"ES",fn:"drawES()"})}
-  <button class="btn" id="ss">Save</button>${used?`<div class="hint" style="margin-top:12px;text-align:center">This site has hours saved, so it can't be deleted.</div>`:`<button class="btn ghost" id="sd" style="color:var(--pay)">Delete site</button>`}`);
+  <button class="btn" id="ss">Save</button><button class="btn ghost" id="sd" style="color:var(--pay)">Delete site</button>`);
   $("#ss").onclick=async()=>{if(!ES.name.trim())return;const amt=parseFloat(ES.billAmt)||0;await put("sites",{...s0,name:ES.name.trim(),clientId:ES.cl,address:ES.address.trim(),billType:ES.billType,charge:ES.billType==="hourly"?amt:0,fixed:ES.billType==="fixed"?amt:0});closeSheet();render();toast("✓ Saved")};
-  if(!used)$("#sd").onclick=async()=>{const rs=DB.rates.filter(r=>r.siteId===sid);for(const r of rs)await del("rates",r.id);await del("sites",sid);closeSheet();render();toast("Site deleted")}};
+  $("#sd").onclick=()=>{if(used)return delSiteAll(sid);cascadeDelete([["rates",DB.rates.filter(r=>r.siteId===sid)],["sites",[s0]]],"Site deleted")}};
   drawES()}
 function moneyList(cid){hideToast();const m=state.month;
   const draw=()=>{const items=DB.income.filter(i=>i.clientId===cid&&i.month===m);
