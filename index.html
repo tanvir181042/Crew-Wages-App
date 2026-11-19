@@ -168,7 +168,8 @@ body.sheet-open #ig{display:none}
 .sheet{will-change:transform}
 body.kb-open .nav,body.kb-open #ig{display:none!important}
 .nav{transform:translateY(var(--vvshift,0px))}
-.m8.m5 button{font-size:13.5px!important;padding-left:1px;padding-right:1px}.m8.m5 button small{font-size:10px;padding:0 2px}
+.m8.m5 button{font-size:14.5px!important;padding:0 2px}.m8.m5 button small{display:none}
+.pseg button{flex:1 1 auto!important;padding:0 10px!important}
 .subback{display:flex;align-items:center;min-height:44px;margin:-6px 0 6px;color:var(--ink);font-size:15px;font-weight:650}
 
 .hero{background:linear-gradient(150deg,#1B1F3B 0%,#0E1325 70%);color:#fff;border-radius:24px;padding:22px;position:relative;overflow:hidden}
@@ -623,7 +624,7 @@ const JOIN=(()=>{const m=(location.hash||"").match(/join=(CW1\.[A-Za-z0-9_\-]+)/
 if(JOIN&&!IS_APP){const l=document.querySelector('link[rel="manifest"]');if(l)l.remove()}
 let deferredInstall=null;
 addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredInstall=e;setTimeout(showInstallGuide,50)});
-const APP_VERSION="4.6";
+const APP_VERSION="4.7";
 /* ============ data layer ============ */
 const TABLES=["clients","sites","workers","rates","entries","income"];
 const EMPTY=()=>({clients:[],sites:[],workers:[],rates:[],entries:[],income:[]});
@@ -795,7 +796,7 @@ const PERS={home:()=>state.per,person:()=>state.pper,site:()=>state.sper,sites:(
 function perSwitch(key,modes){const p=PERS[key]();
   const sub=k=>{const d=parseD(p.d);return k==="day"?`${DOW[d.getDay()]} ${d.getDate()}`:k==="week"?weekLabel(p.d):k==="fort"?fortLabel(p.d):k==="month"?FMN[d.getMonth()]:"Everything"};
   const full=k=>{const d=parseD(p.d);return k==="day"?dayRel(p.d)+(dayRel(p.d)===dayLabel(p.d)?"":" · "+dayLabel(p.d)):k==="week"||k==="fort"?perLabel(p):FMN[d.getMonth()]+" "+d.getFullYear()};
-  return `<div class="m8 ${modes.length>4?"m5":""}" style="grid-template-columns:repeat(${modes.length},1fr)">${modes.map(([k,l])=>`<button class="${p.mode===k?"on":""}" onclick="PERS['${key}']().mode='${k}';render()">${l}<small>${sub(k)}</small></button>`).join("")}</div>
+  return `<div class="m8 ${modes.length>4?"m5":""}" style="grid-template-columns:${modes.length>4?modes.map(([k,l])=>(0.7+l.length*0.12).toFixed(2)+"fr").join(" "):`repeat(${modes.length},1fr)`}">${modes.map(([k,l])=>`<button class="${p.mode===k?"on":""}" onclick="PERS['${key}']().mode='${k}';render()">${l}<small>${sub(k)}</small></button>`).join("")}</div>
   ${p.mode==="all"?"":`<div class="mstep2"><button onclick="perStep(PERS['${key}'](),-1);render()" aria-label="Previous">‹</button><b>${full(p.mode)}</b><button onclick="perStep(PERS['${key}'](),1);render()" aria-label="Next">›</button></div>`}`}
 const FMN=["January","February","March","April","May","June","July","August","September","October","November","December"];
 function perStats(p,cut){const es=DB.entries.filter(e=>inPer(e,p)&&(!cut||!e.date||e.date<=cut));const hours=es.filter(isWork).reduce((s,e)=>s+ +e.hours,0),wages=es.reduce((s,e)=>s+wage(e),0);
