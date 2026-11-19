@@ -652,7 +652,7 @@ const JOIN=(()=>{const m=(location.hash||"").match(/join=(CW1\.[A-Za-z0-9_\-]+)/
 if(JOIN&&!IS_APP){const l=document.querySelector('link[rel="manifest"]');if(l)l.remove()}
 let deferredInstall=null;
 addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredInstall=e;setTimeout(showInstallGuide,50)});
-const APP_VERSION="5.6";
+const APP_VERSION="5.7";
 /* ============ data layer ============ */
 const TABLES=["clients","sites","workers","rates","entries","income"];
 const EMPTY=()=>({clients:[],sites:[],workers:[],rates:[],entries:[],income:[]});
@@ -1174,7 +1174,7 @@ function dayDetail(id){const P=state.hper,[a,b]=perRange(P),w=W(id);
   <div class="list" style="margin:12px 0 14px">${es.map(e=>`<div class="row tap" onclick="openEntry('${e.id}')"><div class="main"><div class="t1">${dayLabel(e.date)}</div><div class="t2">${e.kind==="salary"?"Salary":esc(Sx(e.siteId).name)+" · "+e.hours+" hrs"}</div></div><span class="tag ${e.paid?"ok":"pay"}">${e.paid?"Paid":"Unpaid"}</span><div class="amt num" style="min-width:66px">${money(wage(e))}</div></div>`).join("")}</div>
   ${unp>0?`<button class="btn red" onclick="closeSheet();setTimeout(()=>openPay('${id}',state.hper),220)">Pay ${money(unp)}</button>`:`<div class="hint" style="text-align:center;margin-bottom:8px">✓ All paid for these dates</div>`}
   <button class="btn ghost" onclick="closeSheet();setTimeout(()=>{state.pper=JSON.parse(JSON.stringify(state.hper));openPerson('${id}')},220)">Open ${esc(w.name.split(" ")[0])}'s page</button>`)}
-function addMenu(){hideToast();const it=[["Hours worked","Type today's hours for everyone",ICON.clockq,"closeSheet();go('today')"],["A worker","Someone new on the crew, or a supervisor",ICON.useradd,"openAdd('worker')"],["A site","A new place where work happens",ICON.sites,"openAdd('site')"],["Money received","A payment from a company",ICON.wallet,"openAdd('money')"]];
+function addMenu(){hideToast();const it=[["Hours · everyone, one day","Type a day's hours for the whole crew",ICON.clockq,"closeSheet();go('today')"],["Hours · one person","Pick someone, then a day, a week or a whole month",ICON.today,"openAdd('hours')"],["A worker","Someone new on the crew, or a supervisor",ICON.useradd,"openAdd('worker')"],["A site","A new place where work happens",ICON.sites,"openAdd('site')"],["Money received","A payment from a company",ICON.wallet,"openAdd('money')"]];
   showSheet(`<h3>What do you want to add?</h3><div class="addmenu">${it.map(([t,d,ic,js])=>`<button onclick="${js}"><i>${ic}</i><span><b>${t}</b><small>${d}</small></span>${ICON.chev}</button>`).join("")}</div>`)}
 function showProblems(){const pr=problems();showSheet(`<h3>Things to check</h3><div class="lead">Tap one to fix it.</div><div class="list" style="margin-bottom:12px">${pr.map(p=>`<div class="row tap" onclick="closeSheet();setTimeout(()=>{${p.type==="bill"?`editSite('${p.site.id}')`:`openPerson('${p.e.workerId}')`}},200)"><div class="av" style="background:var(--warn-s);color:var(--warn)">!</div><div class="main"><div class="t1" style="white-space:normal">${esc(p.text)}</div></div>${ICON.chev}</div>`).join("")}</div><button class="btn ghost" onclick="closeSheet()">Close</button>`)}
 function tipHtml(k,txt){const d=ls.get("cw_tips",{});if(d[k])return "";return `<div class="tip"><span>💡</span><div>${txt}</div><button onclick="const d=ls.get('cw_tips',{});d['${k}']=1;ls.set('cw_tips',d);this.parentNode.remove()" aria-label="Got it">Got it</button></div>`}
@@ -1412,6 +1412,7 @@ function todayPage(){
   const prev=DB.entries.filter(e=>e.date&&e.date<d&&isWork(e)).map(e=>e.date).sort().pop();
   const td=todayD(),yd=addD(td,-1),other=d!==td&&d!==yd;
   return `${tipHtml("hours","Pick the day, type each person's hours, then tap <b>Save</b>. Leave blank if they didn't work.")}
+    <button class="checkrow" style="background:var(--card);color:var(--ink);margin-bottom:12px" onclick="openAdd('hours')"><span class="cw" style="background:var(--ink)">${ICON.today.replace(/width="\d+" height="\d+"/,'width="16" height="16"').replace(/stroke="[^"]*"/,'stroke="#fff"')}</span><span>One person · a week or a whole month</span>${ICON.chev}</button>
     <div class="daychips"><button class="${d===td?"on":""}" onclick="tdTo('${td}')">Today</button><button class="${d===yd?"on":""}" onclick="tdTo('${yd}')">Yesterday</button><label class="${other?"on":""}">${other?dayLabel(d):"Pick a day"}<input type="date" value="${d}" max="${addD(td,31)}" onchange="if(this.value)tdTo(this.value)"></label></div>
     <div class="card mcard" style="margin-bottom:14px"><div class="mhead" style="padding:14px 18px 4px"><b style="font-size:17px">${dayLabel(d)}${d===todayD()?" · Today":d===addD(todayD(),-1)?" · Yesterday":""}</b></div>
       <div class="mgrid" style="grid-template-columns:1fr 1fr 1fr"><div><span>Hours</span><b class="num" id="tdh">${t.h}</b></div><div><span>Wages</span><b class="num" id="tdw">${money(t.w)}</b></div><div><span>People</span><b class="num" id="tdp">${t.p}</b></div></div>
