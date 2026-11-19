@@ -624,7 +624,7 @@ const JOIN=(()=>{const m=(location.hash||"").match(/join=(CW1\.[A-Za-z0-9_\-]+)/
 if(JOIN&&!IS_APP){const l=document.querySelector('link[rel="manifest"]');if(l)l.remove()}
 let deferredInstall=null;
 addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredInstall=e;setTimeout(showInstallGuide,50)});
-const APP_VERSION="4.7";
+const APP_VERSION="4.8";
 /* ============ data layer ============ */
 const TABLES=["clients","sites","workers","rates","entries","income"];
 const EMPTY=()=>({clients:[],sites:[],workers:[],rates:[],entries:[],income:[]});
@@ -742,8 +742,19 @@ const mShort=m=>{const[y,mm]=m.split("-");return MN[+mm-1]};
 const addM=(m,n)=>{let[y,mm]=m.split("-").map(Number);mm+=n;while(mm>12){mm-=12;y++}while(mm<1){mm+=12;y--}return y+"-"+String(mm).padStart(2,"0")};
 const nowM=()=>{const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")};
 const W=id=>DB.workers.find(x=>x.id===id)||{name:"Unknown"};
-const Sx=id=>DB.sites.find(x=>x.id===id)||{name:"Unknown site"};
-const C=id=>DB.clients.find(x=>x.id===id)||{name:"—"};
+const SUP="_sup", SUPSITE={id:"_sup",name:"Supervision",clientId:"_co",virtual:true};
+const Sx=id=>id===SUP?SUPSITE:(DB.sites.find(x=>x.id===id)||{name:"Unknown site"});
+const isSup=w=>w&&w.role==="supervisor";
+const PERW={week:"week",fort:"fortnight",month:"month"};
+function salaryRange(per,d){if(per==="week"){const ws=weekStart(d);return [ws,addD(ws,6)]}if(per==="fort")return fortRange(d);const m=d.slice(0,7);return [m+"-01",mEnd(m)]}
+function salaryLabel(per,d){const[a,b]=salaryRange(per,d);if(per==="month")return mLabel(a.slice(0,7));const A=parseD(a),B=parseD(b);return A.getMonth()===B.getMonth()?`${A.getDate()}–${B.getDate()} ${MN[B.getMonth()]}`:`${A.getDate()} ${MN[A.getMonth()]} – ${B.getDate()} ${MN[B.getMonth()]}`}
+function salaryAdded(w,d){const[a,b]=salaryRange(w.salaryPer,d);return DB.entries.some(e=>e.workerId===w.id&&e.kind==="salary"&&e.date>=a&&e.date<=b)}
+async function addSalary(wid,d){const w=W(wid);if(!(+w.salary>0))return;const[a,b]=salaryRange(w.salaryPer,d||todayD());
+  if(salaryAdded(w,b))return toast("Salary already added for "+salaryLabel(w.salaryPer,b));
+  const e={id:uid(),workerId:wid,siteId:SUP,date:b,month:b.slice(0,7),hours:1,rate:+w.salary,paid:false,paidAt:"",notes:"Salary · "+salaryLabel(w.salaryPer,b),createdAt:new Date().toISOString(),kind:"salary"};
+  await put("entries",e);render();toast(`✓ Salary added · ${money(w.salary)} · ${salaryLabel(w.salaryPer,b)}`,async()=>{await del("entries",e.id);render()})}
+const kindLbl=k=>k==="salary"?"Salary":KIND[k];
+const C=id=>id==="_co"?{id:"_co",name:"Company cost"}:(DB.clients.find(x=>x.id===id)||{name:"—"});
 const wage=e=>e.hours*e.rate;
 const initials=n=>n.split(/\s+/).filter(Boolean).slice(0,2).map(x=>x[0]).join("").toUpperCase();
 const PAL0=[["#EEF0FF","#4F46E5"],["#FFF0F0","#D93D42"],["#EAF8EF","#12924A"],["#FFF6E5","#B26F05"],["#EAF4FF","#1C6FD1"],["#F6EEFF","#8B3FD9"],["#E9FAF7","#0E8C7B"]];
@@ -803,12 +814,13 @@ function perStats(p,cut){const es=DB.entries.filter(e=>inPer(e,p)&&(!cut||!e.dat
   const income=p.mode==="month"?DB.income.filter(i=>i.month===p.d.slice(0,7)).reduce((s,i)=>s+ +i.amount,0):0;
   const hidden=p.mode==="day"||p.mode==="week"||p.mode==="fort"?DB.entries.filter(e=>!e.date&&(e.month===p.d.slice(0,7)||e.month===addD(weekStart(p.d),6).slice(0,7))).length:0;
   const T=profitTotals(p,cut);
-  return {es,hours,wages,income,billed:T.billed,profit:T.profit,unsetN:T.unsetN,unsetW:T.unsetW,people:new Set(es.map(e=>e.workerId)).size,hidden}}
+  return {es,hours,wages,income,billed:T.billed,profit:T.profit,supW:T.supW,unsetN:T.unsetN,unsetW:T.unsetW,people:new Set(es.map(e=>e.workerId)).size,hidden}}
 /* One rule everywhere: Profit = what you bill − wages, counted only at sites whose money-in is set */
 function profitTotals(p,cut,filter){let billed=0,wK=0,unsetN=0,unsetW=0,feeN=0;
   DB.sites.filter(filter||(()=>true)).forEach(x=>{const r=siteStats(x,p,cut);if(r.b!=null){billed+=r.b;wK+=r.w}else if(r.w>0||r.h>0){if(r.note)feeN++;else unsetN++;unsetW+=r.w}});
-  return {billed,wK,profit:billed-wK,unsetN,unsetW,feeN}}
-function profitNote(T){const a=[];if(T.unsetN)a.push(`${plural(T.unsetN,"site")} without money in set (${money(T.unsetW)} wages) not in profit`);if(T.feeN)a.push(`${plural(T.feeN,"fixed-fee site")} only counted in Month view`);return a.join(" · ")}
+  const supW=filter?0:DB.entries.filter(e=>e.siteId===SUP&&inPer(e,p)&&(!cut||!e.date||e.date<=cut)).reduce((a,e)=>a+wage(e),0);
+  return {billed,wK,supW,profit:billed-wK-supW,unsetN,unsetW,feeN}}
+function profitNote(T){const a=[];if(T.supW)a.push(`includes ${money(T.supW)} supervisors (company cost)`);if(T.unsetN)a.push(`${plural(T.unsetN,"site")} without money in set (${money(T.unsetW)} wages) not in profit`);if(T.feeN)a.push(`${plural(T.feeN,"fixed-fee site")} only counted in Month view`);return a.join(" · ")}
 /* Fair comparison: if the period is still running, compare with the same point in the previous one */
 function prevCompare(p){const pp={...p};perStep(pp,-1);const t=todayD();let cut=null,lbl;
   const running=inPer({date:t,month:t.slice(0,7)},p);
@@ -847,6 +859,8 @@ function problems(){
   Object.values(dupG).forEach(x=>{const n=[...x.days].filter(d=>d!=="M").length;out.push({type:"dup",e:x.e,text:`${W(x.e.workerId).name} — ${Sx(x.e.siteId).name}, ${mLabel(x.e.month)}: entered twice${n>1?` on ${n} days`:n===1?` on ${dayLabel([...x.days].find(d=>d!=="M"))}`:""}`})});
   const mix={};DB.entries.forEach(e=>{const k=e.workerId+"|"+e.siteId+"|"+e.month;(mix[k]=mix[k]||{d:0,m:null});if(e.date)mix[k].d++;else mix[k].m=e});
   Object.values(mix).forEach(x=>{if(x.m&&x.d)out.push({type:"mix",e:x.m,text:`${W(x.m.workerId).name} — ${Sx(x.m.siteId).name}, ${mLabel(x.m.month)}: whole-month total and daily hours — may count twice`})});
+  DB.workers.filter(w=>isSup(w)&&w.active!==false&&w.payType==="fixed"&&+w.salary>0).forEach(w=>{const prevEnd=addD(salaryRange(w.salaryPer,todayD())[0],-1);const created=(w.createdAt||"").slice(0,10);
+    if(!salaryAdded(w,prevEnd)&&(!created||created<=prevEnd))out.push({type:"salary",e:{workerId:w.id},text:`${w.name}: salary for ${salaryLabel(w.salaryPer,prevEnd)} not added`})});
   DB.sites.forEach(x=>{if(hasBill(x))return;const e=DB.entries.find(q=>q.siteId===x.id&&q.hours>0&&(q.kind||"work")==="work");if(e)out.push({type:"bill",site:x,e,text:`${x.name}: money in not set`})});
   const seenT=new Set(); return out.filter(p=>!seenT.has(p.text)&&seenT.add(p.text));
 }
@@ -1191,7 +1205,7 @@ function peoplePage(){
     <div class="search">${ICON.search}<input id="q" type="search" enterkeyhint="search" placeholder="Search name, site or client" value="${esc(state.q)}" oninput="state.q=this.value;state.focusSearch=true;render()" autocomplete="off"></div>
     <div class="chips">${[["all","Everyone"],["owed",`Waiting for pay · ${nOwed}`],["paid","All paid"]].map(([k,l])=>`<button class="chip ${state.filter===k?"on":""}" onclick="state.filter='${k}';render()">${l}</button>`).join("")}</div>
     <div class="list" style="margin-top:14px">${ws.length?ws.map(w=>{
-      const sites=DB.rates.filter(r=>r.workerId===w.id).map(r=>Sx(r.siteId).name);
+      const sites=isSup(w)?[w.payType==="fixed"?`Supervisor · ${money(w.salary)} per ${PERW[w.salaryPer]}`:"Supervisor"]:DB.rates.filter(r=>r.workerId===w.id).map(r=>Sx(r.siteId).name);
       return `<div class="row tap" onclick="openPerson('${w.id}')">${av(w.name)}<div class="main"><div class="t1">${hl(w.name,q)}</div><div class="t2">${sites.length?sites.map(s=>hl(s,q)).join(", "):"No site yet"}</div></div>
         ${owed[w.id]?`<div class="amt num" style="color:var(--pay)">${money(owed[w.id])}<small>to pay</small></div>`:`<span class="tag ok">Paid up</span>`}${ICON.chev}</div>`}).join(""):`<div class="empty"><div class="e" style="color:var(--mut)">${ICON.find}</div>${!DB.workers.length?`No workers yet<br><button class="link" onclick="openAdd('worker')">+ Add your first worker</button>`:state.q?`No one matches “${esc(state.q)}”`:"No one in this list"}</div>`}</div>`;
 }
@@ -1207,11 +1221,12 @@ function personPage(id){
   const byM={}; es.forEach(e=>(byM[e.month]=byM[e.month]||[]).push(e));
   const months=Object.keys(byM), cap=P1.mode==="all"&&!state.allHist?3:99;
   const hidden=(P1.mode==="day"||P1.mode==="week"||P1.mode==="fort")&&all.some(e=>!e.date&&e.month===P1.d.slice(0,7));
-  const row=e=>`<div class="row tap" onclick="openEntry('${e.id}')"><div class="main"><div class="t1">${e.date?dayLabel(e.date):"Whole month"} · ${isWork(e)?esc(Sx(e.siteId).name):KIND[e.kind]}</div><div class="t2">${e.hours} hrs × ${money(e.rate)}${e.notes?" · "+esc(e.notes):""}</div></div>
+  const row=e=>`<div class="row tap" onclick="openEntry('${e.id}')"><div class="main"><div class="t1">${e.date?dayLabel(e.date):"Whole month"} · ${isWork(e)?esc(Sx(e.siteId).name):kindLbl(e.kind)}</div><div class="t2">${e.kind==="salary"?esc(e.notes||"Fixed salary"):`${e.hours} hrs × ${money(e.rate)}${e.notes?" · "+esc(e.notes):""}`}</div></div>
           <span class="tag ${e.paid?"ok":"pay"}">${e.paid?"Paid":"To pay"}</span><div class="amt num" style="min-width:72px">${money(wage(e))}</div></div>`;
   return `
     <div style="display:flex;justify-content:space-between;align-items:center"><button class="back" onclick="goBack()">${ICON.back}Back</button><button class="link" style="display:flex;gap:6px;align-items:center;padding:6px 2px 14px" onclick="editWorker('${id}')">${ICON.edit}Edit</button></div>
-    <div class="ph">${av(w.name)}<div style="flex:1;min-width:0"><h1>${esc(w.name)}${w.active===false?' <span class="tag mut" style="vertical-align:middle">Left</span>':""}</h1><div class="t2">${(()=>{const last=all.filter(e=>e.date).sort((a,b)=>b.date.localeCompare(a.date))[0];return last?`Last worked ${dayRel(last.date)===dayLabel(last.date)?dayLabel(last.date):dayRel(last.date).toLowerCase()} · ${esc(Sx(last.siteId).name)}`:""})()||(rates.length?rates.map(r=>esc(Sx(r.siteId).name)).join(" · "):"No site yet")}</div></div></div>
+    <div class="ph">${av(w.name)}<div style="flex:1;min-width:0"><h1>${esc(w.name)}${w.active===false?' <span class="tag mut" style="vertical-align:middle">Left</span>':""}</h1><div class="t2">${(()=>{const last=all.filter(e=>e.date).sort((a,b)=>b.date.localeCompare(a.date))[0];return last?`Last worked ${dayRel(last.date)===dayLabel(last.date)?dayLabel(last.date):dayRel(last.date).toLowerCase()} · ${esc(Sx(last.siteId).name)}`:""})()||(isSup(w)?"Supervisor":rates.length?rates.map(r=>esc(Sx(r.siteId).name)).join(" · "):"No site yet")}</div></div></div>
+    ${isSup(w)&&w.payType==="fixed"?(()=>{const d=P1.mode==="all"||P1.mode==="day"?todayD():(P1.mode==="month"?P1.d.slice(0,7)+"-15":P1.d),has=salaryAdded(w,d);return `<div class="card" style="padding:16px;margin:0 0 14px;display:flex;align-items:center;gap:12px"><div style="flex:1;min-width:0"><div class="t2">Supervisor · fixed salary</div><div class="t1" style="font-size:17px">${money(w.salary)} per ${PERW[w.salaryPer]}</div><div class="t2">${salaryLabel(w.salaryPer,d)} · ${has?"added ✓":"not added yet"}</div></div>${has?"":`<button class="opt on" style="flex:none" onclick="addSalary('${id}','${d}')">Add salary</button>`}</div>`})():""}
     ${owe?`<button class="btn red" style="margin:0 0 14px" onclick="openPay('${id}',state.pper)">Pay ${money(owe)}</button>`:""}
     ${pr.length?`<div class="problems" style="margin:0 0 14px">${pr.map(p=>`<div class="pi" style="cursor:default">${esc(p.text)}</div>`).join("")}</div>`:""}
     <div class="card mcard"><div class="mhead">${perSwitch("person",[["day","Day"],["week","Week"],["fort","Fortnight"],["month","Month"],["all","All"]])}</div>
@@ -1340,7 +1355,7 @@ const subBack=`<button class="back" onclick="go('home')">${ICON.back}Overview</b
 /* ---------- Today: everyone's hours for one day ---------- */
 let TD={date:null,vals:{},dirty:false};
 function tdLoad(date){TD={date,vals:{},dirty:false};DB.entries.filter(e=>e.date===date&&isWork(e)).forEach(e=>{const k=e.workerId+"|"+e.siteId;TD.vals[k]=String((parseFloat(TD.vals[k])||0)+ +e.hours)})}
-function tdRates(){return DB.rates.filter(r=>W(r.workerId).active!==false&&DB.workers.some(w=>w.id===r.workerId)&&DB.sites.some(s=>s.id===r.siteId))}
+function tdRates(){return DB.rates.filter(r=>W(r.workerId).active!==false&&DB.workers.some(w=>w.id===r.workerId)&&(r.siteId===SUP||DB.sites.some(s=>s.id===r.siteId)))}
 function tdPaid(k,date){const[w,si]=k.split("|");return DB.entries.filter(e=>e.date===(date||TD.date)&&e.workerId===w&&e.siteId===si&&isWork(e)&&e.paid).reduce((a,e)=>a+ +e.hours,0)}
 function tdTotals(){let h=0,w=0;const ppl=new Set();tdRates().forEach(r=>{const v=parseFloat(TD.vals[r.workerId+"|"+r.siteId])||0;if(v>0){h+=v;w+=v*r.rate;ppl.add(r.workerId)}});return {h,w,p:ppl.size}}
 function todayPage(){
@@ -1573,7 +1588,8 @@ function formHours(){
   return `${leaveOn()?`<div class="pseg" style="margin:0 0 10px">${Object.entries(KIND).map(([k,l])=>`<button class="${(F.hkind||"work")===k?"on":""}" onclick="F.hkind='${k}';drawAdd()">${l}</button>`).join("")}</div>`:""}<div class="pseg" style="margin:0 0 16px">${[["day","One day"],["week","A week"],["month","Whole month"]].map(([k,l])=>`<button class="${F.mode===k?"on":""}" onclick="F.mode='${k}';try{localStorage.setItem('cw_hmode','${k}')}catch(e){};drawAdd()">${l}</button>`).join("")}</div>
   ${when}
   <div class="f"><label>Who worked?</label><input class="inp" id="wq" placeholder="Start typing a name" autocapitalize="words" autocorrect="off" spellcheck="false" value="${esc(F.q)}" autocomplete="off" oninput="F.q=this.value;F.workerId=null;F.siteId=null;sugWorkers()" onfocus="sugWorkers()"><div id="sug"></div></div>
-  ${F.workerId?`<div class="f"><label>Which site?</label><div class="opts">${rs.length?rs.map(r=>`<button class="opt ${F.siteId===r.siteId?"on":""}" onclick="F.siteId='${r.siteId}';drawAdd()">${esc(Sx(r.siteId).name)}<small>${money(r.rate)}/hr</small></button>`).join(""):`<span class="t2">No site yet — <button class="link" onclick="goSub('worker',{workerId:'${F.workerId}',name:W('${F.workerId}').name})">add one</button></span>`}</div></div>`:""}
+  ${F.workerId&&isSup(W(F.workerId))&&W(F.workerId).payType==="fixed"?`<div class="dupbox" style="background:var(--card)"><b style="color:var(--ink)">${esc(W(F.workerId).name)} is on a fixed salary</b><div class="t2" style="white-space:normal;margin:4px 0 10px">${money(W(F.workerId).salary)} per ${PERW[W(F.workerId).salaryPer]} — no hours needed.</div><button class="btn" style="margin:0" onclick="closeSheet();addSalary('${F.workerId}')">Add this ${PERW[W(F.workerId).salaryPer]}'s salary</button></div>`:""}
+  ${F.workerId&&!(isSup(W(F.workerId))&&W(F.workerId).payType==="fixed")?`<div class="f"><label>${isSup(W(F.workerId))?"Role":"Which site?"}</label><div class="opts">${rs.length?rs.map(r=>`<button class="opt ${F.siteId===r.siteId?"on":""}" onclick="F.siteId='${r.siteId}';drawAdd()">${esc(Sx(r.siteId).name)}<small>${money(r.rate)}/hr</small></button>`).join(""):`<span class="t2">No site yet — <button class="link" onclick="goSub('worker',{workerId:'${F.workerId}',name:W('${F.workerId}').name})">add one</button></span>`}</div></div>`:""}
   ${hoursField}
   <div id="dupw">${dupDays().length&&h>0?dupBox(h):""}</div>
   <div class="f"><label>Note <span style="color:var(--mut);font-weight:500">(optional)</span></label><input class="inp" placeholder="e.g. Public holiday" value="${esc(F.notes)}" oninput="F.notes=this.value"></div>
@@ -1610,9 +1626,16 @@ async function saveHours(){
   toast(`✓ Saved · ${esc(W(F.workerId).name)} · ${rows.length>1?plural(rows.length,"day")+" · ":""}${hrs} hrs · ${money(amt)}${old.length?" · replaced":""}`,async()=>{for(const e of rows)await del("entries",e.id);if(old.length)await putMany("entries",old);render()});
 }
 function formWorker(){
-  const existing=F.workerId?W(F.workerId):null;
-  return `<div class="f"><label>Name</label><input class="inp" placeholder="Full name" autocapitalize="words" autocomplete="off" enterkeyhint="next" value="${esc(F.name)}" oninput="F.name=this.value" ${existing?"disabled":""}></div>
-  <div class="f"><label>Works at</label><div class="opts">${DB.sites.map(s=>`<button class="opt ${F.siteId===s.id?"on":""}" onclick="F.siteId='${s.id}';drawAdd()">${esc(s.name)}</button>`).join("")}<button class="opt" onclick="goSub('site')">+ New site</button></div></div>
+  const existing=F.workerId?W(F.workerId):null, sup=F.role==="supervisor"&&!existing;
+  const nameF=`<div class="f"><label>Name</label><input class="inp" placeholder="Full name" autocapitalize="words" autocomplete="off" enterkeyhint="next" value="${esc(F.name)}" oninput="F.name=this.value" ${existing?"disabled":""}></div>`;
+  const roleF=existing?"":`<div class="f"><label>Role</label><div class="pseg" style="margin:0">${[["crew","Works at sites"],["supervisor","Supervisor"]].map(([k,l])=>`<button class="${(F.role||"crew")===k?"on":""}" onclick="F.role='${k}';F.err='';drawAdd()">${l}</button>`).join("")}</div></div>`;
+  if(sup){const pt=F.payType||"hourly";
+    return nameF+roleF+`<div class="f"><label>How they're paid</label><div class="pseg" style="margin:0 0 10px">${[["hourly","By the hour"],["fixed","Fixed salary"]].map(([k,l])=>`<button class="${pt===k?"on":""}" onclick="F.payType='${k}';drawAdd()">${l}</button>`).join("")}</div>
+      ${pt==="hourly"?`<input class="inp num" inputmode="decimal" placeholder="$ per hour, e.g. 35" value="${esc(F.rate)}" oninput="F.rate=this.value">`
+      :`<input class="inp num" inputmode="decimal" placeholder="Amount, e.g. 2000" value="${esc(F.salary||"")}" oninput="F.salary=this.value"><div class="pseg" style="margin:10px 0 0">${[["week","per week"],["fort","per fortnight"],["month","per month"]].map(([k,l])=>`<button class="${(F.salaryPer||"fort")===k?"on":""}" onclick="F.salaryPer='${k}';drawAdd()">${l}</button>`).join("")}</div>`}</div>
+      <div class="hint">Supervisors don't belong to a site. Their pay counts as a company cost — taken off total profit, not any site's.</div>
+      ${F.err?`<div class="err">${F.err}</div>`:""}<button class="btn" onclick="saveWorker()">Save supervisor</button>`}
+  return nameF+roleF+`<div class="f"><label>Works at</label><div class="opts">${DB.sites.map(s=>`<button class="opt ${F.siteId===s.id?"on":""}" onclick="F.siteId='${s.id}';drawAdd()">${esc(s.name)}</button>`).join("")}<button class="opt" onclick="goSub('site')">+ New site</button></div></div>
   <div class="f"><label>Pay rate ($ per hour)</label><input class="inp num" inputmode="decimal" placeholder="e.g. 25" value="${esc(F.rate)}" oninput="F.rate=this.value"></div>
   <div class="hint">Works at more than one site? Save, then add the next site from their page.</div>
   ${F.err?`<div class="err">${F.err}</div>`:""}
@@ -1620,6 +1643,13 @@ function formWorker(){
 }
 async function saveWorker(){
   const name=F.name.trim(), rate=parseFloat(F.rate);
+  if(F.role==="supervisor"&&!F.workerId){
+    if(!name)return F.err="Type a name",drawAdd();const pt=F.payType||"hourly",sal=parseFloat(F.salary);
+    if(pt==="hourly"&&!(rate>0))return F.err="Type the pay rate",drawAdd(); if(pt==="fixed"&&!(sal>0))return F.err="Type the salary amount",drawAdd();
+    if(DB.workers.some(x=>x.name.toLowerCase()===name.toLowerCase()))return F.err="Someone with this name already exists",drawAdd();
+    const w={id:uid(),name,active:true,role:"supervisor",createdAt:todayD(),payType:pt,salary:pt==="fixed"?sal:0,salaryPer:pt==="fixed"?(F.salaryPer||"fort"):""};await put("workers",w);
+    if(pt==="hourly")await put("rates",{id:uid(),workerId:w.id,siteId:SUP,rate});
+    closeSheet();render();toast(`✓ ${esc(name)} · supervisor · ${pt==="hourly"?money(rate)+"/hr":money(sal)+" per "+PERW[w.salaryPer]}`);return}
   if(!name)return F.err="Type a name",drawAdd(); if(!F.siteId)return F.err="Pick a site",drawAdd(); if(!(rate>0))return F.err="Type the pay rate",drawAdd();
   let w=F.workerId?W(F.workerId):DB.workers.find(x=>x.name.toLowerCase()===name.toLowerCase());
   if(!w){w={id:uid(),name,active:true};await put("workers",w)}
