@@ -183,6 +183,11 @@ body.kb-open .nav,body.kb-open #ig{display:none!important}
 .paychips{margin:4px 6px 10px}.paychips>*{height:auto;min-height:48px;padding:6px 4px;white-space:normal;line-height:1.15;text-align:center;font-size:14.5px}
 .hchips{margin:-2px 0 12px}.hchips>*{height:42px;font-size:14.5px}
 .addmenu i svg{width:22px;height:22px}.addmenu{display:grid;gap:8px;margin:8px 0 6px}.addmenu button{display:flex;align-items:center;gap:14px;text-align:left;padding:14px;border-radius:var(--r-lg);background:var(--card);color:var(--ink)}.addmenu i{width:44px;height:44px;border-radius:var(--r-sm);background:var(--bg);display:grid;place-items:center;flex:none;font-style:normal}.addmenu span{flex:1}.addmenu b{display:block;font-size:16.5px}.addmenu small{display:block;color:var(--mut);font-size:13.5px;margin-top:2px}
+.rngrow{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:0 0 12px}.rngrow label{position:relative;background:var(--card);border-radius:var(--r-sm);padding:8px 12px;min-height:56px}.rngrow span{display:block;font-size:12px;color:var(--mut);font-weight:600}.rngrow input{border:0;background:transparent;font:inherit;font-weight:650;font-size:15.5px;color:var(--ink);width:100%;padding:0;margin-top:2px;-webkit-appearance:none}
+.wcards{display:grid;gap:8px}.wcard{display:flex;align-items:center;gap:12px;width:100%;text-align:left;background:var(--card);border-radius:var(--r-lg);padding:14px;color:var(--ink)}
+.wcard .wm{flex:1;min-width:0}.wcard .wm b{display:block;font-size:16.5px}.wcard .wm small{display:block;color:var(--mut);font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin:1px 0 6px}
+.wcard .st{font-style:normal;font-size:12.5px;font-weight:700;padding:3px 8px;border-radius:7px}.st.ok{background:var(--ok-s);color:var(--ok)}.st.pay{background:#FDECEC;color:var(--pay)}.st.part{background:#FFF3D6;color:#8A5A00}
+.wcard .wr{text-align:right;flex:none}.wcard .wr b{display:block;font-size:18px;font-weight:780}.wcard .wr small{display:block;color:var(--mut);font-size:12.5px;margin-top:2px}
 .daychips input{position:absolute;inset:0;opacity:0;width:100%;height:100%}
 .subback{display:flex;align-items:center;min-height:44px;margin:-6px 0 6px;color:var(--ink);font-size:15px;font-weight:650}
 
@@ -638,7 +643,7 @@ const JOIN=(()=>{const m=(location.hash||"").match(/join=(CW1\.[A-Za-z0-9_\-]+)/
 if(JOIN&&!IS_APP){const l=document.querySelector('link[rel="manifest"]');if(l)l.remove()}
 let deferredInstall=null;
 addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredInstall=e;setTimeout(showInstallGuide,50)});
-const APP_VERSION="5.2";
+const APP_VERSION="5.3";
 /* ============ data layer ============ */
 const TABLES=["clients","sites","workers","rates","entries","income"];
 const EMPTY=()=>({clients:[],sites:[],workers:[],rates:[],entries:[],income:[]});
@@ -832,8 +837,10 @@ const sortKey=e=>(e.date||e.month+"-00");
 function fortRange(d){const ws=weekStart(d);return [addD(ws,-7),addD(ws,6)]}
 function l7Label(d){const a=parseD(addD(d,-6)),b=parseD(d);return a.getMonth()===b.getMonth()?`${a.getDate()}–${b.getDate()} ${MN[b.getMonth()]}`:`${a.getDate()} ${MN[a.getMonth()]} – ${b.getDate()} ${MN[b.getMonth()]}`}
 function fortLabel(d){const[a,b]=fortRange(d),A=parseD(a),B=parseD(b);return A.getMonth()===B.getMonth()?`${A.getDate()}–${B.getDate()} ${MN[B.getMonth()]}`:`${A.getDate()} ${MN[A.getMonth()]} – ${B.getDate()} ${MN[B.getMonth()]}`}
-function inPer(e,p){if(p.mode==="all")return true;if(p.mode==="l7"){const a=addD(p.d,-6);return !!e.date&&e.date>=a&&e.date<=p.d}if(p.mode==="fort"){const[a,b]=fortRange(p.d);return !!e.date&&e.date>=a&&e.date<=b}if(p.mode==="month")return e.month===p.d.slice(0,7);if(p.mode==="week")return !!e.date&&weekStart(e.date)===weekStart(p.d);return e.date===p.d}
-function perLabel(p){if(p.mode==="all")return "All time";if(p.mode==="l7")return l7Label(p.d);if(p.mode==="fort")return (fortRange(p.d)[1]===fortRange(todayD())[1]?"This fortnight · ":"")+fortLabel(p.d);if(p.mode==="month")return mLabel(p.d.slice(0,7));if(p.mode==="week")return (weekStart(p.d)===weekStart(todayD())?"This week · ":"")+weekLabel(p.d);return dayRel(p.d)}
+function perRange(p){const td=todayD();if(p.mode==="l7")return [addD(p.d,-6),p.d];if(p.mode==="fort")return fortRange(p.d);if(p.mode==="range")return [p.from,p.to];if(p.mode==="week"){const ws=weekStart(p.d);return [ws,addD(ws,6)]}if(p.mode==="day")return [p.d,p.d];if(p.mode==="month"){const m=p.d.slice(0,7);return [m+"-01",mEnd(m)]}return null}
+function rngLabel(a,b){const A=parseD(a),B=parseD(b);return a===b?dayLabel(a):A.getMonth()===B.getMonth()&&A.getFullYear()===B.getFullYear()?`${A.getDate()}–${B.getDate()} ${MN[B.getMonth()]}`:`${A.getDate()} ${MN[A.getMonth()]} – ${B.getDate()} ${MN[B.getMonth()]}`}
+function inPer(e,p){if(p.mode==="all")return true;if(p.mode==="range")return !!e.date&&e.date>=p.from&&e.date<=p.to;if(p.mode==="l7"){const a=addD(p.d,-6);return !!e.date&&e.date>=a&&e.date<=p.d}if(p.mode==="fort"){const[a,b]=fortRange(p.d);return !!e.date&&e.date>=a&&e.date<=b}if(p.mode==="month")return e.month===p.d.slice(0,7);if(p.mode==="week")return !!e.date&&weekStart(e.date)===weekStart(p.d);return e.date===p.d}
+function perLabel(p){if(p.mode==="all")return "All time";if(p.mode==="range")return rngLabel(p.from,p.to);if(p.mode==="l7")return l7Label(p.d);if(p.mode==="fort")return (fortRange(p.d)[1]===fortRange(todayD())[1]?"This fortnight · ":"")+fortLabel(p.d);if(p.mode==="month")return mLabel(p.d.slice(0,7));if(p.mode==="week")return (weekStart(p.d)===weekStart(todayD())?"This week · ":"")+weekLabel(p.d);return dayRel(p.d)}
 function perStep(p,n){if(p.mode==="day")p.d=addD(p.d,n);else if(p.mode==="week")p.d=addD(p.d,7*n);else if(p.mode==="fort")p.d=addD(p.d,14*n);else if(p.mode==="l7"){p.d=addD(p.d,7*n);if(p.d>todayD())p.d=todayD()}else if(p.mode==="month"){const m=addM(p.d.slice(0,7),n);p.d=m===todayD().slice(0,7)?todayD():m+"-01"}}
 const PERS={home:()=>state.per,person:()=>state.pper,site:()=>state.sper,sites:()=>state.slper};
 function perSwitch(key,modes){const p=PERS[key]();
@@ -1141,15 +1148,23 @@ function workerAns(w,R,ss,anyR){
     +`<div style="display:flex;gap:10px;margin-top:12px"><button class="btn ghost" style="flex:1" onclick="askGo('w','${w.id}')">Open ${esc(w.name.split(" ")[0])}</button><button class="btn ghost" style="flex:1" onclick="askAdd('${w.id}','','${todayD()}','')">Add hours</button></div>`}
 function askAdd(wid,sid,d,h){askRemember($("#askq")?.value||"");openAdd("hours",wid);F.mode="day";F.date=d;if(sid)F.siteId=sid;if(h)F.hours=h;drawAdd();setTimeout(()=>{if(!F.siteId)return;const i=$("#hrs");if(i&&!h)i.focus()},120)}
 /* ---------- Home ---------- */
-function whoWorked(P){const es=DB.entries.filter(e=>inPer(e,P)&&e.hours>0),by=state.hby||"person";
-  const head=`<div class="sec" style="margin-top:22px"><h2>Who worked</h2><span class="h">${perLabel(P)}</span></div>
-    <div class="daychips hchips"><button class="${by==="person"?"on":""}" onclick="state.hby='person';render()">By person</button><button class="${by==="site"?"on":""}" onclick="state.hby='site';render()">By site</button></div>`;
-  if(!es.length)return head+`<div class="card empty" style="padding:22px">No hours in this period</div>`;
-  const pp=JSON.stringify({mode:P.mode,d:P.d}).replace(/"/g,"'");
-  if(by==="person"){const g={};es.forEach(e=>{const x=g[e.workerId]||(g[e.workerId]={h:0,w:0,s:new Set(),d:new Set()});if(isWork(e))x.h+= +e.hours;x.w+=wage(e);x.s.add(Sx(e.siteId).name);if(e.date)x.d.add(e.date)});
-    return head+`<div class="list">${Object.entries(g).sort((a,b)=>b[1].h-a[1].h||b[1].w-a[1].w).map(([id,x])=>`<div class="row tap" onclick="state.pper=${pp};openPerson('${id}')">${av(W(id).name)}<div class="main"><div class="t1">${esc(W(id).name)}</div><div class="t2">${[...x.s].map(esc).join(", ")}${x.d.size?` · ${plural(x.d.size,"day")}`:""}</div></div><div class="amt num">${x.h?x.h.toLocaleString()+" hrs":money(x.w)}<small>${x.h?money(x.w):"salary"}</small></div>${ICON.chev}</div>`).join("")}</div>`}
-  const g={};es.forEach(e=>{const x=g[e.siteId]||(g[e.siteId]={h:0,w:0,p:new Map()});if(isWork(e)){x.h+= +e.hours;x.p.set(e.workerId,(x.p.get(e.workerId)||0)+ +e.hours)}x.w+=wage(e)});
-  return head+`<div class="list">${Object.entries(g).sort((a,b)=>b[1].h-a[1].h).map(([sid,x])=>`<div class="row tap" onclick="${sid===SUP?"":`state.sper=${pp};openSite('${sid}')`}"><div class="main"><div class="t1">${esc(Sx(sid).name)}</div><div class="t2" style="white-space:normal">${[...x.p.entries()].sort((a,b)=>b[1]-a[1]).map(([w,h])=>`${esc(W(w).name.split(" ")[0])} ${h}h`).join(" · ")||"Salary"}</div></div><div class="amt num">${x.h.toLocaleString()} hrs<small>${plural(x.p.size,"person")}</small></div>${sid===SUP?"":ICON.chev}</div>`).join("")}</div>`}
+function whoWorked(P){const td=todayD(),[a,b]=perRange(P);
+  const es=DB.entries.filter(e=>e.date&&e.date>=a&&e.date<=b&&e.hours>0);
+  const chips=`<div class="daychips hchips">${[["l7","Last 7 days"],["fort","Fortnight"],["range","Pick dates"]].map(([k,l])=>`<button class="${P.mode===k?"on":""}" onclick="${k==="range"?`state.hper={mode:'range',from:'${addD(td,-6)}',to:'${td}'}`:`state.hper={mode:'${k}',d:'${td}'}`};render()">${l}</button>`).join("")}</div>`;
+  const dates=P.mode==="range"?`<div class="rngrow"><label><span>From</span><input type="date" value="${P.from}" max="${td}" onchange="if(this.value){state.hper.from=this.value;if(state.hper.to<this.value)state.hper.to=this.value;render()}"></label><label><span>To</span><input type="date" value="${P.to}" onchange="if(this.value){state.hper.to=this.value;if(state.hper.from>this.value)state.hper.from=this.value;render()}"></label></div>`
+    :`<div class="mstep2" style="margin:0 0 12px"><button onclick="perStep(state.hper,-1);render()" aria-label="Earlier">‹</button><b>${P.mode==="l7"&&P.d===td?"Last 7 days · ":P.mode==="fort"&&fortRange(P.d)[1]===fortRange(td)[1]?"This fortnight · ":""}${rngLabel(a,b)}</b><button onclick="perStep(state.hper,1);render()" aria-label="Later">›</button></div>`;
+  const head=`<div class="sec" style="margin-top:22px"><h2>Who worked</h2></div>${chips}${dates}`;
+  if(!es.length)return head+`<div class="card empty" style="padding:24px">No hours in these dates</div>`;
+  const g={};es.forEach(e=>{const x=g[e.workerId]||(g[e.workerId]={h:0,w:0,paidW:0,s:new Set(),d:new Set()});if(isWork(e))x.h+= +e.hours;x.w+=wage(e);if(e.paid)x.paidW+=wage(e);x.s.add(Sx(e.siteId).name);x.d.add(e.date)});
+  return head+`<div class="wcards">${Object.entries(g).sort((p,q)=>q[1].h-p[1].h||q[1].w-p[1].w).map(([id,x])=>{const st=x.paidW>=x.w-.005?["ok","Paid"]:x.paidW>0?["part","Part paid"]:["pay","Unpaid"];
+    return `<button class="wcard" onclick="dayDetail('${id}')">${av(W(id).name)}<span class="wm"><b>${esc(W(id).name)}</b><small>${[...x.s].map(esc).join(", ")}</small><em class="st ${st[0]}">${st[1]}</em></span><span class="wr"><b class="num">${x.h?x.h.toLocaleString()+" hrs":"Salary"}</b><small class="num">${money(x.w)} · ${plural(x.d.size,"day")}</small></span></button>`}).join("")}</div>`}
+function dayDetail(id){const P=state.hper,[a,b]=perRange(P),w=W(id);
+  const es=DB.entries.filter(e=>e.workerId===id&&e.date&&e.date>=a&&e.date<=b&&e.hours>0).sort((p,q)=>p.date.localeCompare(q.date));
+  const h=es.filter(isWork).reduce((s,e)=>s+ +e.hours,0),tot=es.reduce((s,e)=>s+wage(e),0),unp=es.filter(e=>!e.paid).reduce((s,e)=>s+wage(e),0);
+  showSheet(`<div style="display:flex;gap:14px;align-items:center;margin-bottom:6px">${av(w.name)}<div><h3 style="margin:0">${esc(w.name)}</h3><div class="t2">${rngLabel(a,b)} · ${h.toLocaleString()} hrs · ${money(tot)}</div></div></div>
+  <div class="list" style="margin:12px 0 14px">${es.map(e=>`<div class="row tap" onclick="openEntry('${e.id}')"><div class="main"><div class="t1">${dayLabel(e.date)}</div><div class="t2">${e.kind==="salary"?"Salary":esc(Sx(e.siteId).name)+" · "+e.hours+" hrs"}</div></div><span class="tag ${e.paid?"ok":"pay"}">${e.paid?"Paid":"Unpaid"}</span><div class="amt num" style="min-width:66px">${money(wage(e))}</div></div>`).join("")}</div>
+  ${unp>0?`<button class="btn red" onclick="closeSheet();setTimeout(()=>openPay('${id}',state.hper),220)">Pay ${money(unp)}</button>`:`<div class="hint" style="text-align:center;margin-bottom:8px">✓ All paid for these dates</div>`}
+  <button class="btn ghost" onclick="closeSheet();setTimeout(()=>{state.pper=JSON.parse(JSON.stringify(state.hper));openPerson('${id}')},220)">Open ${esc(w.name.split(" ")[0])}'s page</button>`)}
 function addMenu(){hideToast();const it=[["Hours worked","Type today's hours for everyone",ICON.clockq,"closeSheet();go('today')"],["A worker","Someone new on the crew, or a supervisor",ICON.useradd,"openAdd('worker')"],["A site","A new place where work happens",ICON.sites,"openAdd('site')"],["Money received","A payment from a company",ICON.wallet,"openAdd('money')"]];
   showSheet(`<h3>What do you want to add?</h3><div class="addmenu">${it.map(([t,d,ic,js])=>`<button onclick="${js}"><i>${ic}</i><span><b>${t}</b><small>${d}</small></span>${ICON.chev}</button>`).join("")}</div>`)}
 function showProblems(){const pr=problems();showSheet(`<h3>Things to check</h3><div class="lead">Tap one to fix it.</div><div class="list" style="margin-bottom:12px">${pr.map(p=>`<div class="row tap" onclick="closeSheet();setTimeout(()=>{${p.type==="bill"?`editSite('${p.site.id}')`:`openPerson('${p.e.workerId}')`}},200)"><div class="av" style="background:var(--warn-s);color:var(--warn)">!</div><div class="main"><div class="t1" style="white-space:normal">${esc(p.text)}</div></div>${ICON.chev}</div>`).join("")}</div><button class="btn ghost" onclick="closeSheet()">Close</button>`)}
@@ -1165,12 +1180,7 @@ function homePage(){
     ${online()?"":`<button class="joincard" onclick="openConnect()"><span class="ji">${ICON.sheet}</span><span><b>Got an invite?</b><small>Join your team's data — scan their QR or paste the code</small></span>${ICON.chev}</button>`}
     <button class="btn ghost" style="margin-top:14px" onclick="resetDemo(true,true)">Or try it with sample data</button>`;
   }
-  const HP=state.hper||(state.hper={mode:"fort",d:todayD()}),T=perStats(HP);
-  const td=todayD(),cur=HP.mode==="l7"?HP.d===td:HP.mode==="fort"?fortRange(HP.d)[1]===fortRange(td)[1]:HP.d.slice(0,7)===td.slice(0,7);
-  const ttl=HP.mode==="l7"?(cur?"Last 7 days":"7 days"):HP.mode==="fort"?(cur?"This fortnight":"Fortnight"):(cur?"This month":mLabel(HP.d.slice(0,7)));
-  const sub=HP.mode==="l7"?l7Label(HP.d):HP.mode==="fort"?fortLabel(HP.d):mLabel(HP.d.slice(0,7));
-  const row=(l,v,c,sub)=>`<div class="srow"><span>${l}${sub?`<small>${sub}</small>`:""}</span><b class="num"${c?` style="color:${c}"`:""}>${v}</b></div>`;
-  const notes=[];if(T.unsetN)notes.push(`${plural(T.unsetN,"site")} without a charge rate aren't counted`);if(T.supW)notes.push(`includes ${money(T.supW)} supervisors`);
+  if(!state.hper||!["l7","fort","range"].includes(state.hper.mode))state.hper={mode:"l7",d:todayD()};const HP=state.hper;
   return `<div class="home simple">
     <div class="greet"><div><small>${DOW[new Date().getDay()]} ${new Date().getDate()} ${MN[new Date().getMonth()]}</small><h1>${greet}</h1></div><button class="me" onclick="go('more')" aria-label="Settings">${ICON.more.replace('width="24" height="24"','width="22" height="22"')}</button></div>
     ${tipHtml("home","This is your summary. Tap <b>Pay people</b> to settle up, or <b>Add hours</b> to log work.")}
@@ -1186,16 +1196,7 @@ function homePage(){
       <button onclick="go('sites')"><i>${ICON.sites}</i>Sites</button>
     </div>
     ${pr.length?`<button class="checkrow" onclick="showProblems()"><span class="cw">!</span><span>${plural(pr.length,"thing")} to check</span>${ICON.chev}</button>`:""}
-    <div class="sec"><h2>${ttl}</h2><span class="fstep"><button onclick="perStep(state.hper,-1);render()" aria-label="Earlier">‹</button><small>${sub}</small><button onclick="perStep(state.hper,1);render()" aria-label="Later">›</button></span></div>
-    <div class="daychips hchips">${[["l7","Last 7 days"],["fort","Fortnight"],["month","Month"]].map(([k,l])=>`<button class="${HP.mode===k?"on":""}" onclick="state.hper={mode:'${k}',d:todayD()};render()">${l}</button>`).join("")}</div>
-    <div class="card slist">
-      ${row("Hours worked",T.hours.toLocaleString()+" hrs")}
-      ${row("Paid to workers",money(T.wages))}
-      ${row("You charged clients",money(T.billed))}
-      ${row(T.profit<0?"You lose":"You keep",money(T.profit),T.profit<0?"var(--pay)":"var(--ok)",notes.join(" · "))}
-    </div>
     ${whoWorked(HP)}
-    <button class="link" style="display:block;margin:16px auto 0" onclick="go('reports')">More numbers in Reports ›</button>
   </div>`;
 }
 const stat=(k,v,c,neg)=>`<div class="stat"><div class="k"><span class="dot" style="background:${c}"></span>${k}</div><div class="v num"${neg?' style="color:var(--pay)"':""}>${v}</div></div>`;
@@ -1748,7 +1749,7 @@ function paySel(k){const t=todayD(),f=k==="tf"?fortRange(t):k==="lf"?fortRange(a
 function openPay(wid,per){hideToast();
   const es=DB.entries.filter(e=>e.workerId===wid&&!e.paid&&e.hours>0&&e.rate>0).sort((a,b)=>sortKey(a).localeCompare(sortKey(b)));
   P={wid,sel:new Set(es.map(e=>e.id)),es,k:"all"};
-  if(per&&per.mode==="fort"){const f=fortRange(per.d);P.k=f[1]===fortRange(todayD())[1]?"tf":f[1]===fortRange(addD(todayD(),-14))[1]?"lf":"custom";P.sel=new Set(es.filter(e=>e.date&&e.date>=f[0]&&e.date<=f[1]).map(e=>e.id))}
+  if(per&&per.mode!=="all"&&perRange(per)){const f=perRange(per);P.k=per.mode==="fort"&&f[1]===fortRange(todayD())[1]?"tf":per.mode==="fort"&&f[1]===fortRange(addD(todayD(),-14))[1]?"lf":"custom";P.sel=new Set(es.filter(e=>e.date&&e.date>=f[0]&&e.date<=f[1]).map(e=>e.id))}
   drawPay(); $("#sheet").classList.add("on");$("#scrim").classList.add("on");sheetClose=null;
 }
 function drawPay(){
