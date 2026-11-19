@@ -2,7 +2,7 @@
 <html lang="en-AU">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
 <meta name="theme-color" id="tcl" content="#FFFFFF" media="(prefers-color-scheme: light)">
 <meta name="theme-color" id="tcd" content="#000000" media="(prefers-color-scheme: dark)">
 <title>Hourza</title>
@@ -189,6 +189,15 @@ body.kb-open .nav,body.kb-open #ig{display:none!important}
 .wcard .st{font-style:normal;font-size:12.5px;font-weight:700;padding:3px 8px;border-radius:7px}.st.ok{background:var(--ok-s);color:var(--ok)}.st.pay{background:#FDECEC;color:var(--pay)}.st.part{background:#FFF3D6;color:#8A5A00}
 .wcard .wr{text-align:right;flex:none}.wcard .wr b{display:block;font-size:18px;font-weight:780}.wcard .wr small{display:block;color:var(--mut);font-size:12.5px;margin-top:2px}
 .daychips input{position:absolute;inset:0;opacity:0;width:100%;height:100%}
+/* native feel */
+html{-webkit-tap-highlight-color:transparent;-webkit-text-size-adjust:100%;touch-action:manipulation}
+body{-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
+input,textarea,select,[contenteditable]{-webkit-user-select:text;user-select:text;-webkit-touch-callout:default}
+input,textarea,select{font-size:max(16px,1em)}
+.wcard,.tiles3 button,.addmenu button,.daychips>*,.checkrow,.limebtn,.joincard,.row.tap,.btn,.opt,.chip{transition:transform .12s cubic-bezier(.32,.72,0,1),opacity .12s}
+.wcard:active,.tiles3 button:active,.addmenu button:active,.checkrow:active,.joincard:active{transform:scale(.97)}
+.daychips>*:active,.limebtn:active,.btn:active,.opt:active,.chip:active{transform:scale(.96)}
+.rngrow input{font-size:16px}
 .subback{display:flex;align-items:center;min-height:44px;margin:-6px 0 6px;color:var(--ink);font-size:15px;font-weight:650}
 
 .hero{background:linear-gradient(150deg,#1B1F3B 0%,#0E1325 70%);color:#fff;border-radius:24px;padding:22px;position:relative;overflow:hidden}
@@ -643,7 +652,7 @@ const JOIN=(()=>{const m=(location.hash||"").match(/join=(CW1\.[A-Za-z0-9_\-]+)/
 if(JOIN&&!IS_APP){const l=document.querySelector('link[rel="manifest"]');if(l)l.remove()}
 let deferredInstall=null;
 addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredInstall=e;setTimeout(showInstallGuide,50)});
-const APP_VERSION="5.5";
+const APP_VERSION="5.6";
 /* ============ data layer ============ */
 const TABLES=["clients","sites","workers","rates","entries","income"];
 const EMPTY=()=>({clients:[],sites:[],workers:[],rates:[],entries:[],income:[]});
