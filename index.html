@@ -166,6 +166,9 @@ input[type=date].inp{-webkit-appearance:none;appearance:none;display:flex;align-
 @keyframes igb{0%,100%{transform:translateY(0)}50%{transform:translateY(7px)}}
 body.sheet-open #ig{display:none}
 .sheet{will-change:transform}
+body.kb-open .nav,body.kb-open #ig{display:none!important}
+.nav{transform:translateY(var(--vvshift,0px))}
+.m8.m5 button{font-size:13.5px!important;padding-left:1px;padding-right:1px}.m8.m5 button small{font-size:10px;padding:0 2px}
 .subback{display:flex;align-items:center;min-height:44px;margin:-6px 0 6px;color:var(--ink);font-size:15px;font-weight:650}
 
 .hero{background:linear-gradient(150deg,#1B1F3B 0%,#0E1325 70%);color:#fff;border-radius:24px;padding:22px;position:relative;overflow:hidden}
@@ -620,7 +623,7 @@ const JOIN=(()=>{const m=(location.hash||"").match(/join=(CW1\.[A-Za-z0-9_\-]+)/
 if(JOIN&&!IS_APP){const l=document.querySelector('link[rel="manifest"]');if(l)l.remove()}
 let deferredInstall=null;
 addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredInstall=e;setTimeout(showInstallGuide,50)});
-const APP_VERSION="4.5";
+const APP_VERSION="4.6";
 /* ============ data layer ============ */
 const TABLES=["clients","sites","workers","rates","entries","income"];
 const EMPTY=()=>({clients:[],sites:[],workers:[],rates:[],entries:[],income:[]});
@@ -783,19 +786,21 @@ const dayRel=s=>s===todayD()?"Today":s===addD(todayD(),-1)?"Yesterday":dayLabel(
 const weekLabel=s=>{const a=parseD(weekStart(s)),b=parseD(addD(weekStart(s),6));return a.getMonth()===b.getMonth()?`${a.getDate()}–${b.getDate()} ${MN[b.getMonth()]}`:`${a.getDate()} ${MN[a.getMonth()]} – ${b.getDate()} ${MN[b.getMonth()]}`};
 const whenLabel=e=>e.date?dayLabel(e.date):`${mLabel(e.month)} · whole month`;
 const sortKey=e=>(e.date||e.month+"-00");
-function inPer(e,p){if(p.mode==="all")return true;if(p.mode==="month")return e.month===p.d.slice(0,7);if(p.mode==="week")return !!e.date&&weekStart(e.date)===weekStart(p.d);return e.date===p.d}
-function perLabel(p){if(p.mode==="all")return "All time";if(p.mode==="month")return mLabel(p.d.slice(0,7));if(p.mode==="week")return (weekStart(p.d)===weekStart(todayD())?"This week · ":"")+weekLabel(p.d);return dayRel(p.d)}
-function perStep(p,n){if(p.mode==="day")p.d=addD(p.d,n);else if(p.mode==="week")p.d=addD(p.d,7*n);else if(p.mode==="month"){const m=addM(p.d.slice(0,7),n);p.d=m===todayD().slice(0,7)?todayD():m+"-01"}}
+function fortRange(d){const ws=weekStart(d);return [addD(ws,-7),addD(ws,6)]}
+function fortLabel(d){const[a,b]=fortRange(d),A=parseD(a),B=parseD(b);return A.getMonth()===B.getMonth()?`${A.getDate()}–${B.getDate()} ${MN[B.getMonth()]}`:`${A.getDate()} ${MN[A.getMonth()]} – ${B.getDate()} ${MN[B.getMonth()]}`}
+function inPer(e,p){if(p.mode==="all")return true;if(p.mode==="fort"){const[a,b]=fortRange(p.d);return !!e.date&&e.date>=a&&e.date<=b}if(p.mode==="month")return e.month===p.d.slice(0,7);if(p.mode==="week")return !!e.date&&weekStart(e.date)===weekStart(p.d);return e.date===p.d}
+function perLabel(p){if(p.mode==="all")return "All time";if(p.mode==="fort")return (fortRange(p.d)[1]===fortRange(todayD())[1]?"This fortnight · ":"")+fortLabel(p.d);if(p.mode==="month")return mLabel(p.d.slice(0,7));if(p.mode==="week")return (weekStart(p.d)===weekStart(todayD())?"This week · ":"")+weekLabel(p.d);return dayRel(p.d)}
+function perStep(p,n){if(p.mode==="day")p.d=addD(p.d,n);else if(p.mode==="week")p.d=addD(p.d,7*n);else if(p.mode==="fort")p.d=addD(p.d,14*n);else if(p.mode==="month"){const m=addM(p.d.slice(0,7),n);p.d=m===todayD().slice(0,7)?todayD():m+"-01"}}
 const PERS={home:()=>state.per,person:()=>state.pper,site:()=>state.sper,sites:()=>state.slper};
 function perSwitch(key,modes){const p=PERS[key]();
-  const sub=k=>{const d=parseD(p.d);return k==="day"?`${DOW[d.getDay()]} ${d.getDate()}`:k==="week"?weekLabel(p.d):k==="month"?FMN[d.getMonth()]:"Everything"};
-  const full=k=>{const d=parseD(p.d);return k==="day"?dayRel(p.d)+(dayRel(p.d)===dayLabel(p.d)?"":" · "+dayLabel(p.d)):k==="week"?perLabel(p):FMN[d.getMonth()]+" "+d.getFullYear()};
-  return `<div class="m8" style="grid-template-columns:repeat(${modes.length},1fr)">${modes.map(([k,l])=>`<button class="${p.mode===k?"on":""}" onclick="PERS['${key}']().mode='${k}';render()">${l}<small>${sub(k)}</small></button>`).join("")}</div>
+  const sub=k=>{const d=parseD(p.d);return k==="day"?`${DOW[d.getDay()]} ${d.getDate()}`:k==="week"?weekLabel(p.d):k==="fort"?fortLabel(p.d):k==="month"?FMN[d.getMonth()]:"Everything"};
+  const full=k=>{const d=parseD(p.d);return k==="day"?dayRel(p.d)+(dayRel(p.d)===dayLabel(p.d)?"":" · "+dayLabel(p.d)):k==="week"||k==="fort"?perLabel(p):FMN[d.getMonth()]+" "+d.getFullYear()};
+  return `<div class="m8 ${modes.length>4?"m5":""}" style="grid-template-columns:repeat(${modes.length},1fr)">${modes.map(([k,l])=>`<button class="${p.mode===k?"on":""}" onclick="PERS['${key}']().mode='${k}';render()">${l}<small>${sub(k)}</small></button>`).join("")}</div>
   ${p.mode==="all"?"":`<div class="mstep2"><button onclick="perStep(PERS['${key}'](),-1);render()" aria-label="Previous">‹</button><b>${full(p.mode)}</b><button onclick="perStep(PERS['${key}'](),1);render()" aria-label="Next">›</button></div>`}`}
 const FMN=["January","February","March","April","May","June","July","August","September","October","November","December"];
 function perStats(p,cut){const es=DB.entries.filter(e=>inPer(e,p)&&(!cut||!e.date||e.date<=cut));const hours=es.filter(isWork).reduce((s,e)=>s+ +e.hours,0),wages=es.reduce((s,e)=>s+wage(e),0);
   const income=p.mode==="month"?DB.income.filter(i=>i.month===p.d.slice(0,7)).reduce((s,i)=>s+ +i.amount,0):0;
-  const hidden=p.mode==="day"||p.mode==="week"?DB.entries.filter(e=>!e.date&&(e.month===p.d.slice(0,7)||e.month===addD(weekStart(p.d),6).slice(0,7))).length:0;
+  const hidden=p.mode==="day"||p.mode==="week"||p.mode==="fort"?DB.entries.filter(e=>!e.date&&(e.month===p.d.slice(0,7)||e.month===addD(weekStart(p.d),6).slice(0,7))).length:0;
   const T=profitTotals(p,cut);
   return {es,hours,wages,income,billed:T.billed,profit:T.profit,unsetN:T.unsetN,unsetW:T.unsetW,people:new Set(es.map(e=>e.workerId)).size,hidden}}
 /* One rule everywhere: Profit = what you bill − wages, counted only at sites whose money-in is set */
@@ -806,8 +811,8 @@ function profitNote(T){const a=[];if(T.unsetN)a.push(`${plural(T.unsetN,"site")}
 /* Fair comparison: if the period is still running, compare with the same point in the previous one */
 function prevCompare(p){const pp={...p};perStep(pp,-1);const t=todayD();let cut=null,lbl;
   const running=inPer({date:t,month:t.slice(0,7)},p);
-  if(running){if(p.mode==="month"){const d=parseD(t),y=d.getMonth()===0?d.getFullYear()-1:d.getFullYear(),m=(d.getMonth()+11)%12,last=new Date(y,m+1,0).getDate();cut=y+"-"+pad2(m+1)+"-"+pad2(Math.min(d.getDate(),last))}else if(p.mode==="week")cut=addD(t,-7);}
-  lbl=p.mode==="month"?(running?"vs same day last month":"vs "+mShort(pp.d.slice(0,7))):p.mode==="week"?(running?"vs this time last week":"vs week before"):"vs day before";
+  if(running){if(p.mode==="month"){const d=parseD(t),y=d.getMonth()===0?d.getFullYear()-1:d.getFullYear(),m=(d.getMonth()+11)%12,last=new Date(y,m+1,0).getDate();cut=y+"-"+pad2(m+1)+"-"+pad2(Math.min(d.getDate(),last))}else if(p.mode==="week")cut=addD(t,-7);else if(p.mode==="fort")cut=addD(t,-14);}
+  lbl=p.mode==="month"?(running?"vs same day last month":"vs "+mShort(pp.d.slice(0,7))):p.mode==="week"?(running?"vs this time last week":"vs week before"):p.mode==="fort"?(running?"vs this time last fortnight":"vs fortnight before"):"vs day before";
   return {ps:perStats(pp,cut),lbl}}
 
 const hasBill=x=>x.billType==="fixed"?(+x.fixed>0):(+x.charge>0);
@@ -1092,7 +1097,7 @@ function askAdd(wid,sid,d,h){askRemember($("#askq")?.value||"");openAdd("hours",
 function homePage(){
   const owed=owedByWorker(); const total=owed.reduce((s,o)=>s+o.amount,0);
   const pr=problems(), P0=state.per, st=perStats(P0);
-  const paidThis=st.es.filter(e=>e.paid), pname=P0.mode==="month"?`${mShort(P0.d.slice(0,7))} work`:P0.mode==="week"?weekLabel(P0.d):dayRel(P0.d);
+  const paidThis=st.es.filter(e=>e.paid), pname=P0.mode==="month"?`${mShort(P0.d.slice(0,7))} work`:P0.mode==="week"?weekLabel(P0.d):P0.mode==="fort"?fortLabel(P0.d):dayRel(P0.d);
   const paidTotal=paidThis.reduce((s,e)=>s+wage(e),0);
   const hr=new Date().getHours(),greet=hr<12?"Good morning":hr<17?"Good afternoon":"Good evening";
   const wk=[];for(let i=7;i>=0;i--){const ws=addD(weekStart(todayD()),-7*i);wk.push(DB.entries.filter(e=>e.date&&weekStart(e.date)===ws).reduce((a,e)=>a+wage(e),0))}
@@ -1123,7 +1128,7 @@ function homePage(){
         <button class="pay-btn" onclick="openPay('${o.workerId}')">Pay</button>
       </div>`}).join(""):`<div class="empty"><div class="e" style="color:var(--ok)">${ICON.party}</div>Everyone is paid up</div>`}</div></div>`;
   const month=`<div class="a-month"><div class="sec sec-first"><h2>Money</h2><button class="link" onclick="go('reports')">Reports ›</button></div>
-    <div class="card mcard"><div class="mhead">${perSwitch("home",[["day","Day"],["week","Week"],["month","Month"]])}</div>
+    <div class="card mcard"><div class="mhead">${perSwitch("home",[["day","Day"],["week","Week"],["fort","Fortnight"],["month","Month"]])}</div>
       ${(()=>{const {ps,lbl:pl}=prevCompare(P0);
         const dl=(a,b,good)=>{if(!b)return "";const p=Math.round((a-b)/Math.abs(b)*100);if(!p)return `<em class="fl">same ${pl}</em>`;return `<em class="${(p>0)===good?"up":"dn"}">${p>0?"↑":"↓"} ${Math.abs(p)}% ${pl}</em>`};
         return `<div class="kpis">
@@ -1200,15 +1205,15 @@ function personPage(id){
   const pr=problems().filter(p=>p.type!=="bill"&&p.e.workerId===id);
   const byM={}; es.forEach(e=>(byM[e.month]=byM[e.month]||[]).push(e));
   const months=Object.keys(byM), cap=P1.mode==="all"&&!state.allHist?3:99;
-  const hidden=(P1.mode==="day"||P1.mode==="week")&&all.some(e=>!e.date&&e.month===P1.d.slice(0,7));
+  const hidden=(P1.mode==="day"||P1.mode==="week"||P1.mode==="fort")&&all.some(e=>!e.date&&e.month===P1.d.slice(0,7));
   const row=e=>`<div class="row tap" onclick="openEntry('${e.id}')"><div class="main"><div class="t1">${e.date?dayLabel(e.date):"Whole month"} · ${isWork(e)?esc(Sx(e.siteId).name):KIND[e.kind]}</div><div class="t2">${e.hours} hrs × ${money(e.rate)}${e.notes?" · "+esc(e.notes):""}</div></div>
           <span class="tag ${e.paid?"ok":"pay"}">${e.paid?"Paid":"To pay"}</span><div class="amt num" style="min-width:72px">${money(wage(e))}</div></div>`;
   return `
     <div style="display:flex;justify-content:space-between;align-items:center"><button class="back" onclick="goBack()">${ICON.back}Back</button><button class="link" style="display:flex;gap:6px;align-items:center;padding:6px 2px 14px" onclick="editWorker('${id}')">${ICON.edit}Edit</button></div>
     <div class="ph">${av(w.name)}<div style="flex:1;min-width:0"><h1>${esc(w.name)}${w.active===false?' <span class="tag mut" style="vertical-align:middle">Left</span>':""}</h1><div class="t2">${(()=>{const last=all.filter(e=>e.date).sort((a,b)=>b.date.localeCompare(a.date))[0];return last?`Last worked ${dayRel(last.date)===dayLabel(last.date)?dayLabel(last.date):dayRel(last.date).toLowerCase()} · ${esc(Sx(last.siteId).name)}`:""})()||(rates.length?rates.map(r=>esc(Sx(r.siteId).name)).join(" · "):"No site yet")}</div></div></div>
-    ${owe?`<button class="btn red" style="margin:0 0 14px" onclick="openPay('${id}')">Pay ${money(owe)}</button>`:""}
+    ${owe?`<button class="btn red" style="margin:0 0 14px" onclick="openPay('${id}',state.pper)">Pay ${money(owe)}</button>`:""}
     ${pr.length?`<div class="problems" style="margin:0 0 14px">${pr.map(p=>`<div class="pi" style="cursor:default">${esc(p.text)}</div>`).join("")}</div>`:""}
-    <div class="card mcard"><div class="mhead">${perSwitch("person",[["day","Day"],["week","Week"],["month","Month"],["all","All"]])}</div>
+    <div class="card mcard"><div class="mhead">${perSwitch("person",[["day","Day"],["week","Week"],["fort","Fortnight"],["month","Month"],["all","All"]])}</div>
       ${(()=>{const dd=new Set(es.filter(e=>e.date).map(e=>e.date)).size;return `<div class="kpis">
         <div class="kpi"><span>Earned</span><b class="num">${money(total)}</b><em class="fl">${perLabel(P1)}</em></div>
         <div class="kpi"><span>Hours</span><b class="num">${hours.toLocaleString()}</b>${dd?`<em class="fl">${plural(dd,"day")} worked</em>`:""}</div>
@@ -1260,7 +1265,7 @@ function sitesPage(){
   </div>
   <div class="search" style="margin:14px 0 10px">${ICON.search}<input type="search" placeholder="Search site, client or address" value="${esc(state.sq||"")}" oninput="state.sq=this.value;clearTimeout(window._sqt);window._sqt=setTimeout(()=>{render();const i=document.querySelector('.search input');if(i){i.focus();i.setSelectionRange(i.value.length,i.value.length)}},250)"></div>
   ${DB.clients.length>1?`<div class="chips" style="padding-top:0;margin-bottom:4px">${[["all","All clients"],...DB.clients.map(c=>[c.id,c.name])].map(([k,l])=>`<button class="chip ${cf===k?"on":""}" onclick="state.cfilter='${k}';render()">${esc(l)}</button>`).join("")}</div>`:""}
-  <div class="card mcard" style="margin:10px 0 14px"><div class="mhead">${perSwitch("sites",[["day","Day"],["week","Week"],["month","Month"]])}</div>
+  <div class="card mcard" style="margin:10px 0 14px"><div class="mhead">${perSwitch("sites",[["day","Day"],["week","Week"],["fort","Fortnight"],["month","Month"]])}</div>
     <div class="kpis" style="grid-template-columns:repeat(3,1fr)"><div class="kpi"><span>Billed</span><b class="num" style="font-size:18px">${money(tot.b)}</b></div><div class="kpi"><span>Wages</span><b class="num" style="font-size:18px">${money(tot.w)}</b></div>
       <div class="kpi"><span>${tp<0?"Loss":"Profit"}</span><b class="num" style="font-size:18px;color:${tp<0?"var(--pay)":"var(--ok)"}">${money(tp)}</b></div></div>${profitNote(PT)?`<div class="mfoot" style="color:var(--warn)">${profitNote(PT)}</div>`:""}</div>
   <div class="sec" style="margin-top:4px"><h2>${af==="active"?"Active sites":af==="idle"?"Not active":"All sites"}</h2><span class="h"><span class="count">${rows.length}</span></span></div>
@@ -1290,7 +1295,7 @@ function sitePage(key){
   return `
   <div style="display:flex;justify-content:space-between;align-items:center"><button class="back" onclick="goBack()">${ICON.back}Back</button><button class="link" style="display:flex;gap:6px;align-items:center;padding:6px 2px 14px" onclick="editSite('${id}')">${ICON.edit}Edit</button></div>
   <div class="ph"><div class="av" style="border-radius:16px!important">${ICON.sites.replace('width="24" height="24"','width="26" height="26"')}</div><div style="flex:1;min-width:0"><h1>${esc(x.name)}</h1><div class="t2">${esc(c.name)}${x.address?" · "+esc(x.address):""}</div></div></div>
-  <div class="card mcard"><div class="mhead">${perSwitch("site",[["day","Day"],["week","Week"],["month","Month"],["all","All"]])}</div>
+  <div class="card mcard"><div class="mhead">${perSwitch("site",[["day","Day"],["week","Week"],["fort","Fortnight"],["month","Month"],["all","All"]])}</div>
     <div class="kpis">
       <div class="kpi"><span>Billed</span><b class="num">${st.b==null?"–":money(st.b)}</b></div>
       <div class="kpi"><span>Wages</span><b class="num">${money(st.w)}</b></div>
@@ -1316,8 +1321,8 @@ function workerExtras(id,es,P){
   const bs={};es.forEach(e=>{const r=bs[e.siteId]||(bs[e.siteId]={id:e.siteId,h:0,w:0,d:new Set()});r.h+= +e.hours;r.w+=wage(e);if(e.date)r.d.add(e.date)});
   const rows=Object.values(bs).sort((a,b)=>b.w-a.w);
   let chart="";
-  if(P.mode==="week"||P.mode==="month"){
-    const ds=[];if(P.mode==="week"){const ws=weekStart(P.d);for(let i=0;i<7;i++)ds.push(addD(ws,i))}else{const m=P.d.slice(0,7);let d=m+"-01";while(d.slice(0,7)===m){ds.push(d);d=addD(d,1)}}
+  if(P.mode==="week"||P.mode==="fort"||P.mode==="month"){
+    const ds=[];if(P.mode==="week"){const ws=weekStart(P.d);for(let i=0;i<7;i++)ds.push(addD(ws,i))}else if(P.mode==="fort"){const a=fortRange(P.d)[0];for(let i=0;i<14;i++)ds.push(addD(a,i))}else{const m=P.d.slice(0,7);let d=m+"-01";while(d.slice(0,7)===m){ds.push(d);d=addD(d,1)}}
     const v=ds.map(d=>es.filter(e=>e.date===d).reduce((a,e)=>a+wage(e),0)),mx=Math.max(1,...v),best=Math.max(...v);
     if(best>0)chart=`<div class="sec"><h2>Earned each day</h2><span class="h">best ${money(best)}</span></div><div class="card" style="padding:16px 14px 10px"><div class="dchart">${ds.map((d,i)=>`<div title="${dayLabel(d)} · ${money(v[i])}"><i style="height:${v[i]?Math.max(6,v[i]/mx*100):0}%" class="${d===todayD()?"now":""}"></i><span>${P.mode==="week"?DOW[parseD(d).getDay()].slice(0,1):(parseD(d).getDate()%5===1||ds.length<10?parseD(d).getDate():"")}</span></div>`).join("")}</div></div>`;
   }
@@ -1459,7 +1464,19 @@ const tint={on:false};let sheetY=0,wasOn=false;
   new MutationObserver(chk).observe(sh,{attributes:true,attributeFilter:["class"]});
   /* keyboard: keep the panel above it */
   const vv=window.visualViewport;const fit=()=>{if(!vv)return;const kb=Math.max(0,window.innerHeight-vv.height-vv.offsetTop);if(kb<40&&sh.classList.contains("on")&&Math.abs(window.scrollY-sheetY)>2)window.scrollTo(0,sheetY);document.documentElement.style.setProperty("--kb",kb+"px");document.documentElement.style.setProperty("--vvh",vv.height+"px");chk()};
-  if(vv){vv.addEventListener("resize",fit);vv.addEventListener("scroll",fit);fit()}
+  const isField=el=>el&&el.matches&&el.matches("input:not([type=checkbox]):not([type=file]),textarea,select");
+  const fit2=()=>{if(!vv)return;const kb=Math.max(0,window.innerHeight-vv.height-vv.offsetTop),typing=isField(document.activeElement)&&kb>120;
+    document.body.classList.toggle("kb-open",typing);
+    /* iOS sometimes leaves the page shifted after the keyboard closes: pin the bar to the visible bottom */
+    const shift=typing?0:Math.round(vv.offsetTop+vv.height-window.innerHeight);document.documentElement.style.setProperty("--vvshift",(Math.abs(shift)>2?shift:0)+"px")};
+  const reveal=()=>{const el=document.activeElement;if(!isField(el)||!vv)return;const r=el.getBoundingClientRect();
+    if(sh.classList.contains("on")&&sh.contains(el)){const sr=sh.getBoundingClientRect(),bot=Math.min(sr.bottom,vv.offsetTop+vv.height)-24,top=sr.top+70;
+      if(r.bottom>bot)sh.scrollTop+=r.bottom-bot;else if(r.top<top)sh.scrollTop-=top-r.top}
+    else{const bot=vv.offsetTop+vv.height-(document.querySelector(".tdbar")?150:40),top=vv.offsetTop+90;if(r.bottom>bot)window.scrollBy(0,r.bottom-bot);else if(r.top<top)window.scrollBy(0,r.top-top)}};
+  document.addEventListener("focusin",e=>{if(!isField(e.target))return;[60,320,600].forEach(t=>setTimeout(()=>{fit2();reveal()},t))});
+  document.addEventListener("focusout",()=>setTimeout(()=>{if(!isField(document.activeElement)){fit2();if(vv&&vv.offsetTop>1)window.scrollTo(window.scrollX,window.scrollY)}},250));
+  if(vv){vv.addEventListener("resize",()=>{fit();fit2();reveal()});vv.addEventListener("scroll",()=>{fit();fit2()});fit();fit2()}
+  window.addEventListener("scroll",fit2,{passive:true});
   /* swipe down to close, like iOS */
   let y0=null,dy=0;sh.addEventListener("touchstart",e=>{if(sh.scrollTop<=0&&!e.target.closest("input,textarea,.sug")){y0=e.touches[0].clientY;dy=0}else y0=null},{passive:true});
   sh.addEventListener("touchmove",e=>{if(y0==null)return;dy=e.touches[0].clientY-y0;if(dy>0){sh.style.transition="none";sh.style.transform=`translateY(${dy}px)`}},{passive:true});
@@ -1669,15 +1686,20 @@ function billNudge(rows){const ss=[...new Set(rows.filter(e=>(e.kind||"work")===
   setTimeout(()=>showSheet(`<h3>Paid ✓ — one thing missing</h3><div class="lead">You haven't said how much comes in from ${ss.length===1?"this site":"these sites"}, so the app can't work out money in or profit.</div>
   <div style="margin-bottom:14px">${ss.map(x=>`<div class="check" onclick="editSite('${x.id}')"><div class="av" style="background:var(--warn-s);color:var(--warn)">!</div><div class="main"><div class="t1">${esc(x.name)}</div><div class="t2">${esc(C(x.clientId).name)} · add charge rate or fixed amount</div></div>${ICON.chev}</div>`).join("")}</div>
   <button class="btn ghost" style="margin-top:0" onclick="closeSheet()">Later</button>`),450)}
-function openPay(wid){hideToast();
+function paySel(k){const t=todayD(),f=k==="tf"?fortRange(t):k==="lf"?fortRange(addD(t,-14)):k==="tw"?[weekStart(t),addD(weekStart(t),6)]:k==="lw"?[addD(weekStart(t),-7),addD(weekStart(t),-1)]:null;
+  P.k=k;P.sel=new Set(P.es.filter(e=>!f||(e.date&&e.date>=f[0]&&e.date<=f[1])).map(e=>e.id));drawPay()}
+function openPay(wid,per){hideToast();
   const es=DB.entries.filter(e=>e.workerId===wid&&!e.paid&&e.hours>0&&e.rate>0).sort((a,b)=>sortKey(a).localeCompare(sortKey(b)));
-  P={wid,sel:new Set(es.map(e=>e.id)),es}; drawPay(); $("#sheet").classList.add("on");$("#scrim").classList.add("on");sheetClose=null;
+  P={wid,sel:new Set(es.map(e=>e.id)),es,k:"all"};
+  if(per&&per.mode==="fort"){const f=fortRange(per.d);P.k=f[1]===fortRange(todayD())[1]?"tf":f[1]===fortRange(addD(todayD(),-14))[1]?"lf":"custom";P.sel=new Set(es.filter(e=>e.date&&e.date>=f[0]&&e.date<=f[1]).map(e=>e.id))}
+  drawPay(); $("#sheet").classList.add("on");$("#scrim").classList.add("on");sheetClose=null;
 }
 function drawPay(){
   const w=W(P.wid); const tot=P.es.filter(e=>P.sel.has(e.id)).reduce((s,e)=>s+wage(e),0);
   $("#sheet").innerHTML=`<div class="grab"></div>
   <div style="display:flex;gap:14px;align-items:center;margin-bottom:12px">${av(w.name)}<div><h3 style="margin:0">Pay ${esc(w.name)}</h3><div class="t2">${P.es.length>1?"Untick anything you're not paying today":"Check it, then mark as paid"}</div></div></div>
-  <div style="margin-bottom:16px">${P.es.map(e=>`<div class="check" onclick="P.sel.has('${e.id}')?P.sel.delete('${e.id}'):P.sel.add('${e.id}');drawPay()"><div class="box ${P.sel.has(e.id)?"on":""}">${P.sel.has(e.id)?ICON.check:""}</div><div class="main"><div class="t1">${e.date?dayLabel(e.date):mLabel(e.month)+" (month)"} · ${esc(Sx(e.siteId).name)}</div><div class="t2">${e.hours} hrs × ${money(e.rate)}</div></div><div class="amt num">${money(wage(e))}</div></div>`).join("")}</div>
+  ${P.es.length>1?`<div class="pseg" style="margin:0 0 12px">${[["all","All"],["lf","Last fortnight"],["tf","This fortnight"]].map(([k,l])=>`<button class="${P.k===k?"on":""}" onclick="paySel('${k}')">${l}</button>`).join("")}</div>`:""}
+  <div style="margin-bottom:16px">${P.es.map(e=>`<div class="check" onclick="P.k='custom';P.sel.has('${e.id}')?P.sel.delete('${e.id}'):P.sel.add('${e.id}');drawPay()"><div class="box ${P.sel.has(e.id)?"on":""}">${P.sel.has(e.id)?ICON.check:""}</div><div class="main"><div class="t1">${e.date?dayLabel(e.date):mLabel(e.month)+" (month)"} · ${esc(Sx(e.siteId).name)}</div><div class="t2">${e.hours} hrs × ${money(e.rate)}</div></div><div class="amt num">${money(wage(e))}</div></div>`).join("")}</div>
   <button class="btn red" ${P.sel.size?"":"disabled"} onclick="doPay()">Mark ${money(tot)} as paid</button>
   <button class="btn ghost" onclick="closeSheet()">Cancel</button>`;
 }
