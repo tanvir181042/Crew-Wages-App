@@ -170,6 +170,18 @@ body.kb-open .nav,body.kb-open #ig{display:none!important}
 .nav{transform:translateY(var(--vvshift,0px))}
 .m8.m5 button{font-size:14.5px!important;padding:0 2px}.m8.m5 button small{display:none}
 .pseg button{flex:1 1 auto!important;padding:0 10px!important}
+.home.simple{display:block!important;max-width:620px;margin:0 auto}
+.home.simple .greet{display:flex!important;justify-content:space-between;align-items:center;margin:4px 0 14px}
+.home.simple .hero{margin-bottom:12px}.limebtn{position:relative;z-index:1;margin-top:16px;width:100%;height:54px;border-radius:var(--r-md);background:#C9F26B;color:#111;font-weight:750;font-size:17px}
+.tiles3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px}.tiles3 button{background:var(--card);border-radius:var(--r-lg);padding:16px 6px 14px;font-weight:680;font-size:14.5px;color:var(--ink);display:flex;flex-direction:column;align-items:center;gap:8px;min-height:96px}
+.tiles3 i{width:42px;height:42px;border-radius:var(--r-sm);background:var(--bg);display:grid;place-items:center;font-style:normal}.tiles3 i svg{width:22px;height:22px}
+.checkrow{display:flex;align-items:center;gap:12px;width:100%;min-height:54px;padding:0 14px;border-radius:var(--r-md);background:#FFF7E6;color:#8A5A00;font-weight:650;font-size:15px;text-align:left;margin-bottom:6px}.checkrow span:nth-child(2){flex:1}.checkrow .cw{width:28px;height:28px;border-radius:8px;background:#F5C04A;color:#fff;display:grid;place-items:center;font-weight:800}
+.slist{padding:4px 18px!important}.srow{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px 0;border-bottom:1px solid var(--line);font-size:16px}.srow:last-child{border-bottom:0}.srow b{font-weight:750;font-size:18px}.srow small{display:block;font-size:12.5px;color:var(--mut);margin-top:2px}
+.fstep{display:flex;align-items:center;gap:4px}.fstep button{width:36px;height:36px;border-radius:10px;background:var(--card);font-size:20px;color:var(--ink)}.fstep small{font-size:13px;color:var(--mut);min-width:84px;text-align:center}
+.tip{display:flex;align-items:center;gap:10px;background:#F4FBE2;border-radius:var(--r-md);padding:12px 12px 12px 14px;margin:0 0 12px;font-size:14px;line-height:1.4;color:#33421a}.tip>div{flex:1}.tip button{flex:none;height:36px;padding:0 12px;border-radius:10px;background:#fff;font-weight:650;font-size:13.5px}
+.daychips{display:flex;gap:8px;margin:0 0 12px}.daychips>*{flex:1;height:46px;border-radius:var(--r-sm);background:var(--card);font-weight:650;font-size:15px;color:var(--ink);display:grid;place-items:center;position:relative}.daychips .on{background:var(--ink);color:var(--bg)}
+.paychips{margin:4px 6px 10px}.paychips>*{height:auto;min-height:48px;padding:6px 4px;white-space:normal;line-height:1.15;text-align:center;font-size:14.5px}
+.daychips input{position:absolute;inset:0;opacity:0;width:100%;height:100%}
 .subback{display:flex;align-items:center;min-height:44px;margin:-6px 0 6px;color:var(--ink);font-size:15px;font-weight:650}
 
 .hero{background:linear-gradient(150deg,#1B1F3B 0%,#0E1325 70%);color:#fff;border-radius:24px;padding:22px;position:relative;overflow:hidden}
@@ -624,7 +636,7 @@ const JOIN=(()=>{const m=(location.hash||"").match(/join=(CW1\.[A-Za-z0-9_\-]+)/
 if(JOIN&&!IS_APP){const l=document.querySelector('link[rel="manifest"]');if(l)l.remove()}
 let deferredInstall=null;
 addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredInstall=e;setTimeout(showInstallGuide,50)});
-const APP_VERSION="4.10";
+const APP_VERSION="5.0";
 /* ============ data layer ============ */
 const TABLES=["clients","sites","workers","rates","entries","income"];
 const EMPTY=()=>({clients:[],sites:[],workers:[],rates:[],entries:[],income:[]});
@@ -889,11 +901,11 @@ function go(tab,extra={}){hideToast();state={...state,tab,person:null,pstack:[],
 
 function render(){
   $("#app").innerHTML=buildApp();
-  $("#nav").innerHTML=`<div class="tabsg glass">${[["home","Overview",ICON.home],["today","Today",ICON.today],["people","People",ICON.people],["sites","Sites",ICON.sites],["more","More",ICON.more]].map(navBtn).join("")}</div><button class="fabw" onclick="openAdd()" aria-label="Add">${ICON.plus}</button>`;
+  $("#nav").innerHTML=`<div class="tabsg glass">${[["home","Home",ICON.home],["today","Hours",ICON.today],["people","People",ICON.people],["sites","Sites",ICON.sites]].map(navBtn).join("")}</div>`;
   const si=$("#q"); if(si&&state.focusSearch){si.focus();si.setSelectionRange(si.value.length,si.value.length)}
   miniUpdate(true);
 }
-const TITLES={home:"Overview",today:"Today",people:"People",sites:"Sites",more:"More",pay:"Pay run",reports:"Reports"};
+const TITLES={home:"Home",today:"Hours",people:"People",sites:"Sites",more:"Settings",pay:"Pay people",reports:"Reports"};
 function buildApp(){
   const titles=TITLES;
   const showMonth=false;
@@ -901,7 +913,7 @@ function buildApp(){
   const top=`<div class="top${bare?" bare":""}">
     <div class="brand"><div class="logo" style="background:none;padding:0"><svg viewBox="0 0 100 100" width="100%" height="100%" aria-hidden="true"><rect width="100" height="100" rx="23.5" fill="#C9F26B"/><circle cx="50" cy="50" r="23" fill="none" stroke="#111" stroke-width="6.6"/><path d="M50 50V35.7M50 50l11 8.4" stroke="#111" stroke-width="6.6" stroke-linecap="round" fill="none"/><circle cx="76.5" cy="25.5" r="5.6" fill="#111"/></svg></div><span class="bt">Hourza</span></div>
     <h1 class="ptitle" style="display:flex;align-items:baseline;gap:10px">${state.person||state.tab==="home"?"":titles[state.tab]}</h1>
-    <div class="tabs">${[["home","Overview"],["today","Today"],["people","People"],["sites","Sites"],["pay","Pay run"],["reports","Reports"]].map(([k,l])=>`<button class="${state.tab===k?"on":""}" onclick="go('${k}')">${l}</button>`).join("")}</div>
+    <div class="tabs">${[["home","Home"],["today","Hours"],["people","People"],["sites","Sites"],["pay","Pay people"],["reports","Reports"]].map(([k,l])=>`<button class="${state.tab===k?"on":""}" onclick="go('${k}')">${l}</button>`).join("")}</div>
     <div class="spacer"></div>
     ${online()&&!state.person?syncBadge():""}${showMonth?monthSwitch():""}
     <button class="add-top" onclick="openAdd()">${ICON.plus.replace('width="24" height="24"','width="18" height="18"')}Add</button>
@@ -1072,7 +1084,7 @@ function askAnswer(q0){
   // 6) site(s)
   if(E.ss.length){return E.ss.slice(0,4).map(s=>{const r=siteR(s,R),g={};r.es.filter(isWork).forEach(e=>{const x=g[e.workerId]||(g[e.workerId]={h:0,w:0});x.h+= +e.hours;x.w+=wage(e)});
     return ansHead(`${esc(s.name)} · ${hrs(r.h)}`,`${R.label} · ${esc(C(s.clientId).name)}${s.address?" · "+esc(s.address):""}`)
-      +`<div class="askk"><div><span>Wages</span><b class="num">${money(r.w)}</b></div><div><span>Billed</span><b class="num">${r.b==null?"Not set":money(r.b)}</b></div><div><span>${r.p<0?"Loss":"Profit"}</span><b class="num" style="color:${r.p==null?"var(--mut)":r.p<0?"var(--pay)":"var(--ok)"}">${r.p==null?"–":money(r.p)}</b></div><div><span>People</span><b class="num">${r.people}</b></div></div>`
+      +`<div class="askk"><div><span>Wages</span><b class="num">${money(r.w)}</b></div><div><span>Charged</span><b class="num">${r.b==null?"Not set":money(r.b)}</b></div><div><span>${r.p<0?"You lose":"You keep"}</span><b class="num" style="color:${r.p==null?"var(--mut)":r.p<0?"var(--pay)":"var(--ok)"}">${r.p==null?"–":money(r.p)}</b></div><div><span>People</span><b class="num">${r.people}</b></div></div>`
       +(Object.keys(g).length?`<div class="list">${Object.entries(g).sort((a,b)=>b[1].h-a[1].h).map(([id,x])=>`<div class="row tap" onclick="askGo('w','${id}')">${av(W(id).name)}<div class="main"><div class="t1">${esc(W(id).name)}</div></div><div class="amt num">${hrs(x.h)}<small>${money(x.w)}</small></div></div>`).join("")}</div>`:"")
       +note(missR(DB.entries.filter(e=>e.siteId===s.id),R))+`<button class="btn ghost" style="margin-top:12px" onclick="askGo('s','${s.id}')">Open ${esc(s.name)}</button>`}).join('<div style="height:18px"></div>')}
   // 7) client
@@ -1085,7 +1097,7 @@ function askAnswer(q0){
     const tw={};work.forEach(e=>tw[e.workerId]=(tw[e.workerId]||0)+ +e.hours);const topW=Object.entries(tw).sort((a,b)=>b[1]-a[1])[0],topS=[...rs].sort((a,b)=>b.h-a.h)[0];
     if(!es.length)return ansHead("No hours yet",R.label)+note(missR(DB.entries,R));
     return ansHead(`${hrs(h)} · ${money(w)} wages`,R.label)
-      +`<div class="askk"><div><span>Billed</span><b class="num">${money(b)}</b></div><div><span>${p<0?"Loss":"Profit"}</span><b class="num" style="color:${p<0?"var(--pay)":"var(--ok)"}">${money(p)}</b></div><div><span>People</span><b class="num">${Object.keys(tw).length}</b></div><div><span>Sites</span><b class="num">${rs.length}</b></div></div>`
+      +`<div class="askk"><div><span>Charged</span><b class="num">${money(b)}</b></div><div><span>${p<0?"You lose":"You keep"}</span><b class="num" style="color:${p<0?"var(--pay)":"var(--ok)"}">${money(p)}</b></div><div><span>People</span><b class="num">${Object.keys(tw).length}</b></div><div><span>Sites</span><b class="num">${rs.length}</b></div></div>`
       +`<div class="list">${topW?`<div class="row tap" onclick="askGo('w','${topW[0]}')">${av(W(topW[0]).name)}<div class="main"><div class="t2">Most hours</div><div class="t1">${esc(W(topW[0]).name)}</div></div><div class="amt num">${hrs(topW[1])}</div></div>`:""}${topS?`<div class="row tap" onclick="askGo('s','${topS.x.id}')"><div class="av" style="background:var(--soft2)">${ICON.sites?ICON.sites.replace(/width="\d+" height="\d+"/,'width="18" height="18"'):"S"}</div><div class="main"><div class="t2">Busiest site</div><div class="t1">${esc(topS.x.name)}</div></div><div class="amt num">${hrs(topS.h)}</div></div>`:""}</div>`
       +(k.length<rs.length?`<div class="t2" style="color:var(--warn);margin:10px 2px 0">${plural(rs.length-k.length,"site")} without money-in set aren't in profit</div>`:"")+note(missR(DB.entries,R))}
   // nothing matched
@@ -1126,78 +1138,46 @@ function workerAns(w,R,ss,anyR){
     +`<div style="display:flex;gap:10px;margin-top:12px"><button class="btn ghost" style="flex:1" onclick="askGo('w','${w.id}')">Open ${esc(w.name.split(" ")[0])}</button><button class="btn ghost" style="flex:1" onclick="askAdd('${w.id}','','${todayD()}','')">Add hours</button></div>`}
 function askAdd(wid,sid,d,h){askRemember($("#askq")?.value||"");openAdd("hours",wid);F.mode="day";F.date=d;if(sid)F.siteId=sid;if(h)F.hours=h;drawAdd();setTimeout(()=>{if(!F.siteId)return;const i=$("#hrs");if(i&&!h)i.focus()},120)}
 /* ---------- Home ---------- */
+function showProblems(){const pr=problems();showSheet(`<h3>Things to check</h3><div class="lead">Tap one to fix it.</div><div class="list" style="margin-bottom:12px">${pr.map(p=>`<div class="row tap" onclick="closeSheet();setTimeout(()=>{${p.type==="bill"?`editSite('${p.site.id}')`:`openPerson('${p.e.workerId}')`}},200)"><div class="av" style="background:var(--warn-s);color:var(--warn)">!</div><div class="main"><div class="t1" style="white-space:normal">${esc(p.text)}</div></div>${ICON.chev}</div>`).join("")}</div><button class="btn ghost" onclick="closeSheet()">Close</button>`)}
+function tipHtml(k,txt){const d=ls.get("cw_tips",{});if(d[k])return "";return `<div class="tip"><span>💡</span><div>${txt}</div><button onclick="const d=ls.get('cw_tips',{});d['${k}']=1;ls.set('cw_tips',d);this.parentNode.remove()" aria-label="Got it">Got it</button></div>`}
 function homePage(){
   const owed=owedByWorker(); const total=owed.reduce((s,o)=>s+o.amount,0);
-  const pr=problems(), P0=state.per, st=perStats(P0);
-  const paidThis=st.es.filter(e=>e.paid), pname=P0.mode==="month"?`${mShort(P0.d.slice(0,7))} work`:P0.mode==="week"?weekLabel(P0.d):P0.mode==="fort"?fortLabel(P0.d):dayRel(P0.d);
-  const paidTotal=paidThis.reduce((s,e)=>s+wage(e),0);
+  const pr=problems();
   const hr=new Date().getHours(),greet=hr<12?"Good morning":hr<17?"Good afternoon":"Good evening";
-  const wk=[];for(let i=7;i>=0;i--){const ws=addD(weekStart(todayD()),-7*i);wk.push(DB.entries.filter(e=>e.date&&weekStart(e.date)===ws).reduce((a,e)=>a+wage(e),0))}
-  const mx=Math.max(1,...wk);
-  const hero=`<div class="a-hero"><div class="greet"><div><small>${DOW[new Date().getDay()]} ${new Date().getDate()} ${MN[new Date().getMonth()]}</small><h1>${greet}</h1></div><button class="me" onclick="go('more')" aria-label="Settings">${ICON.more.replace('width="24" height="24"','width="20" height="20"')}</button></div>
-    <button class="askbar" onclick="openAsk()">${ICON.search}<span>Ask: “${esc(askIdeas()[0])}”</span><i>Ask</i></button>
-    <div class="hero">
-      <div class="lbl" style="display:flex;justify-content:space-between;position:relative;z-index:1">Still to pay ${online()?syncBadge():""}</div>
-      <div class="big num">${money(total)}</div>
-      <div class="sub">${owed.length?`${plural(owed.length,"person")} waiting`:"Everyone is paid up"}</div>
-      <div class="hrow">${owed.length?`<button class="hbtn" onclick="go('pay')">Pay run ${ICON.chev.replace(/stroke="#B4B9C9"/,'stroke="currentColor"')}</button>`:"<span></span>"}
-        ${wk.some(v=>v)?`<div style="flex:1;max-width:190px"><div class="spark">${wk.map((v,i)=>`<i class="${i===7?"now":""}" style="height:${Math.max(6,v/mx*100)}%"></i>`).join("")}</div><div class="spark-l">Wages · last 8 weeks</div></div>`:""}</div>
-    </div>
-    <div class="qa">
-      <button onclick="go('today')"><i>${ICON.clockq}</i>Log hours</button>
-      <button onclick="go('pay')"><i>${ICON.wallet}</i>Pay run</button>
-      <button onclick="go('reports')"><i>${ICON.chart}</i>Reports</button>
-      <button onclick="openAdd('worker')"><i>${ICON.useradd}</i>Add worker</button>
-    </div></div>`;
-  const prob=pr.length?`<div class="a-prob"><div class="sec sec-first"><h2 style="display:flex;align-items:center;gap:8px;color:var(--warn)">${ICON.warn}Needs checking</h2><span class="h"><span class="count">${pr.length}</span></span></div>
-    <div class="list">${pr.slice(0,5).map(p=>`<div class="row tap" onclick="${p.type==="bill"?`editSite('${p.site.id}')`:`openPerson('${p.e.workerId}')`}"><div class="av" style="background:var(--warn-s);color:var(--warn)">!</div><div class="main"><div class="t1">${esc(p.type==="bill"?p.site.name:W(p.e.workerId).name)}</div><div class="t2">${p.type==="bill"?"Money in from this site isn't set · tap to add</div></div>"+ICON.chev+"</div>":""}${p.type==="bill"?"<!--":""}${esc(Sx(p.e.siteId).name)} · ${mLabel(p.e.month)} · ${p.type==="dup"?esc(p.text.split(": ")[1]):p.type==="mix"?"month total + daily hours":"no pay rate"}</div></div>${ICON.chev}</div>${p.type==="bill"?"-->":""}`).join("")}</div></div>`:"";
-  const topay=`<div class="a-topay"><div class="sec sec-first"><h2>To pay</h2>${owed.length>1?`<button class="link" onclick="go('pay')">Pay run ›</button>`:`<span class="h"><span class="count">${owed.length}</span></span>`}</div>
-    <div class="list">${owed.length?owed.map(o=>{const w=W(o.workerId);return `
-      <div class="row">
-        <div class="row tap" style="padding:0;border:0;flex:1;min-width:0" onclick="openPerson('${o.workerId}')">${av(w.name)}
-          <div class="main"><div class="t1">${esc(w.name)}</div><div class="t2">${[...o.sites].map(esc).join(", ")} · ${[...o.months].sort().map(mShort).join(", ")}</div></div>
-          <div class="amt num">${money(o.amount)}</div></div>
-        <button class="pay-btn" onclick="openPay('${o.workerId}')">Pay</button>
-      </div>`}).join(""):`<div class="empty"><div class="e" style="color:var(--ok)">${ICON.party}</div>Everyone is paid up</div>`}</div></div>`;
-  const month=`<div class="a-month"><div class="sec sec-first"><h2>Money</h2><button class="link" onclick="go('reports')">Reports ›</button></div>
-    <div class="card mcard"><div class="mhead">${perSwitch("home",[["day","Day"],["week","Week"],["fort","Fortnight"],["month","Month"]])}</div>
-      ${(()=>{const {ps,lbl:pl}=prevCompare(P0);
-        const dl=(a,b,good)=>{if(!b)return "";const p=Math.round((a-b)/Math.abs(b)*100);if(!p)return `<em class="fl">same ${pl}</em>`;return `<em class="${(p>0)===good?"up":"dn"}">${p>0?"↑":"↓"} ${Math.abs(p)}% ${pl}</em>`};
-        return `<div class="kpis">
-        <div class="kpi"><span>Hours</span><b class="num">${st.hours.toLocaleString()}</b>${dl(st.hours,ps.hours,true)}</div>
-        <div class="kpi"><span>Wages</span><b class="num">${money(st.wages)}</b>${dl(st.wages,ps.wages,true)}</div>
-        <div class="kpi"><span>Billed</span><b class="num">${money(st.billed)}</b>${dl(st.billed,ps.billed,true)}</div>
-        <div class="kpi"><span>${st.profit<0?"Loss":"Profit"}</span><b class="num" style="color:${st.profit<0?"var(--pay)":st.profit>0?"var(--ok)":"inherit"}">${money(st.profit)}</b>${st.billed?`<em class="fl">${Math.round(st.profit/st.billed*100)}% margin</em>`:""}</div></div>`})()}
-      <div class="mfoot">${P0.mode==="month"?`Received from clients ${money(st.income)}${st.billed-st.income>0?` · <span style="color:var(--warn)">${money(st.billed-st.income)} still owed to you</span>`:""}<br>`:""}${paidThis.length?`${money(paidThis.reduce((a,e)=>a+wage(e),0))} paid to workers · ${plural(paidThis.length,"entry")}`:`Nothing paid to workers for ${pname} yet`}${profitNote(profitTotals(P0))?`<br><span style="color:var(--warn)">${profitNote(profitTotals(P0))}</span>`:""}${st.hidden?`<br><span style="color:var(--warn)">Whole-month totals are only counted in Month view.</span>`:""}</div>
-    </div></div>`;
-  const paid=paidThis.length?`<div class="a-paid"><div class="sec"><h2>Paid · ${pname}</h2><span class="h"><span class="count">${Object.keys(paidThis.reduce((g,e)=>(g[e.workerId]=1,g),{})).length}</span></span></div>
-    <div class="list">${groupPaid(paidThis)}</div></div>`:"";
   if(!DB.workers.length){
-    const steps=[["client","Add your first client","e.g. Ken",DB.clients.length],["site","Add a site","Where the work happens",DB.sites.length],["worker","Add a worker","Name, site and pay rate",DB.workers.length]];
-    return `<div class="hero"><div class="lbl">Welcome to</div><div class="big">Hourza</div><div class="sub">Three quick steps and you're ready to add hours.</div></div>
+    const steps=[["site","Add a site","Where the work happens, and who it's for",DB.sites.length],["worker","Add a worker","Name, site and pay rate",DB.workers.length]];
+    return `<div class="hero"><div class="lbl">Welcome to</div><div class="big">Hourza</div><div class="sub">Two quick steps and you're ready to add hours.</div></div>
     <div class="list" style="margin-top:14px">${steps.map(([k,t,d,done],i)=>`<div class="row tap" onclick="openAdd('${k}')"><div class="av" style="background:${done?"var(--ok-s)":"var(--acc-s)"};color:${done?"var(--ok)":"var(--acc)"}">${done?"✓":i+1}</div><div class="main"><div class="t1">${t}</div><div class="t2">${d}</div></div>${ICON.chev}</div>`).join("")}</div>
     ${online()?"":`<button class="joincard" onclick="openConnect()"><span class="ji">${ICON.sheet}</span><span><b>Got an invite?</b><small>Join your team's data — scan their QR or paste the code</small></span>${ICON.chev}</button>`}
     <button class="btn ghost" style="margin-top:14px" onclick="resetDemo(true,true)">Or try it with sample data</button>`;
   }
-  const since=addD(todayD(),-30);
-  const actW=DB.workers.filter(w=>w.active!==false&&DB.entries.some(e=>e.workerId===w.id&&(e.date?e.date>=since:e.month>=since.slice(0,7)))).length;
-  const actS=DB.sites.filter(x=>DB.entries.some(e=>e.siteId===x.id&&(e.date?e.date>=since:e.month>=since.slice(0,7)))).length;
-  const actC=new Set(DB.sites.filter(x=>DB.entries.some(e=>e.siteId===x.id&&(e.date?e.date>=since:e.month>=since.slice(0,7)))).map(x=>x.clientId)).size;
-  const glance=`<div class="a-glance"><div class="glance">
-    <button onclick="go('people')"><b class="num">${actW}</b><span>Active workers</span><small>${DB.workers.filter(w=>w.active!==false).length} on the team</small></button>
-    <button onclick="go('sites')"><b class="num">${actS}</b><span>Active sites</span><small>of ${DB.sites.length} sites</small></button>
-    ${(()=>{const ws=weekStart(todayD()),h=DB.entries.filter(e=>e.date&&e.date>=ws&&isWork(e)).reduce((a,e)=>a+ +e.hours,0);return `<button onclick="go('today')"><b class="num">${h.toLocaleString()}</b><span>Hours this week</span><small>${weekLabel(todayD())}</small></button>`})()}
-  </div><div class="t2" style="margin:8px 4px 0;font-size:12.5px">Active = worked in the last 30 days</div></div>`;
-  const sp=DB.sites.map(x=>siteStats(x,P0)).filter(r=>r.h||r.w||r.b),known=sp.filter(r=>r.p!=null).sort((a,b)=>b.p-a.p),unknown=sp.filter(r=>r.p==null);
-  const mxp=Math.max(1,...known.map(r=>Math.abs(r.p))),tp=known.reduce((a,r)=>a+r.p,0),loss=known.filter(r=>r.p<0);
-  const siteRow=r=>`<div class="row tap" onclick="openSite('${r.x.id}')"><div class="main"><div class="t1">${esc(r.x.name)}</div><div class="t2">${esc(C(r.x.clientId).name)} · ${r.h} hrs · ${plural(r.people,"worker")}</div>
-      ${r.p!=null?`<div class="plbar"><i class="${r.p<0?"neg":"pos"}" style="width:${Math.max(3,Math.abs(r.p)/mxp*100)}%"></i></div>`:""}</div>
-      <div class="amt num" style="color:${r.p==null?"var(--mut)":r.p<0?"var(--pay)":"var(--ok)"}">${r.p==null?"–":money(r.p)}<small>${r.p==null?(r.note?"monthly fee":"not set"):r.b?Math.round(r.p/r.b*100)+"% margin":r.p<0?"loss":"profit"}</small></div>${ICON.chev}</div>`;
-  const sites=sp.length?`<div class="a-sites"><div class="sec"><h2>Sites · profit & loss</h2><button class="link" onclick="go('reports')">All ›</button></div>
-    <div class="card" style="padding:14px 18px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center"><div><div class="t2" style="font-size:13px">${perLabel(P0)} · profit from ${plural(known.length,"site")}</div><div class="num" style="font-size:26px;font-weight:780;letter-spacing:-.03em;color:${tp<0?"var(--pay)":"var(--ok)"}">${money(tp)}</div></div>
-      ${loss.length?`<span class="tag pay">${plural(loss.length,"site")} losing money</span>`:`<span class="tag ok">All sites profitable</span>`}</div>
-    <div class="list">${known.slice(0,state.allSites?999:5).map(siteRow).join("")}${unknown.map(siteRow).join("")}${known.length>5&&!state.allSites?`<div class="row tap" style="justify-content:center;font-weight:650" onclick="state.allSites=true;render()">Show all ${known.length} sites</div>`:""}</div></div>`:"";
-  return `<div class="home">${hero}${glance}${prob}${month}${sites}${topay}${paid}</div>`;
+  const HP=state.hper||(state.hper={mode:"fort",d:todayD()}),T=perStats(HP),cur=fortRange(HP.d)[1]===fortRange(todayD())[1];
+  const row=(l,v,c,sub)=>`<div class="srow"><span>${l}${sub?`<small>${sub}</small>`:""}</span><b class="num"${c?` style="color:${c}"`:""}>${v}</b></div>`;
+  const notes=[];if(T.unsetN)notes.push(`${plural(T.unsetN,"site")} without a charge rate aren't counted`);if(T.supW)notes.push(`includes ${money(T.supW)} supervisors`);
+  return `<div class="home simple">
+    <div class="greet"><div><small>${DOW[new Date().getDay()]} ${new Date().getDate()} ${MN[new Date().getMonth()]}</small><h1>${greet}</h1></div><button class="me" onclick="go('more')" aria-label="Settings">${ICON.more.replace('width="24" height="24"','width="22" height="22"')}</button></div>
+    ${tipHtml("home","This is your summary. Tap <b>Pay people</b> to settle up, or <b>Add hours</b> to log work.")}
+    <div class="hero">
+      <div class="lbl" style="display:flex;justify-content:space-between;position:relative;z-index:1">You owe your crew ${online()?syncBadge():""}</div>
+      <div class="big num">${money(total)}</div>
+      <div class="sub">${owed.length?`${plural(owed.length,"person")} waiting to be paid`:"Everyone is paid up 🎉"}</div>
+      ${owed.length?`<button class="limebtn" onclick="go('pay')">Pay people</button>`:""}
+    </div>
+    <div class="tiles3">
+      <button onclick="go('today')"><i>${ICON.clockq}</i>Add hours</button>
+      <button onclick="openAsk()"><i>${ICON.search}</i>Find a worker</button>
+      <button onclick="go('sites')"><i>${ICON.sites}</i>Sites</button>
+    </div>
+    ${pr.length?`<button class="checkrow" onclick="showProblems()"><span class="cw">!</span><span>${plural(pr.length,"thing")} to check</span>${ICON.chev}</button>`:""}
+    <div class="sec"><h2>${cur?"This fortnight":"Fortnight"}</h2><span class="fstep"><button onclick="perStep(state.hper,-1);render()" aria-label="Previous fortnight">‹</button><small>${fortLabel(HP.d)}</small><button onclick="perStep(state.hper,1);render()" aria-label="Next fortnight">›</button></span></div>
+    <div class="card slist">
+      ${row("Hours worked",T.hours.toLocaleString()+" hrs")}
+      ${row("Paid to workers",money(T.wages))}
+      ${row("You charged clients",money(T.billed))}
+      ${row(T.profit<0?"You lose":"You keep",money(T.profit),T.profit<0?"var(--pay)":"var(--ok)",notes.join(" · "))}
+    </div>
+    <button class="link" style="display:block;margin:12px auto 0" onclick="go('reports')">More numbers in Reports ›</button>
+  </div>`;
 }
 const stat=(k,v,c,neg)=>`<div class="stat"><div class="k"><span class="dot" style="background:${c}"></span>${k}</div><div class="v num"${neg?' style="color:var(--pay)"':""}>${v}</div></div>`;
 function groupPaid(es){
@@ -1219,12 +1199,14 @@ function peoplePage(){
   ws.sort((a,b)=>(owed[b.id]||0)-(owed[a.id]||0)||a.name.localeCompare(b.name));
   const nOwed=DB.workers.filter(w=>owed[w.id]).length;
   return `
+    ${tipHtml("people","Tap a person to see their hours and pay. Red amounts are still to pay.")}
     <div class="search">${ICON.search}<input id="q" type="search" enterkeyhint="search" placeholder="Search name, site or client" value="${esc(state.q)}" oninput="state.q=this.value;state.focusSearch=true;render()" autocomplete="off"></div>
     <div class="chips">${[["all","Everyone"],["owed",`Waiting for pay · ${nOwed}`],["paid","All paid"]].map(([k,l])=>`<button class="chip ${state.filter===k?"on":""}" onclick="state.filter='${k}';render()">${l}</button>`).join("")}</div>
     <div class="list" style="margin-top:14px">${ws.length?ws.map(w=>{
       const sites=isSup(w)?[w.payType==="fixed"?`Supervisor · ${money(w.salary)} per ${PERW[w.salaryPer]}`:"Supervisor"]:DB.rates.filter(r=>r.workerId===w.id).map(r=>Sx(r.siteId).name);
       return `<div class="row tap" onclick="openPerson('${w.id}')">${av(w.name)}<div class="main"><div class="t1">${hl(w.name,q)}</div><div class="t2">${sites.length?sites.map(s=>hl(s,q)).join(", "):"No site yet"}</div></div>
-        ${owed[w.id]?`<div class="amt num" style="color:var(--pay)">${money(owed[w.id])}<small>to pay</small></div>`:`<span class="tag ok">Paid up</span>`}${ICON.chev}</div>`}).join(""):`<div class="empty"><div class="e" style="color:var(--mut)">${ICON.find}</div>${!DB.workers.length?`No workers yet<br><button class="link" onclick="openAdd('worker')">+ Add your first worker</button>`:state.q?`No one matches “${esc(state.q)}”`:"No one in this list"}</div>`}</div>`;
+        ${owed[w.id]?`<div class="amt num" style="color:var(--pay)">${money(owed[w.id])}<small>to pay</small></div>`:`<span class="tag ok">Paid up</span>`}${ICON.chev}</div>`}).join(""):`<div class="empty"><div class="e" style="color:var(--mut)">${ICON.find}</div>${!DB.workers.length?`No workers yet<br><button class="link" onclick="openAdd('worker')">+ Add your first worker</button>`:state.q?`No one matches “${esc(state.q)}”`:"No one in this list"}</div>`}</div>
+    ${DB.workers.length?`<button class="btn" style="margin-top:14px" onclick="openAdd('worker')">+ New worker</button>`:""}`;
 }
 function hl(text,q){const t=esc(text); if(!q)return t; const i=text.toLowerCase().indexOf(q); if(i<0)return t; return esc(text.slice(0,i))+`<mark style="background:var(--hl);color:inherit;border-radius:3px">${esc(text.slice(i,i+q.length))}</mark>`+esc(text.slice(i+q.length))}
 
@@ -1299,8 +1281,8 @@ function sitesPage(){
   <div class="search" style="margin:14px 0 10px">${ICON.search}<input type="search" placeholder="Search site, client or address" value="${esc(state.sq||"")}" oninput="state.sq=this.value;clearTimeout(window._sqt);window._sqt=setTimeout(()=>{render();const i=document.querySelector('.search input');if(i){i.focus();i.setSelectionRange(i.value.length,i.value.length)}},250)"></div>
   ${DB.clients.length>1?`<div class="chips" style="padding-top:0;margin-bottom:4px">${[["all","All clients"],...DB.clients.map(c=>[c.id,c.name])].map(([k,l])=>`<button class="chip ${cf===k?"on":""}" onclick="state.cfilter='${k}';render()">${esc(l)}</button>`).join("")}</div>`:""}
   <div class="card mcard" style="margin:10px 0 14px"><div class="mhead">${perSwitch("sites",[["day","Day"],["week","Week"],["fort","Fortnight"],["month","Month"]])}</div>
-    <div class="kpis" style="grid-template-columns:repeat(3,1fr)"><div class="kpi"><span>Billed</span><b class="num" style="font-size:18px">${money(tot.b)}</b></div><div class="kpi"><span>Wages</span><b class="num" style="font-size:18px">${money(tot.w)}</b></div>
-      <div class="kpi"><span>${tp<0?"Loss":"Profit"}</span><b class="num" style="font-size:18px;color:${tp<0?"var(--pay)":"var(--ok)"}">${money(tp)}</b></div></div>${profitNote(PT)?`<div class="mfoot" style="color:var(--warn)">${profitNote(PT)}</div>`:""}</div>
+    <div class="kpis" style="grid-template-columns:repeat(3,1fr)"><div class="kpi"><span>Charged</span><b class="num" style="font-size:18px">${money(tot.b)}</b></div><div class="kpi"><span>Wages</span><b class="num" style="font-size:18px">${money(tot.w)}</b></div>
+      <div class="kpi"><span>${tp<0?"You lose":"You keep"}</span><b class="num" style="font-size:18px;color:${tp<0?"var(--pay)":"var(--ok)"}">${money(tp)}</b></div></div>${profitNote(PT)?`<div class="mfoot" style="color:var(--warn)">${profitNote(PT)}</div>`:""}</div>
   <div class="sec" style="margin-top:4px"><h2>${af==="active"?"Active sites":af==="idle"?"Not active":"All sites"}</h2><span class="h"><span class="count">${rows.length}</span></span></div>
   <div class="list">${rows.length?rows.map(row).join(""):`<div class="empty">${DB.sites.length?"No sites match":"No sites yet"}</div>`}</div>
   <button class="btn" style="margin-top:14px" onclick="openAdd('site')">+ New site</button>
@@ -1330,9 +1312,9 @@ function sitePage(key){
   <div class="ph"><div class="av" style="border-radius:16px!important">${ICON.sites.replace('width="24" height="24"','width="26" height="26"')}</div><div style="flex:1;min-width:0"><h1>${esc(x.name)}</h1><div class="t2">${esc(c.name)}${x.address?" · "+esc(x.address):""}</div></div></div>
   <div class="card mcard"><div class="mhead">${perSwitch("site",[["day","Day"],["week","Week"],["fort","Fortnight"],["month","Month"],["all","All"]])}</div>
     <div class="kpis">
-      <div class="kpi"><span>Billed</span><b class="num">${st.b==null?"–":money(st.b)}</b></div>
+      <div class="kpi"><span>Charged</span><b class="num">${st.b==null?"–":money(st.b)}</b></div>
       <div class="kpi"><span>Wages</span><b class="num">${money(st.w)}</b></div>
-      <div class="kpi"><span>${st.p!=null&&st.p<0?"Loss":"Profit"}</span><b class="num" style="color:${st.p==null?"inherit":st.p<0?"var(--pay)":"var(--ok)"}">${st.p==null?"–":money(st.p)}</b>${margin!=null?`<em class="fl">${margin}% margin</em>`:""}</div>
+      <div class="kpi"><span>${st.p!=null&&st.p<0?"You lose":"You keep"}</span><b class="num" style="color:${st.p==null?"inherit":st.p<0?"var(--pay)":"var(--ok)"}">${st.p==null?"–":money(st.p)}</b>${margin!=null?`<em class="fl">${margin}% margin</em>`:""}</div>
       <div class="kpi"><span>Hours</span><b class="num">${st.h.toLocaleString()}</b><em class="fl">${plural(st.people,"worker")}</em></div>
     </div>
     ${st.b?`<div style="padding:0 14px 6px"><div class="mbar" style="height:10px;border-radius:5px">${st.w>0?`<i class="w" style="width:${Math.min(100,st.w/st.b*100)}%;background:var(--pay)"></i>`:""}${st.p>0?`<i class="p" style="width:${st.p/st.b*100}%"></i>`:""}</div><div class="t2" style="display:flex;justify-content:space-between;margin-top:6px"><span>Wages ${Math.round(Math.min(100,st.w/st.b*100))}%</span><span>Profit ${Math.max(0,margin)}%</span></div></div>`:""}
@@ -1367,7 +1349,7 @@ const isWork=e=>(e.kind||"work")==="work";
 const KIND={work:"Work",annual:"Annual leave",sick:"Sick leave"};
 const leaveOn=()=>{try{return localStorage.getItem("cw_leave")==="1"}catch(e){return false}};
 function setLeave(v){try{localStorage.setItem("cw_leave",v?"1":"0")}catch(e){};render()}
-const subBack=`<button class="back" onclick="go('home')">${ICON.back}Overview</button>`;
+const subBack=`<button class="back" onclick="go('home')">${ICON.back}Home</button>`;
 
 /* ---------- Today: everyone's hours for one day ---------- */
 let TD={date:null,vals:{},dirty:false};
@@ -1378,19 +1360,26 @@ function tdTotals(){let h=0,w=0;const ppl=new Set();tdRates().forEach(r=>{const 
 function todayPage(){
   if(!TD.date)tdLoad(todayD());else if(!TD.dirty)tdLoad(TD.date);
   const d=TD.date,rs=tdRates(),t=tdTotals();
-  if(!rs.length)return `<div class="card empty" style="margin-top:8px"><div class="e" style="color:var(--mut)">${ICON.find}</div>Add a worker and a site first.<br><button class="link" onclick="openAdd('worker')">+ New worker</button></div>`;
+  if(!rs.length)return `<div class="card empty" style="margin-top:8px"><div class="e" style="color:var(--mut)">${ICON.find}</div>Add a site and a worker first.<br><button class="link" onclick="openAdd('${DB.sites.length?"worker":"site"}')">+ ${DB.sites.length?"New worker":"New site"}</button></div>`;
   const bySite={};rs.forEach(r=>(bySite[r.siteId]=bySite[r.siteId]||[]).push(r));
   const sites=Object.keys(bySite).sort((a,b)=>Sx(a).name.localeCompare(Sx(b).name));
   const prev=DB.entries.filter(e=>e.date&&e.date<d&&isWork(e)).map(e=>e.date).sort().pop();
-  return `<div class="card mcard" style="margin-bottom:14px"><div class="mhead"><div class="month pstep" style="margin:0"><button onclick="tdGo(-1)" aria-label="Previous day">‹</button><span>${dayRel(d)}${d===todayD()||d===addD(todayD(),-1)?" · "+dayLabel(d):""}</span><button onclick="tdGo(1)" aria-label="Next day">›</button></div></div>
+  const td=todayD(),yd=addD(td,-1),other=d!==td&&d!==yd;
+  return `${tipHtml("hours","Pick the day, type each person's hours, then tap <b>Save</b>. Leave blank if they didn't work.")}
+    <div class="daychips"><button class="${d===td?"on":""}" onclick="tdTo('${td}')">Today</button><button class="${d===yd?"on":""}" onclick="tdTo('${yd}')">Yesterday</button><label class="${other?"on":""}">${other?dayLabel(d):"Pick a day"}<input type="date" value="${d}" max="${addD(td,31)}" onchange="if(this.value)tdTo(this.value)"></label></div>
+    <div class="card mcard" style="margin-bottom:14px"><div class="mhead"><div class="month pstep" style="margin:0"><button onclick="tdGo(-1)" aria-label="Previous day">‹</button><span>${dayRel(d)}${d===todayD()||d===addD(todayD(),-1)?" · "+dayLabel(d):""}</span><button onclick="tdGo(1)" aria-label="Next day">›</button></div></div>
       <div class="mgrid" style="grid-template-columns:1fr 1fr 1fr"><div><span>Hours</span><b class="num" id="tdh">${t.h}</b></div><div><span>Wages</span><b class="num" id="tdw">${money(t.w)}</b></div><div><span>People</span><b class="num" id="tdp">${t.p}</b></div></div>
       <div class="mfoot" style="display:flex;gap:16px;flex-wrap:wrap">${d!==todayD()?`<button class="link" style="padding:0" onclick="tdJump()">Go to today</button>`:""}${prev?`<button class="link" style="padding:0" onclick="tdCopy('${prev}')">Copy ${dayRel(prev)===dayLabel(prev)?dayLabel(prev):dayRel(prev).toLowerCase()}'s hours</button>`:""}${t.h?`<button class="link" style="padding:0;color:var(--pay)" onclick="tdClear()">Clear all</button>`:""}</div></div>
     ${sites.map(sid=>`<div class="sec" style="margin-top:18px"><h2 style="font-size:16px">${esc(Sx(sid).name)}</h2><span class="h">${esc(C(Sx(sid).clientId).name)}</span></div>
       <div class="list">${bySite[sid].sort((a,b)=>W(a.workerId).name.localeCompare(W(b.workerId).name)).map(r=>{const k=r.workerId+"|"+r.siteId;return `<div class="row">${av(W(r.workerId).name)}<div class="main"><div class="t1">${esc(W(r.workerId).name)}</div><div class="t2">${money(r.rate)}/hr</div></div>
         ${tdPaid(k)?`<button class="inp num tdin tdlock" onclick="openPerson('${r.workerId}')" aria-label="Paid — open ${esc(W(r.workerId).name)}">${esc(TD.vals[k]||"")}</button><span class="t2" style="color:var(--ok);font-weight:650">paid</span>`:`<input class="inp num tdin" inputmode="decimal" placeholder="–" value="${esc(TD.vals[k]||"")}" oninput="tdSet('${k}',this)" aria-label="Hours for ${esc(W(r.workerId).name)}"><span class="t2">hrs</span>`}</div>`}).join("")}</div>`).join("")}
-    <div class="tdbar" style="${TD.dirty?"":"display:none"}"><button class="btn" id="tdsave" ${TD.dirty?"":"disabled"} onclick="tdSave()">${TD.dirty?"Save "+dayRel(d).toLowerCase()+"'s hours":"Saved"}</button></div>`;
+    <div class="list" style="margin-top:18px"><div class="row tap" onclick="openAdd('worker')"><div class="av">+</div><div class="main"><div class="t1">Someone new</div><div class="t2">Add a worker, then type their hours</div></div>${ICON.chev}</div>
+      <div class="row tap" onclick="openAdd('hours')"><div class="av">${ICON.today.replace(/width="\d+" height="\d+"/,'width="18" height="18"')}</div><div class="main"><div class="t1">A whole week or month</div><div class="t2">Enter many days at once</div></div>${ICON.chev}</div></div>
+    <div class="tdbar" style="${TD.dirty?"":"display:none"}"><button class="btn" id="tdsave" ${TD.dirty?"":"disabled"} onclick="tdSave()">${tdSaveLabel()}</button></div>`;
 }
-function tdSet(k,el){el.value=el.value.replace(/[^0-9.]/g,"");TD.vals[k]=el.value;TD.dirty=true;const t=tdTotals();$("#tdh").textContent=t.h;$("#tdw").textContent=money(t.w);$("#tdp").textContent=t.p;const b=$("#tdsave");b.parentNode.style.display="";b.disabled=false;b.textContent="Save "+dayRel(TD.date).toLowerCase()+"'s hours"}
+function tdSet(k,el){el.value=el.value.replace(/[^0-9.]/g,"");TD.vals[k]=el.value;TD.dirty=true;const t=tdTotals();$("#tdh").textContent=t.h;$("#tdw").textContent=money(t.w);$("#tdp").textContent=t.p;const b=$("#tdsave");b.parentNode.style.display="";b.disabled=false;b.textContent=tdSaveLabel()}
+function tdSaveLabel(){const t=tdTotals();return TD.dirty?`Save · ${t.h} hrs · ${money(t.w)}`:"Saved"}
+function tdTo(d){if(d===TD.date)return;if(TD.dirty&&!confirmBox("Leave this day without saving?"))return render();tdLoad(d);render()}
 function tdGo(n){if(TD.dirty&&!confirmBox("Leave this day without saving?"))return;tdLoad(addD(TD.date,n));render()}
 function tdJump(){if(TD.dirty&&!confirmBox("Leave this day without saving?"))return;tdLoad(todayD());render()}
 function tdKeepPaid(v){Object.keys(TD.vals).forEach(k=>{if(tdPaid(k))v[k]=TD.vals[k]});return v}
@@ -1410,7 +1399,7 @@ async function tdSave(){
 }
 
 /* ---------- Pay run ---------- */
-let PR={mode:"all",d:todayD(),off:new Set()};
+let PR={mode:"fort",d:addD(todayD(),-14),off:new Set()};
 function prRange(){const ws=weekStart(PR.d);if(PR.mode==="week")return [ws,addD(ws,6)];if(PR.mode==="fort")return [addD(ws,-7),addD(ws,6)];return null}
 function prIn(e){if(e.paid||!(e.hours>0)||!(e.rate>0))return false;if(PR.mode==="all")return true;if(PR.mode==="month")return e.month===PR.d.slice(0,7);const[a,b]=prRange();return !!e.date&&e.date>=a&&e.date<=b}
 function prLabel(){if(PR.mode==="all")return "Everything unpaid";if(PR.mode==="month")return mLabel(PR.d.slice(0,7));const[a,b]=prRange();const A=parseD(a),B=parseD(b);return `${A.getDate()} ${MN[A.getMonth()]} – ${B.getDate()} ${MN[B.getMonth()]}`}
@@ -1418,7 +1407,8 @@ function prStep(n){if(PR.mode==="week")PR.d=addD(PR.d,7*n);else if(PR.mode==="fo
 function prGroups(){const g={};DB.entries.filter(prIn).forEach(e=>{const x=g[e.workerId]||(g[e.workerId]={id:e.workerId,es:[],amt:0,h:0});x.es.push(e);x.amt+=wage(e);x.h+= +e.hours});return Object.values(g).sort((a,b)=>W(a.id).name.localeCompare(W(b.id).name))}
 function payPage(){
   const gs=prGroups(),on=gs.filter(x=>!PR.off.has(x.id)),tot=on.reduce((a,x)=>a+x.amt,0);
-  return `${subBack}<div class="card mcard"><div class="mhead"><div class="pseg">${[["all","All unpaid"],["week","Week"],["fort","Fortnight"],["month","Month"]].map(([k,l])=>`<button class="${PR.mode===k?"on":""}" onclick="PR.mode='${k}';PR.off=new Set();render()">${l}</button>`).join("")}</div>
+  return `${subBack}<div class="card mcard"><div class="mhead"><div class="daychips paychips">${(()=>{const lf=fortRange(addD(todayD(),-14))[1],tf=fortRange(todayD())[1],cur=PR.mode==="fort"?fortRange(PR.d)[1]:null;
+    return [["lf","Last fortnight",PR.mode==="fort"&&cur===lf,`PR.mode='fort';PR.d=addD(todayD(),-14)`],["tf","This fortnight",PR.mode==="fort"&&cur===tf,`PR.mode='fort';PR.d=todayD()`],["all","All owed",PR.mode==="all",`PR.mode='all'`]].map(([k,l,on,js])=>`<button class="${on?"on":""}" onclick="${js};PR.off=new Set();render()">${l}</button>`).join("")})()}</div>
       ${PR.mode==="all"?"":`<div class="month pstep"><button onclick="prStep(-1)" aria-label="Previous">‹</button><span>${prLabel()}</span><button onclick="prStep(1)" aria-label="Next">›</button></div>`}</div>
       <div class="mgrid"><div><span>To pay now</span><b class="num">${money(tot)}</b></div><div><span>People</span><b class="num">${on.length}${on.length!==gs.length?` of ${gs.length}`:""}</b></div></div>
       <div class="mfoot">${PR.mode==="week"||PR.mode==="fort"?"Only hours entered by day are included here.":"Untick anyone you're not paying today."}</div></div>
@@ -1451,7 +1441,7 @@ function reportsPage(){
   return `${subBack}<div class="card mcard"><div class="mhead"><div class="pseg">${[["site","By site"],["client","By client"],["worker","By worker"]].map(([k,l])=>`<button class="${RP.by===k?"on":""}" onclick="RP.by='${k}';render()">${l}</button>`).join("")}</div>
       <div class="pseg">${[[false,"One month"],[true,"All time"]].map(([k,l])=>`<button class="${RP.all===k?"on":""}" onclick="RP.all=${k};render()">${l}</button>`).join("")}</div>
       ${RP.all?"":`<div class="month pstep"><button onclick="state.month=addM(state.month,-1);render()" aria-label="Previous month">‹</button><span>${mLabel(state.month)}</span><button onclick="state.month=addM(state.month,1);render()" aria-label="Next month">›</button></div>`}</div>
-      <div class="mgrid">${money2?`<div><span>Billed</span><b class="num">${money(T.b)}</b></div><div><span>Wages</span><b class="num">${money(T.w)}</b></div><div><span>${T0.profit<0?"Loss":"Profit"}</span><b class="num" style="color:${T0.profit<0?"var(--pay)":"var(--ok)"}">${money(T0.profit)}</b></div><div><span>Margin</span><b class="num">${T.b?Math.round(T0.profit/T.b*100)+"%":"–"}</b></div>`:`<div><span>Hours</span><b class="num">${T.h.toLocaleString()}</b></div><div><span>Wages</span><b class="num">${money(T.w)}</b></div>`}</div></div>
+      <div class="mgrid">${money2?`<div><span>Charged</span><b class="num">${money(T.b)}</b></div><div><span>Wages</span><b class="num">${money(T.w)}</b></div><div><span>${T0.profit<0?"You lose":"You keep"}</span><b class="num" style="color:${T0.profit<0?"var(--pay)":"var(--ok)"}">${money(T0.profit)}</b></div><div><span>Margin</span><b class="num">${T.b?Math.round(T0.profit/T.b*100)+"%":"–"}</b></div>`:`<div><span>Hours</span><b class="num">${T.h.toLocaleString()}</b></div><div><span>Wages</span><b class="num">${money(T.w)}</b></div>`}</div></div>
     <div class="sec"><h2>${RP.by==="site"?"Sites":RP.by==="client"?"Clients":"Workers"}</h2><button class="link" onclick="reportCSV()">Download</button></div>
     <div class="list">${rows.length?rows.map(r=>`<div class="row"><div class="main"><div class="t1">${esc(r.name)}</div><div class="t2 num">${r.h} hrs${money2?` · billed ${r.b==null?"–":money(r.b)} · wages ${money(r.w)}`:""}${r.sub?" · "+esc(r.sub):""}</div></div>
       ${money2?(r.p==null?`<span class="tag warn">No charge rate</span>`:`<div class="amt num" style="color:${r.p<0?"var(--pay)":"var(--ok)"}">${money(r.p)}<small>${r.b?Math.round(r.p/r.b*100)+"% margin":"profit"}</small></div>`):`<div class="amt num">${money(r.w)}</div>`}</div>`).join(""):`<div class="empty">Nothing for this period</div>`}</div>
@@ -1471,7 +1461,7 @@ function morePage(){
     <div class="row" onclick="disconnect()"><div class="main"><div class="t1" style="color:var(--pay)">Disconnect this device</div><div class="t2">Your data stays in the Sheet</div></div>${ICON.chev}</div>
   </div>`:`<div class="list settings" style="margin-bottom:22px"><div class="row" onclick="openConnect()"><div class="av" style="background:var(--acc-s);color:var(--acc)">${ICON.sheet}</div><div class="main"><div class="t1">Connect to Google Sheet</div><div class="t2">Use on phone and laptop</div></div>${ICON.chev}</div><div class="row" onclick="needSheetForInvite()"><div class="av" style="background:var(--card2,#ECECE8)">${ICON.people||ICON.sheet}</div><div class="main"><div class="t1">Add a person or device</div><div class="t2">Share the same data with another owner</div></div>${ICON.chev}</div></div>`}
   <div class="list settings" style="margin-bottom:22px">
-    <div class="row" onclick="go('pay')"><div class="main"><div class="t1">Pay run</div><div class="t2">Pay everyone for a week, fortnight or month</div></div>${ICON.chev}</div>
+    <div class="row" onclick="go('pay')"><div class="main"><div class="t1">Pay people</div><div class="t2">Pay everyone for a fortnight, or everything owed</div></div>${ICON.chev}</div>
     <div class="row" onclick="go('reports')"><div class="main"><div class="t1">Reports</div><div class="t2">Money in, wages and profit by site, client or worker</div></div>${ICON.chev}</div>
     <div class="row" onclick="setLeave(!leaveOn())"><div class="main"><div class="t1">Leave</div><div class="t2">Record annual and sick leave hours</div></div><span class="sw ${leaveOn()?"on":""}"></span></div>
   </div>
@@ -1553,7 +1543,7 @@ function drawAdd(){
     sh.style.overflow="hidden";const an=sh.animate([{height:hA+"px"},{height:hB+"px"}],{duration:300,easing:EASE});
     an.onfinish=an.oncancel=()=>{sh.style.overflow="";sh.classList.toggle("scrolly",sh.scrollHeight>sh.clientHeight+4)};return}
   const h0=sh.offsetHeight,oldOn=sh.querySelector(".seg button.on"),segEl=sh.querySelector(".seg"),from=oldOn&&segEl?{l:oldOn.offsetLeft,w:oldOn.offsetWidth}:null,sl=segEl?segEl.scrollLeft:0;
-  sh.innerHTML=`<div class="grab"></div><h3>Add</h3><div class="seg"><i class="ind"></i>${segs.map(([k,l])=>`<button class="${F.kind===k?"on":""}" onclick="FBACK=[];F.kind='${k}';F.err='';drawAdd()">${l}</button>`).join("")}</div><div class="fbody">${inner}</div>`;
+  sh.innerHTML=`<div class="grab"></div><h3>${{hours:"Add hours",worker:F.workerId?"Add a site for "+esc(W(F.workerId).name):"New worker",site:"New site",client:"New company",money:"Money received"}[F.kind]}</h3><div class="seg" style="display:none"><i class="ind"></i>${segs.map(([k,l])=>`<button class="${F.kind===k?"on":""}" onclick="FBACK=[];F.kind='${k}';F.err='';drawAdd()">${l}</button>`).join("")}</div><div class="fbody">${inner}</div>`;
   drawAdd.last=F.kind;
   const seg=sh.querySelector(".seg"),on=seg.querySelector("button.on"),ind=seg.querySelector(".ind");seg.scrollLeft=sl;
   const place=(x)=>{ind.style.left=x.l+"px";ind.style.width=x.w+"px"};
@@ -1692,11 +1682,11 @@ function drawCsug(){const b=$("#csug");if(b)b.innerHTML=csugHtml()}
 async function resolveClient(){const q=(F.cq||"").trim();if(!q)return null;const ex=clientMatch();if(ex)return ex.id;const c={id:uid(),name:q};await put("clients",c);return c.id}
 function formSite(){
   return `<div class="f"><label>Site name</label><input class="inp" placeholder="e.g. Parramatta" autocapitalize="words" autocomplete="off" value="${esc(F.name)}" oninput="F.name=this.value"></div>
-  ${clientField("Client")}
+  ${clientField("Which company is it for?")}
   <div class="f"><label>Address <span style="color:var(--mut);font-weight:500">(optional)</span></label><input class="inp" placeholder="e.g. 12 George St, Parramatta" autocomplete="off" value="${esc(F.address||"")}" oninput="F.address=this.value"></div>
-  ${F.showBill?`<div class="f"><label>What the client pays you <span style="color:var(--mut);font-weight:500">(optional)</span></label><div class="pseg" style="margin:0 0 10px">${[["hourly","Per hour"],["fixed","Fixed per month"]].map(([k,l])=>`<button class="${(F.billType||"hourly")===k?"on":""}" onclick="F.billType='${k}';drawAdd()">${l}</button>`).join("")}</div>
-    <input class="inp num" id="bamt" inputmode="decimal" placeholder="${(F.billType||"hourly")==="fixed"?"$ per month, e.g. 4000":"$ per hour, e.g. 35"}" value="${esc(F.billAmt||"")}" oninput="F.billAmt=this.value"><div class="hint" style="margin-top:8px">Used for this site's profit. You can add it later.</div></div>`
-  :`<button class="addrow" onclick="F.showBill=true;drawAdd();setTimeout(()=>$('#bamt')?.focus(),320)"><span><b>What the client pays you</b><small>Optional · for profit — add now or later</small></span><i>+</i></button>`}
+  ${F.showBill?`<div class="f"><label>They pay you <span style="color:var(--mut);font-weight:500">(optional)</span></label><div class="pseg" style="margin:0 0 10px">${[["hourly","per hour"],["fixed","per month"]].map(([k,l])=>`<button class="${(F.billType||"hourly")===k?"on":""}" onclick="F.billType='${k}';drawAdd()">${l}</button>`).join("")}</div>
+    <input class="inp num" id="bamt" inputmode="decimal" placeholder="${(F.billType||"hourly")==="fixed"?"$ per month, e.g. 4000":"$ per hour, e.g. 35"}" value="${esc(F.billAmt||"")}" oninput="F.billAmt=this.value"><div class="hint" style="margin-top:8px">Used to show how much you keep. Skip if not sure.</div></div>`
+  :`<button class="addrow" onclick="F.showBill=true;drawAdd();setTimeout(()=>$('#bamt')?.focus(),320)"><span><b>How much do they pay you?</b><small>Optional — shows how much you keep</small></span><i>+</i></button>`}
   ${F.err?`<div class="err">${F.err}</div>`:""}<button class="btn" onclick="saveSite()">Save site</button>`;
 }
 async function saveSite(){
