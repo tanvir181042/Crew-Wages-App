@@ -710,6 +710,10 @@ html,body{overscroll-behavior-y:none}
 .askw.chat .aiwave{flex:none;margin:6px 4px 0}
 @media (prefers-reduced-motion:reduce){.adots i,.ashim,.ailogo svg,.ailogo{animation:none!important}}
 .aiok{margin-top:10px;padding:10px 14px;border-radius:14px;background:var(--ok-s);color:var(--ok);font-weight:650;font-size:14.5px}.aiok .link{margin-left:8px;font-size:14px}.aib.old .aiundo{display:none}
+@media (max-width:899px){.sheet.chatmode{top:calc(var(--vvt,0px) + max(env(safe-area-inset-top),10px) + 6px)!important;bottom:auto!important;height:calc(var(--vvh,100vh) - max(env(safe-area-inset-top),10px) - 14px)!important;max-height:none!important;transition:transform .42s cubic-bezier(.32,.72,0,1),top .18s ease,height .18s ease}
+.sheet.chatmode .askw.chat{height:100%;max-height:none;min-height:0}}
+.sheet.chatmode .askw.chat{height:100%}
+@media (min-width:900px){.sheet.chatmode{height:min(720px,80vh)}}
 </style>
 </head>
 <body>
@@ -731,7 +735,7 @@ const JOIN=(()=>{const m=(location.hash||"").match(/join=(CW1\.[A-Za-z0-9_\-]+)/
 if(JOIN&&!IS_APP){const l=document.querySelector('link[rel="manifest"]');if(l)l.remove()}
 let deferredInstall=null;
 addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredInstall=e;setTimeout(showInstallGuide,50)});
-const APP_VERSION="6.9";
+const APP_VERSION="6.9.1";
 /* ============ data layer ============ */
 const TABLES=["clients","sites","workers","rates","entries","income"];
 const EMPTY=()=>({clients:[],sites:[],workers:[],rates:[],entries:[],income:[]});
@@ -1934,7 +1938,7 @@ const tint={on:false};let sheetY=0,wasOn=false;
 (function(){const sh=document.getElementById("sheet");const chk=()=>{(sh.getAnimations&&sh.getAnimations().length?0:sh.classList.toggle("scrolly",sh.scrollHeight>sh.clientHeight+4));const on=sh.classList.contains("on");document.body.classList.toggle("sheet-open",on);if(on&&!wasOn)sheetY=window.scrollY;if(!on&&wasOn)setTimeout(()=>window.scrollTo(0,sheetY),60);wasOn=on;if(false){tint.on=on;const l=document.getElementById("tcl"),d=document.getElementById("tcd");if(l)l.content=on?"#9497A1":"#F5F6FA";if(d)d.content=on?"#0C101B":"#0B0D14"}};
   new MutationObserver(chk).observe(sh,{attributes:true,attributeFilter:["class"]});
   /* keyboard: keep the panel above it */
-  const vv=window.visualViewport;const fit=()=>{if(!vv)return;const kb=Math.max(0,window.innerHeight-vv.height-vv.offsetTop);if(kb<40&&sh.classList.contains("on")&&Math.abs(window.scrollY-sheetY)>2)window.scrollTo(0,sheetY);document.documentElement.style.setProperty("--kb",kb+"px");document.documentElement.style.setProperty("--vvh",vv.height+"px");chk()};
+  const vv=window.visualViewport;const fit=()=>{if(!vv)return;const kb=Math.max(0,window.innerHeight-vv.height-vv.offsetTop);if(kb<40&&sh.classList.contains("on")&&Math.abs(window.scrollY-sheetY)>2)window.scrollTo(0,sheetY);document.documentElement.style.setProperty("--kb",kb+"px");document.documentElement.style.setProperty("--vvh",vv.height+"px");document.documentElement.style.setProperty("--vvt",vv.offsetTop+"px");chk()};
   const PTR={on:false};
 (function(){const el=document.getElementById("ptr");let y0=null,dy=0;
   const blocked=()=>document.querySelector(".sheet.on,.lock,#ig:not([hidden])")||document.body.classList.contains("sheet-open")||document.body.classList.contains("kb-open");
