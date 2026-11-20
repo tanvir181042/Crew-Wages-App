@@ -709,6 +709,7 @@ html,body{overscroll-behavior-y:none}
 @keyframes shim{from{background-position:200% 0}to{background-position:-200% 0}}
 .askw.chat .aiwave{flex:none;margin:6px 4px 0}
 @media (prefers-reduced-motion:reduce){.adots i,.ashim,.ailogo svg,.ailogo{animation:none!important}}
+.aiok{margin-top:10px;padding:10px 14px;border-radius:14px;background:var(--ok-s);color:var(--ok);font-weight:650;font-size:14.5px}.aiok .link{margin-left:8px;font-size:14px}.aib.old .aiundo{display:none}
 </style>
 </head>
 <body>
@@ -730,7 +731,7 @@ const JOIN=(()=>{const m=(location.hash||"").match(/join=(CW1\.[A-Za-z0-9_\-]+)/
 if(JOIN&&!IS_APP){const l=document.querySelector('link[rel="manifest"]');if(l)l.remove()}
 let deferredInstall=null;
 addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredInstall=e;setTimeout(showInstallGuide,50)});
-const APP_VERSION="6.8.1";
+const APP_VERSION="6.9";
 /* ============ data layer ============ */
 const TABLES=["clients","sites","workers","rates","entries","income"];
 const EMPTY=()=>({clients:[],sites:[],workers:[],rates:[],entries:[],income:[]});
@@ -1220,17 +1221,25 @@ function aiHoursCard(){const p=AI.p,w=W(p.wid),r=DB.rates.find(x=>x.workerId===p
     ex.length?`<div class="aic3">⚠ Already has hours on ${ex.map(dayLabel).join(", ")} — ${nd.length?"those days are skipped":"nothing new to add"}.</div>`:"",
     (nd.length?`<button class="btn" onclick="aiDo()">Save${nd.length>1?" "+plural(nd.length,"day"):""}</button>`:"")+`<button class="btn ghost" onclick="aiEdit()">Edit first</button>`)}
 function aiEdit(){const p=AI.p;closeSheet();setTimeout(()=>{openAdd("hours",p.wid);F.siteId=p.sid;const hh=d=>String(p.hm&&p.hm[d]?p.hm[d]:p.h);if(p.ds.length===1){F.mode="day";F.date=p.ds[0];F.hours=hh(p.ds[0])}else{const a=p.ds[0],b=p.ds[p.ds.length-1];if(weekStart(a)===weekStart(b)){F.mode="week";F.wk=weekStart(a);F.days=Array(7).fill("");p.ds.forEach(d=>F.days[Math.round((parseD(d)-parseD(F.wk))/864e5)]=hh(d));F.dkey=F.wk}else{F.mode="month";F.month=a.slice(0,7);F.days=Array(mDays(F.month+"-01")).fill("");p.ds.filter(d=>d.slice(0,7)===F.month).forEach(d=>F.days[+d.slice(8)-1]=hh(d));F.dkey=F.month+"-01"}}drawAdd()},200)}
-async function aiDo(){const p=AI.p;if(!p)return;askRemember($("#askq")?.value||"");const now=todayD();
+async function aiDo(mode){const p=AI.p;if(!p)return;
+  if(mode==="save"&&p.k==="worker"){const w={id:uid(),name:p.name.trim(),active:true,role:"crew",payType:"hourly",salary:0,salaryPer:"",createdAt:todayD()};await put("workers",w);const nr={id:uid(),workerId:w.id,siteId:p.sid,rate:+p.rate};await put("rates",nr);render();aiDone(`✓ ${esc(w.name)} added at ${esc(Sx(p.sid).name)}`,async()=>{await del("rates",nr.id);await del("workers",w.id);render()});return}
+  if(p.k==="paid"){const now=todayD(),old=DB.entries.filter(e=>p.ids.includes(e.id)).map(e=>({...e}));await putMany("entries",old.map(e=>({...e,paid:true,paidAt:now})));render();aiDone(`✓ Marked ${money(old.reduce((x,e)=>x+wage(e),0))} as paid`,async()=>{await putMany("entries",old);render()});return}
+  if(p.k==="edit"){const now=todayD(),es=DB.entries.filter(e=>e.workerId===p.wid&&e.siteId===p.sid&&e.date===p.d&&isWork(e)&&!e.paid),old=es.map(e=>({...e})),r=DB.rates.find(x=>x.workerId===p.wid&&x.siteId===p.sid)||{};let add=null;
+    if(es.length){for(const e of es.slice(1))await del("entries",e.id);if(p.h>0)await put("entries",{...es[0],hours:p.h});else await del("entries",es[0].id)}else if(p.h>0){add={id:uid(),date:p.d,month:p.d.slice(0,7),workerId:p.wid,siteId:p.sid,hours:p.h,rate:r.rate||0,paid:false,paidAt:"",notes:"",createdAt:now,kind:"work"};await put("entries",add)}
+    render();aiDone(`✓ ${esc(W(p.wid).name)} · ${dayLabel(p.d)} · ${p.h} hrs`,async()=>{if(add)await del("entries",add.id);if(old.length)await putMany("entries",old);render()});return}
+  if(p.k==="rate"){const r=DB.rates.find(x=>x.workerId===p.wid&&x.siteId===p.sid),old=r?{...r}:null;const nr=r?{...r,rate:p.rate}:{id:uid(),workerId:p.wid,siteId:p.sid,rate:p.rate};await put("rates",nr);render();aiDone(`✓ ${esc(W(p.wid).name)}: ${money(p.rate)}/hr at ${esc(Sx(p.sid).name)}`,async()=>{if(old)await put("rates",old);else await del("rates",nr.id);render()});return}
+  if(p.k==="charge"){const x=DB.sites.find(y=>y.id===p.sid),old={...x};await put("sites",{...x,billType:p.bill,charge:p.bill==="hourly"?p.amt:0,fixed:p.bill==="fixed"?p.amt:0});render();aiDone(`✓ ${esc(x.name)} charge saved`,async()=>{await put("sites",old);render()});return}
+  if(p.k==="left"){const w=W(p.wid),old={...w};await put("workers",{...w,active:false});render();aiDone(`✓ ${esc(w.name)} marked as left`,async()=>{await put("workers",old);render()});return}askRemember($("#askq")?.value||"");const now=todayD();
   if(p.k==="hours"){const r=DB.rates.find(x=>x.workerId===p.wid&&x.siteId===p.sid)||{},nd=p.ds.filter(d=>!DB.entries.some(e=>e.workerId===p.wid&&e.siteId===p.sid&&e.date===d&&isWork(e)));
     const rows=nd.map(d=>({id:uid(),date:d,month:d.slice(0,7),workerId:p.wid,siteId:p.sid,hours:p.hm&&p.hm[d]?p.hm[d]:p.h,rate:r.rate||0,paid:false,paidAt:"",notes:"",createdAt:now,kind:"work"}));if(!rows.length)return;
-    await putMany("entries",rows);closeSheet();render();aiTalk("Saved.");toast(`✓ Saved · ${esc(W(p.wid).name)} · ${rows.length>1?plural(rows.length,"day")+" · ":""}${rows.reduce((a,e)=>a+e.hours,0)} hrs`,async()=>{await delMany("entries",rows.map(e=>e.id));render()})}
-  else if(p.k==="money"){const row={id:uid(),clientId:p.cid,month:p.mo,amount:p.amt,note:""};await put("income",row);closeSheet();render();aiTalk("Saved.");toast(`✓ ${money(p.amt)} from ${esc(C(p.cid).name)} saved`,async()=>{await del("income",row.id);render()})}
-  else if(p.k==="del"){const old=DB.entries.filter(e=>p.ids.includes(e.id)).map(e=>({...e}));await delMany("entries",p.ids);closeSheet();render();aiTalk("Deleted.");toast(`✓ Deleted ${plural(old.length,"entry")}`,async()=>{await putMany("entries",old);render()})}
+    await putMany("entries",rows);render();aiDone(`✓ Saved · ${esc(W(p.wid).name)} · ${rows.length>1?plural(rows.length,"day")+" · ":""}${rows.reduce((a,e)=>a+e.hours,0)} hrs`,async()=>{await delMany("entries",rows.map(e=>e.id));render()})}
+  else if(p.k==="money"){const row={id:uid(),clientId:p.cid,month:p.mo,amount:p.amt,note:""};await put("income",row);render();aiDone(`✓ ${money(p.amt)} from ${esc(C(p.cid).name)} saved`,async()=>{await del("income",row.id);render()})}
+  else if(p.k==="del"){const old=DB.entries.filter(e=>p.ids.includes(e.id)).map(e=>({...e}));await delMany("entries",p.ids);render();aiDone(`✓ Deleted ${plural(old.length,"entry")}`,async()=>{await putMany("entries",old);render()})}
   else if(p.k==="pay"){closeSheet();setTimeout(()=>openPay(p.wid,p.per),220)}
   else if(p.k==="worker"){closeSheet();setTimeout(()=>{openAdd("worker");F.name=p.name;if(p.sid)F.siteId=p.sid;if(p.rate)F.rate=p.rate;drawAdd()},220)}
   else if(p.k==="site"){closeSheet();setTimeout(()=>{openAdd("site");F.name=p.name;if(p.cid){F.clientId=p.cid;F.cq=C(p.cid).name}else if(p.cq)F.cq=p.cq.replace(/\b\w/g,c=>c.toUpperCase());drawAdd()},220)}
   else if(p.k==="cover"){if(!p.sid)return;const was=TD.date;TD.date=p.ds[0];await coverAdd(p.sid,p.cov);TD.date=was;
-    if(p.h){const r=DB.rates.find(x=>x.workerId===p.cov&&x.siteId===p.sid)||{};const rows=p.ds.filter(d=>!DB.entries.some(e=>e.workerId===p.cov&&e.siteId===p.sid&&e.date===d&&isWork(e))).map(d=>({id:uid(),date:d,month:d.slice(0,7),workerId:p.cov,siteId:p.sid,hours:+p.h,rate:r.rate||0,paid:false,paidAt:"",notes:"Cover for "+W(p.sick).name,createdAt:now,kind:"work"}));if(rows.length)await putMany("entries",rows);closeSheet();render();aiTalk("Done.");toast(`✓ ${esc(W(p.cov).name)} covers ${esc(W(p.sick).name)} · ${rows.length*p.h} hrs saved`)}
+    if(p.h){const r=DB.rates.find(x=>x.workerId===p.cov&&x.siteId===p.sid)||{};const rows=p.ds.filter(d=>!DB.entries.some(e=>e.workerId===p.cov&&e.siteId===p.sid&&e.date===d&&isWork(e))).map(d=>({id:uid(),date:d,month:d.slice(0,7),workerId:p.cov,siteId:p.sid,hours:+p.h,rate:r.rate||0,paid:false,paidAt:"",notes:"Cover for "+W(p.sick).name,createdAt:now,kind:"work"}));if(rows.length)await putMany("entries",rows);render();aiDone(`✓ ${esc(W(p.cov).name)} covers ${esc(W(p.sick).name)} · ${rows.length*p.h} hrs saved`)}
     else{closeSheet();render();setTimeout(()=>{openAdd("hours",p.cov);F.siteId=p.sid;F.mode="day";F.date=p.ds[0];F.notes="Cover for "+W(p.sick).name;drawAdd()},220)}}}
 
 /* ---------- Smart AI (Gemini, free tier, key stays on this device) ---------- */
@@ -1260,7 +1269,12 @@ async function aiSaveKey(){const k=$("#gk").value.trim(),b=$("#gkb");if(!/^[\w.\
 function gaiCtx(){const td=todayD();
   const ws=DB.workers.filter(w=>w.active!==false).map(w=>{const rs=DB.rates.filter(r=>r.workerId===w.id&&r.siteId!==SUP).map(r=>r.siteId);return `${w.id}|${w.name}${w.role==="supervisor"?"|supervisor":""}|sites:${rs.join(",")}`}).join("\n");
   const ss=DB.sites.map(x=>`${x.id}|${x.name}|client:${x.clientId}`).join("\n"),cs=DB.clients.map(c=>`${c.id}|${c.name}`).join("\n");
-  return `Today: ${td} (${DOW[parseD(td).getDay()]}). Weeks start Monday.\nWORKERS (id|name|sites):\n${ws}\nSITES (id|name|client):\n${ss}\nCLIENTS (id|name):\n${cs}`}
+  return `Today: ${td} (${DOW[parseD(td).getDay()]}). Weeks start Monday.\nWORKERS (id|name|sites):\n${ws}\nSITES (id|name|client):\n${ss}\nCLIENTS (id|name):\n${cs}\n${gaiData()}`}
+function gaiData(){try{const td=todayD(),cm=td.slice(0,7),lm=addM(cm,-1),ws=weekStart(td),lw=addD(ws,-7);
+  const sum=(f)=>{const g={};DB.entries.filter(e=>isWork(e)&&f(e)).forEach(e=>{const k=e.workerId;const x=g[k]||(g[k]={h:0,w:0});x.h+= +e.hours;x.w+=wage(e)});return Object.entries(g).map(([k,x])=>`${W(k).name}: ${Math.round(x.h*100)/100}h $${Math.round(x.w)}`).join("; ")||"none"};
+  const owed=owedByWorker().map(o=>`${W(o.workerId).name} $${Math.round(o.amount)}`).join("; ")||"nobody";
+  const sites=DB.sites.map(x=>{const r=siteR(x,RR(cm+"-01",mEnd(cm),""));return `${x.name}: ${Math.round(r.h)}h wages $${Math.round(r.w)}${r.b!=null?` charged $${Math.round(r.b)} kept $${Math.round(r.p)}`:" (no charge rate)"}`}).join("; ");
+  return `DATA (exact, computed by the app):\nOwed now: ${owed}\nThis week (from ${ws}): ${sum(e=>e.date>=ws)}\nLast week (${lw} to ${addD(ws,-1)}): ${sum(e=>e.date>=lw&&e.date<ws)}\nThis month ${cm}: ${sum(e=>e.month===cm)}\nLast month ${lm}: ${sum(e=>e.month===lm)}\nSites this month: ${sites}`.slice(0,6000)}catch(e){return ""}}
 const GAI_SYS=`You are Hourza AI inside a payroll app for a cleaning labour-hire business in Australia. The user (the business owner or staff) speaks English, Bangla/Banglish or Nepali (Devanagari or romanised), by voice or text. Workers are often Nepali. Reply ONLY with JSON:
 {"say": short friendly reply in the same language and script the user used (max 25 words; for actions describe what will happen), "action": null or one action object, "query": null or a search string}
 Actions (use ids from the lists; dates are YYYY-MM-DD; never invent ids):
@@ -1272,7 +1286,18 @@ Actions (use ids from the lists; dates are YYYY-MM-DD; never invent ids):
 - {"type":"new_site","name":"..","client_id":".." or null,"client_name":".." or null}
 - {"type":"delete_hours","worker_id":"..","site_id":".." or null,"dates":[".."]}
 - {"type":"open","page":"home|today|people|sites|pay|reports|more"}
-For QUESTIONS about numbers (hours, pay owed, profit, who worked, a person/site/client over a period) do NOT answer numbers yourself: set "query" to a short English search the app understands, using exact names, e.g. "sam lee last week", "who do i owe", "who worked today", "who worked at mascot last week", "bupa parramatta this month", "ken november", "anish 3 nov", "sites losing money", "top workers this month", "summary last month", "anish so far". Then "say" can be a short lead-in like "Here's Sam's last week".
+- {"type":"show_person","worker_id":".."}   // "show me Sam", "open Sam's page"
+- {"type":"show_site","site_id":".."}
+- {"type":"show_reports","by":"site|client|worker","month":"YYYY-MM" or null,"all_time":false}
+- {"type":"show_pay","period":"last_fortnight|this_fortnight|all"}
+- {"type":"show_hours","mode":"day|week|month","date":"YYYY-MM-DD"}
+- {"type":"mark_paid","worker_id":".." or null for everyone,"from":"YYYY-MM-DD" or null,"to":"YYYY-MM-DD" or null}  // "I paid Sam", "mark everyone paid for last fortnight"
+- {"type":"edit_hours","worker_id":"..","site_id":".." or null,"date":"..","hours":number}   // change hours already entered on a day (0 = remove)
+- {"type":"set_rate","worker_id":"..","site_id":"..","rate":number}   // worker's pay per hour at a site
+- {"type":"set_charge","site_id":"..","bill":"hourly|fixed","amount":number}   // what the client pays for a site
+- {"type":"worker_left","worker_id":".."}  // someone stopped working
+Use show_* whenever the user wants to SEE something ("show", "dekhao", "देखाउ"). Do what the user asks — don't just explain how.
+For QUESTIONS about numbers you may answer in "say" ONLY with numbers copied exactly from DATA below; if DATA doesn't have it, do NOT guess: set "query" to a short English search the app understands, using exact names, e.g. "sam lee last week", "who do i owe", "who worked today", "who worked at mascot last week", "bupa parramatta this month", "ken november", "anish 3 nov", "sites losing money", "top workers this month", "summary last month", "anish so far". Then "say" can be a short lead-in like "Here's Sam's last week".
 If the request is unclear (e.g. two workers share a first name), ask a short question in "say" with action null.
 For how-to questions about the app, answer in "say" (max 40 words). Never claim something is saved — the user taps Save.`;
 async function gaiCall(text){const g=GAI.get();if(!g)throw new Error("off");
@@ -1309,12 +1334,31 @@ function gaiRender(o,q){const a=o.action,say=esc(o.say||"");AI.say=o.say||"";AI.
     if(t==="money_in"){const c=DB.clients.find(x=>x.id===a.client_id),amt=+a.amount;if(!c||!(amt>0))return lead||bad();const mo=/^\d{4}-\d{2}$/.test(a.month||"")?a.month:td.slice(0,7);AI.p={k:"money",cid:c.id,amt,mo};
       return lead+aiCard(`Money in: ${money(amt)}`,`from ${esc(c.name)} · ${mLabel(mo)}`,"",`<button class="btn" onclick="aiDo()">Save</button>`)}
     if(t==="new_worker"){const sid=DB.sites.some(x=>x.id===a.site_id)?a.site_id:null;AI.p={k:"worker",name:a.name||"",sid,rate:+a.rate>0?String(+a.rate):""};
-      return lead+aiCard(`New worker${a.name?": "+esc(a.name):""}`,[sid?"at "+esc(Sx(sid).name):"",AI.p.rate?money(+AI.p.rate)+"/hr":""].filter(Boolean).join(" · "),"",`<button class="btn" onclick="aiDo()">Open and check</button>`)}
+      return lead+aiCard(`New worker${a.name?": "+esc(a.name):""}`,[sid?"at "+esc(Sx(sid).name):"",AI.p.rate?money(+AI.p.rate)+"/hr":""].filter(Boolean).join(" · "),"",(a.name&&sid&&AI.p.rate?`<button class="btn" onclick="aiDo('save')">Save</button><button class="btn ghost" onclick="aiDo()">Edit first</button>`:`<button class="btn" onclick="aiDo()">Open and check</button>`))}
     if(t==="new_site"){const c=DB.clients.find(x=>x.id===a.client_id);AI.p={k:"site",name:a.name||"",cid:c?c.id:null,cq:c?c.name:(a.client_name||"")};
       return lead+aiCard(`New site${a.name?": "+esc(a.name):""}`,c?"for "+esc(c.name):a.client_name?"for "+esc(a.client_name)+" (new company)":"","",`<button class="btn" onclick="aiDo()">Open and check</button>`)}
     if(t==="delete_hours"){const w=DB.workers.find(x=>x.id===a.worker_id),ds=(a.dates||[]).filter(okD);if(!w||!ds.length)return lead||bad();const es=DB.entries.filter(e=>e.workerId===w.id&&ds.includes(e.date)&&isWork(e)&&(!a.site_id||e.siteId===a.site_id)),un=es.filter(e=>!e.paid);
       if(!es.length)return lead+aiCard("Nothing to delete",`${esc(w.name)} has no hours on ${ds.map(dayLabel).join(", ")}`,"","");AI.p={k:"del",ids:un.map(e=>e.id)};
       return lead+aiCard(`Delete ${esc(w.name)}'s hours?`,hrs(un.reduce((x,e)=>x+ +e.hours,0)),`<div class="list" style="margin-top:10px">${es.map(e=>`<div class="row"><div class="main"><div class="t1">${dayLabel(e.date)} · ${esc(Sx(e.siteId).name)}</div><div class="t2">${e.hours} hrs${e.paid?" · paid, kept":""}</div></div></div>`).join("")}</div>`,un.length?`<button class="btn danger" onclick="aiDo()">Delete ${plural(un.length,"entry")}</button>`:"")}
+    if(t==="show_person"){const w=DB.workers.find(x=>x.id===a.worker_id);if(!w)return lead||bad();aiNav(()=>openPerson(w.id));return lead+aiCard(`Opening ${esc(w.name)}…`,"","","")}
+    if(t==="show_site"){const x=DB.sites.find(y=>y.id===a.site_id);if(!x)return lead||bad();aiNav(()=>openSite(x.id));return lead+aiCard(`Opening ${esc(x.name)}…`,"","","")}
+    if(t==="show_reports"){aiNav(()=>{RP.by=["site","client","worker"].includes(a.by)?a.by:"site";RP.all=!!a.all_time;if(/^\d{4}-\d{2}$/.test(a.month||""))state.month=a.month;go("reports")});return lead+aiCard("Opening Reports…",`By ${a.by||"site"} · ${a.all_time?"all time":mLabel(a.month||state.month||td.slice(0,7))}`,"","")}
+    if(t==="show_pay"){aiNav(()=>{go("pay");PR={mode:a.period==="all"?"all":"fort",d:a.period==="this_fortnight"?td:addD(td,-14),off:new Set()};render()});return lead+aiCard("Opening Pay people…",a.period==="all"?"Everything owed":a.period==="this_fortnight"?"This fortnight":"Last fortnight","","")}
+    if(t==="show_hours"){aiNav(()=>{const d=okD(a.date)?a.date:td;go("today");state.hmode=["day","week","month"].includes(a.mode)?a.mode:"day";if(state.hmode==="day"){TD.date=d;tdLoad(d)}else if(state.hmode==="week")wkLoad(weekStart(d));else{const ms=d.slice(0,7)+"-01";wkLoad(ms,mDays(ms))}render()});return lead+aiCard("Opening Hours…",`${a.mode||"day"} · ${okD(a.date)?dayLabel(a.date):"today"}`,"","")}
+    if(t==="mark_paid"){const f=okD(a.from)?a.from:null,to=okD(a.to)?a.to:null,es=DB.entries.filter(e=>!e.paid&&e.hours>0&&e.rate>0&&(!a.worker_id||e.workerId===a.worker_id)&&(!f||(e.date&&e.date>=f))&&(!to||(e.date&&e.date<=to)));
+      if(!es.length)return lead+aiCard("Nothing to mark","Already paid for that period","","");const amt=es.reduce((x,e)=>x+wage(e),0),ppl=new Set(es.map(e=>e.workerId));AI.p={k:"paid",ids:es.map(e=>e.id)};
+      return lead+aiCard(`Mark ${money(amt)} as paid?`,`${a.worker_id?esc(W(a.worker_id).name):plural(ppl.size,"person")} · ${plural(es.length,"entry")}${f||to?" · "+rngLabel(f||es[0].date||td,to||td):""}`,`<div class="list" style="margin-top:10px">${[...ppl].slice(0,8).map(id=>`<div class="row"><div class="main"><div class="t1">${esc(W(id).name)}</div></div><b class="num">${money(es.filter(e=>e.workerId===id).reduce((x,e)=>x+wage(e),0))}</b></div>`).join("")}</div>`,`<button class="btn" onclick="aiDo()">Mark as paid</button>`)}
+    if(t==="edit_hours"){const w=DB.workers.find(x=>x.id===a.worker_id);if(!w||!okD(a.date)||!(+a.hours>=0&&+a.hours<=24))return lead||bad();const es=DB.entries.filter(e=>e.workerId===w.id&&e.date===a.date&&isWork(e)&&(!a.site_id||e.siteId===a.site_id));
+      if(es.some(e=>e.paid))return lead+aiCard("Already paid",`${esc(w.name)}'s hours on ${dayLabel(a.date)} are marked paid — change them on their page.`,"",`<button class="btn ghost" onclick="aiNav(()=>openPerson('${w.id}'),1)">Open ${esc(w.name.split(" ")[0])}</button>`);
+      const rs=DB.rates.filter(r=>r.workerId===w.id&&r.siteId!==SUP),sid=a.site_id||(es[0]&&es[0].siteId)||(rs.length===1?rs[0].siteId:null);
+      if(!sid)return lead+aiCard(`${esc(w.name)} · ${dayLabel(a.date)}`,"Which site?",`<div class="opts" style="margin-top:10px">${rs.map(r=>`<button class="opt" onclick="AI.p={k:'edit',wid:'${w.id}',sid:'${r.siteId}',d:'${a.date}',h:${+a.hours}};aiDo()">${esc(Sx(r.siteId).name)}</button>`).join("")}</div>`,"");
+      const cur=es.filter(e=>e.siteId===sid).reduce((x,e)=>x+ +e.hours,0);AI.p={k:"edit",wid:w.id,sid,d:a.date,h:+a.hours};
+      return lead+aiCard(`${esc(w.name)} · ${dayLabel(a.date)}`,`${esc(Sx(sid).name)} · ${cur} hrs → <b>${+a.hours} hrs</b>`,"",`<button class="btn" onclick="aiDo()">${+a.hours?"Save":"Remove hours"}</button>`)}
+    if(t==="set_rate"){const w=DB.workers.find(x=>x.id===a.worker_id),x=DB.sites.find(y=>y.id===a.site_id);if(!w||!x||!(+a.rate>0))return lead||bad();const r=DB.rates.find(r=>r.workerId===w.id&&r.siteId===x.id);AI.p={k:"rate",wid:w.id,sid:x.id,rate:+a.rate};
+      return lead+aiCard(`${esc(w.name)} at ${esc(x.name)}`,`${r?money(r.rate)+"/hr → ":""}<b>${money(+a.rate)}/hr</b>`,`<div class="aic3">New hours use the new rate. Hours already entered keep their rate.</div>`,`<button class="btn" onclick="aiDo()">Save rate</button>`)}
+    if(t==="set_charge"){const x=DB.sites.find(y=>y.id===a.site_id);if(!x||!(+a.amount>0))return lead||bad();const bill=a.bill==="fixed"?"fixed":"hourly";AI.p={k:"charge",sid:x.id,bill,amt:+a.amount};
+      return lead+aiCard(`${esc(x.name)}: client pays`,`<b>${money(+a.amount)}${bill==="fixed"?" per month":"/hr"}</b>`,"",`<button class="btn" onclick="aiDo()">Save</button>`)}
+    if(t==="worker_left"){const w=DB.workers.find(x=>x.id===a.worker_id);if(!w)return lead||bad();AI.p={k:"left",wid:w.id};return lead+aiCard(`${esc(w.name)} has left?`,"Hidden from lists. Their history and anything owed stays.","",`<button class="btn" onclick="aiDo()">Mark as left</button>`)}
     if(t==="open"&&TITLES[a.page])return lead+aiCard(`Open ${TITLES[a.page]}`,"","",`<button class="btn" onclick="askGo('t','${a.page}')">Open</button>`)}
   if(o.query){const h=askAnswer(o.query);return lead+h}
   return say?ansHead(say,""):bad()}
@@ -1325,6 +1369,9 @@ async function aiSmart(q){const box=$("#askres");if(!box||!q.trim())return;const
   finally{w&&w.classList.remove("thinking")}}
 const AILANG={"en-AU":"EN","bn-BD":"বাং","ne-NP":"नेपा"},AILANGN={"en-AU":"English","bn-BD":"বাংলা","ne-NP":"नेपाली"};
 function aiLang(b){const k=Object.keys(AILANG),n=k[(k.indexOf(AI.lang)+1)%k.length];AI.lang=n;try{localStorage.setItem("cw_ailang",n)}catch(e){}b.textContent=AILANG[n];toast("Mic: "+AILANGN[n])}
+function aiNav(fn,now){AI.navT&&clearTimeout(AI.navT);AI.navT=setTimeout(()=>{aiKeep();closeSheet();setTimeout(fn,220)},now?0:900)}
+function aiDone(msg,undo){const box=$("#askres");if(box&&$("#aimsgs")){box.querySelectorAll(".aibtns").forEach(b=>b.remove());box.insertAdjacentHTML("beforeend",`<div class="aiok">${msg}${undo?` <button class="link aiundo">Undo</button>`:""}</div>`);const u=box.querySelector(".aiundo:last-of-type");if(u)u.onclick=async()=>{u.disabled=true;await undo();u.parentNode.innerHTML="↺ Undone"};haptic();aiTalk(msg.replace(/^✓\s*/,""))}else toast(msg,undo)}
+function aiKeep(){const m=$("#aimsgs");if(m){AI.saved={html:m.innerHTML,t:Date.now()}}}
 function aiTalk(t){if(!AI.speak||!AI.voice||!window.speechSynthesis)return;try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t.replace(/<[^>]+>/g,"").replace(/·/g,",").replace(/\$/g,"$"));u.lang=/[\u0980-\u09FF]/.test(t)?"bn-BD":/[\u0900-\u097F]/.test(t)?"ne-NP":"en-AU";u.rate=1.04;speechSynthesis.speak(u)}catch(e){}}
 function aiSpeakToggle(b){AI.speak=!AI.speak;try{localStorage.setItem("cw_aispeak",AI.speak?"1":"0")}catch(e){}b.classList.toggle("off",!AI.speak);if(!AI.speak&&window.speechSynthesis)speechSynthesis.cancel()}
 function aiMic(){const i=$("#askq");if(!i)return;
@@ -1338,12 +1385,12 @@ function aiMic(){const i=$("#askq");if(!i)return;
   r.onend=()=>{AI.rec=null;w&&w.classList.remove("listening");i.placeholder=smartOn()?"Message Hourza AI":"Ask or tell me what to do";if(fin.trim()){AI.voice=true;i.value="";aiSend(fin)}};
   try{r.start()}catch(e){AI.rec=null;w&&w.classList.remove("listening");i.focus()}}
 const AILOGO=`<svg viewBox="0 0 24 24" width="22" height="22" fill="#111214"><path d="M12 2.5c.4 4.6 2.9 7.1 7.5 7.5-4.6.4-7.1 2.9-7.5 7.5-.4-4.6-2.9-7.1-7.5-7.5 4.6-.4 7.1-2.9 7.5-7.5z"/><path d="M19 15c.2 2 1.2 3 3 3.2-1.8.2-2.8 1.2-3 3.2-.2-2-1.2-3-3-3.2 1.8-.2 2.8-1.2 3-3.2z" opacity=".55"/></svg>`;
-function openAsk(q=""){hideToast();AI.voice=false;AI.p=null;GAI.hist=[];
+function openAsk(q=""){hideToast();AI.voice=false;AI.p=null;const keep=AI.saved&&Date.now()-AI.saved.t<20*60e3;if(!keep)GAI.hist=[];
   showSheet(`<div class="askw chat"><div class="aihead"><div class="ailogo">${AILOGO}</div><div style="flex:1;min-width:0"><h3 style="margin:0">Hourza AI${smartOn()?' <span class="aibadge">Smart</span>':""}</h3><div class="t2">${smartOn()?"English · বাংলা · नेपाली":"Ask anything, or tell me what to do"}</div></div>${smartOn()?`<button class="aispk" style="font-size:12.5px;font-weight:750;margin-right:6px;width:auto;padding:0 10px" onclick="aiLang(this)" aria-label="Mic language">${AILANG[AI.lang]||"EN"}</button>`:""}<button class="aispk${AI.speak?"":" off"}" onclick="aiSpeakToggle(this)" aria-label="Speak answers">🔊</button></div>
     <div class="aimsgs" id="aimsgs"><div class="aiwel">${(()=>{const rec=askRecent();return `${rec.length?`<div class="asklbl">Recent</div>${chipsH(rec)}`:""}<div class="asklbl">Try</div>${chipsH(askIdeas())}`})()}</div></div>
     <div class="aiwave"><i></i><i></i><i></i><i></i><i></i><span>Listening… tap the mic to stop</span></div>
     <div class="askin aicomp"><input id="askq" class="inp" placeholder="${smartOn()?"Message Hourza AI":"Ask or tell me what to do"}" autocomplete="off" autocorrect="on" autocapitalize="sentences" spellcheck="false" enterkeyhint="send" value="" oninput="AI.voice=false" onkeydown="if(event.key==='Enter'){event.preventDefault();aiSendNow()}" ontouchend="if(document.activeElement!==this){this.focus()}"><button class="aisend" onmousedown="event.preventDefault()" ontouchend="event.preventDefault();aiSendNow()" onclick="aiSendNow()" aria-label="Send">${ICON.send||"➤"}</button><button class="aimic" onmousedown="event.preventDefault()" onclick="aiMic()" aria-label="Speak">${ICON.mic}</button></div></div>`);
-  $("#sheet").classList.add("chatmode");
+  $("#sheet").classList.add("chatmode");if(keep){const m=$("#aimsgs");m.innerHTML=AI.saved.html;m.querySelectorAll("#askres").forEach(x=>x.removeAttribute("id"));m.querySelectorAll(".aib").forEach(b=>b.classList.add("old"));setTimeout(()=>m.scrollTop=m.scrollHeight,50)}
   if(q)setTimeout(()=>aiSend(q),200);else setTimeout(()=>{const i=$("#askq");if(i)i.focus()},300)}
 function aiScroll(el){const m=$("#aimsgs");if(!m)return;requestAnimationFrame(()=>{if(el){const t=el.offsetTop-12;m.scrollTo({top:Math.max(t,m.scrollHeight-m.clientHeight>t?t:m.scrollHeight),behavior:"smooth"})}else m.scrollTo({top:m.scrollHeight,behavior:"smooth"})})}
 function aiSend(text){text=(text||"").trim();const m=$("#aimsgs");if(!text||!m)return;askRemember(text);
@@ -1880,7 +1927,7 @@ function morePage(){
 /* ============ sheets ============ */
 let sheetClose=null;
 function openSheet(html,onClose){$("#sheet").innerHTML=`<div class="grab"></div>`+html;void $("#sheet").offsetHeight;$("#sheet").classList.add("on");$("#scrim").classList.add("on");sheetClose=onClose||null;$("#sheet").scrollTop=0}
-function closeSheet(){setTimeout(()=>{if(!$("#sheet").classList.contains("on"))$("#sheet").classList.remove("chatmode")},400);document.body.classList.remove("sheet-open");const sh=$("#sheet");if(sh.style.transform){sh.style.transition="transform .25s";sh.style.transform="translateY(110%)";setTimeout(()=>{sh.style.transition="";sh.style.transform=""},300)}sh.classList.remove("on");$("#scrim").classList.remove("on");if(sheetClose)sheetClose()}
+function closeSheet(){if($("#sheet").classList.contains("chatmode"))aiKeep();setTimeout(()=>{if(!$("#sheet").classList.contains("on"))$("#sheet").classList.remove("chatmode")},400);document.body.classList.remove("sheet-open");const sh=$("#sheet");if(sh.style.transform){sh.style.transition="transform .25s";sh.style.transform="translateY(110%)";setTimeout(()=>{sh.style.transition="";sh.style.transform=""},300)}sh.classList.remove("on");$("#scrim").classList.remove("on");if(sheetClose)sheetClose()}
 $("#scrim").onclick=closeSheet;
 document.addEventListener("touchstart",()=>{},{passive:true});
 const tint={on:false};let sheetY=0,wasOn=false;
