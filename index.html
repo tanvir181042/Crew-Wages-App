@@ -706,7 +706,7 @@ const JOIN=(()=>{const m=(location.hash||"").match(/join=(CW1\.[A-Za-z0-9_\-]+)/
 if(JOIN&&!IS_APP){const l=document.querySelector('link[rel="manifest"]');if(l)l.remove()}
 let deferredInstall=null;
 addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredInstall=e;setTimeout(showInstallGuide,50)});
-const APP_VERSION="6.7.3";
+const APP_VERSION="6.7.4";
 /* ============ data layer ============ */
 const TABLES=["clients","sites","workers","rates","entries","income"];
 const EMPTY=()=>({clients:[],sites:[],workers:[],rates:[],entries:[],income:[]});
@@ -749,7 +749,7 @@ async function flush(){
 async function pull(){
   if(!online())return;
   await flush(); if(OUT.length)return;
-  setSync("syncing");if(!DB.workers.length&&!DB.entries.length)render();
+  setSync("syncing");if(!DB.workers.length&&!DB.entries.length&&ls.get(K_CACHE,null)===null)render();
   try{const d=await api("getAll"); if(d.sheetUrl){CONN.s=d.sheetUrl;ls.set(K_CONN,CONN)} delete d.sheetUrl;
       if(!OUT.length){DB=d;saveLocal();render()} setSync("idle");}
   catch(e){setSync(e.server?"error":"offline");if($("#app .skw"))render()}
@@ -978,7 +978,7 @@ function go(tab,extra={}){hideToast();if(tab==="pay"&&state.tab!=="pay")prSmart(
 const SKEL=`<div class="skw"><div class="row1"><div class="sk" style="width:44px;height:44px;border-radius:14px"></div><div style="flex:1;display:grid;gap:8px"><div class="sk" style="width:46%;height:20px"></div><div class="sk" style="width:30%;height:13px"></div></div></div><div class="sk skhero"></div><div class="sk3"><div class="sk"></div><div class="sk"></div><div class="sk"></div></div><div class="sk" style="width:38%;height:18px;margin:0 0 14px"></div><div class="skcard"><div class="sk" style="width:42px;height:42px;border-radius:50%"></div><div class="c"><div class="sk" style="width:55%;height:15px"></div><div class="sk" style="width:35%;height:12px"></div></div><div class="sk" style="width:56px;height:26px;border-radius:99px"></div></div><div class="skcard"><div class="sk" style="width:42px;height:42px;border-radius:50%"></div><div class="c"><div class="sk" style="width:48%;height:15px"></div><div class="sk" style="width:40%;height:12px"></div></div><div class="sk" style="width:56px;height:26px;border-radius:99px"></div></div><div class="skcard"><div class="sk" style="width:42px;height:42px;border-radius:50%"></div><div class="c"><div class="sk" style="width:60%;height:15px"></div><div class="sk" style="width:28%;height:12px"></div></div><div class="sk" style="width:56px;height:26px;border-radius:99px"></div></div><div class="skmsg">Getting your data…</div></div>`;
 let booted=false;setTimeout(()=>{if(document.querySelector("#app .skw")&&SYNC.state==="syncing"){SYNC.state="offline";render()}},12000);
 function render(){
-  const a=$("#app");const sk=SYNC.state==="syncing"&&!DB.workers.length&&!DB.entries.length;
+  const a=$("#app");const sk=SYNC.state==="syncing"&&!DB.workers.length&&!DB.entries.length&&!DB.sites.length&&ls.get(K_CACHE,null)===null;
   const first=!sk&&(!booted||a.querySelector(".skw"));if(!sk)booted=true;a.innerHTML=sk?SKEL:buildApp();if(first){a.classList.remove("fadein");void a.offsetWidth;a.classList.add("fadein");setTimeout(()=>a.classList.remove("fadein"),450)}
   const nv=$("#nav");if(!nv.querySelector(".tabsg"))nv.innerHTML=`<div class="tabsg glass"><i class="pill"></i>${[["home","Home",ICON.home],["today","Hours",ICON.today],["people","People",ICON.people],["sites","Sites",ICON.sites]].map(navBtn).join("")}</div><button class="fabw" onclick="addMenu()" aria-label="Add">${ICON.plus}</button>`;
   else nv.querySelectorAll(".tabsg button").forEach(b=>b.classList.toggle("on",b.dataset.k===state.tab));
