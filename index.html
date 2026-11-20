@@ -706,7 +706,7 @@ const JOIN=(()=>{const m=(location.hash||"").match(/join=(CW1\.[A-Za-z0-9_\-]+)/
 if(JOIN&&!IS_APP){const l=document.querySelector('link[rel="manifest"]');if(l)l.remove()}
 let deferredInstall=null;
 addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredInstall=e;setTimeout(showInstallGuide,50)});
-const APP_VERSION="6.7.6";
+const APP_VERSION="6.7.7";
 /* ============ data layer ============ */
 const TABLES=["clients","sites","workers","rates","entries","income"];
 const EMPTY=()=>({clients:[],sites:[],workers:[],rates:[],entries:[],income:[]});
@@ -1295,7 +1295,7 @@ function gaiRender(o,q){const a=o.action,say=esc(o.say||"");AI.say=o.say||"";AI.
   return say?ansHead(say,""):bad()}
 async function aiSmart(q){const box=$("#askres");if(!box||!q.trim())return;const w=$(".askw");
   box.innerHTML=`<div class="aithink"><div class="aiorb sm"></div><span>Thinking… <small style="opacity:.7">Gemini</small></span></div>`;w&&w.classList.add("thinking");
-  try{const o=await gaiCall(q);if($("#askq")?.value.trim()!==q.trim()&&!AI.voice)return;box.innerHTML=`<div class="aisrc">✦ Gemini</div>`+gaiRender(o,q);aiTalk(AI.say||(box.querySelector(".ansb")?.textContent||""))}
+  try{const o=await gaiCall(q);if($("#askq")?.value.trim()!==q.trim()&&!AI.voice)return;box.innerHTML=`<div class="aisrc">✦ Gemini</div>`+gaiRender(o,q)+`<button class="link" style="margin-top:14px;font-size:15px" onclick="aiAgain()">↺ Ask something else</button>`;aiTalk(AI.say||(box.querySelector(".ansb")?.textContent||""))}
   catch(e){const loc=aiCmd(q)||askAnswer(q),m=String(e&&e.message||e);box.innerHTML=`<div class="aierr"><b>Gemini didn't answer</b> — showing the quick answer instead.<br><small>${esc(/API key|API_KEY|key not valid|PERMISSION|unregistered/i.test(m)?"The Google key isn't accepted. Settings → Smart AI → Change key.":/quota|429|RESOURCE_EXHAUSTED/i.test(m)?"Free limit reached for now — try again in a minute.":/too long/i.test(m)?"Gemini took too long to answer — tap ➤ to try again.":/Failed to fetch|NetworkError|Load failed/i.test(m)?"Couldn't reach Google ("+m.slice(0,60)+"). Check the internet and try again.":m.slice(0,160))}</small></div></div>`+loc}
   finally{w&&w.classList.remove("thinking")}}
 function aiTalk(t){if(!AI.speak||!AI.voice||!window.speechSynthesis)return;try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t.replace(/<[^>]+>/g,"").replace(/·/g,",").replace(/\$/g,"$"));u.lang=/[\u0980-\u09FF]/.test(t)?"bn-BD":"en-AU";u.rate=1.04;speechSynthesis.speak(u)}catch(e){}}
@@ -1312,10 +1312,12 @@ function aiMic(){const i=$("#askq");if(!i)return;
   try{r.start()}catch(e){AI.rec=null;w&&w.classList.remove("listening");i.focus()}}
 function openAsk(q=""){hideToast();AI.voice=false;AI.p=null;GAI.hist=[];
   showSheet(`<div class="askw"><div class="aihead"><div class="aiorb"></div><div style="flex:1"><h3 style="margin:0">Hourza AI${smartOn()?' <span class="aibadge">Smart</span>':""}</h3><div class="t2">${smartOn()?"Say anything — English or Bangla":"Ask anything, or tell me what to do"}</div></div>${smartOn()?`<button class="aispk" style="font-size:13px;font-weight:750;margin-right:6px" onclick="AI.lang=AI.lang==='en-AU'?'bn-BD':'en-AU';try{localStorage.setItem('cw_ailang',AI.lang)}catch(e){};this.textContent=AI.lang==='en-AU'?'EN':'বাং';toast(AI.lang==='en-AU'?'Mic: English':'Mic: বাংলা')" aria-label="Mic language">${AI.lang==="en-AU"?"EN":"বাং"}</button>`:""}<button class="aispk${AI.speak?"":" off"}" onclick="aiSpeakToggle(this)" aria-label="Speak answers">🔊</button></div>
-    <div class="askin">${ICON.search||""}<input id="askq" class="inp" placeholder="Ask or tell me what to do" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="go" value="${esc(q)}" oninput="AI.voice=false;if(smartOn()){aiTyping(this.value)}else askRun(this.value)" onkeydown="if(event.key==='Enter'){askRemember(this.value);this.blur();if(smartOn())aiSmart(this.value)}">${smartOn()?`<button class="aisend" onclick="const v=$('#askq').value;if(v.trim()){askRemember(v);$('#askq').blur();aiSmart(v)}" aria-label="Ask">➤</button>`:""}<button class="aimic" onclick="aiMic()" aria-label="Speak">${ICON.mic}</button></div><div class="aiwave"><i></i><i></i><i></i><i></i><i></i><span>Listening… tap the mic to stop</span><button class="askx" onclick="const i=$('#askq');i.value='';askRun('');i.focus()" aria-label="Clear">×</button></div>
+    <div class="askin">${ICON.search||""}<input id="askq" class="inp" placeholder="Ask or tell me what to do" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="go" value="${esc(q)}" oninput="AI.voice=false;if(smartOn()){aiTyping(this.value)}else askRun(this.value)" onkeydown="if(event.key==='Enter'){event.preventDefault();if(smartOn())aiSendNow();else{askRemember(this.value);this.blur()}}" ontouchend="if(document.activeElement!==this){this.focus()}">${smartOn()?`<button class="aisend" onmousedown="event.preventDefault()" ontouchend="event.preventDefault();aiSendNow()" onclick="aiSendNow()" aria-label="Ask">➤</button>`:""}<button class="aimic" onclick="aiMic()" aria-label="Speak">${ICON.mic}</button></div><div class="aiwave"><i></i><i></i><i></i><i></i><i></i><span>Listening… tap the mic to stop</span><button class="askx" onclick="const i=$('#askq');i.value='';askRun('');i.focus()" aria-label="Clear">×</button></div>
     <div id="askres"></div></div>`);
   askRun(q);setTimeout(()=>{const i=$("#askq");if(i&&!q)i.focus()},280)}
 function askChip(q){const i=$("#askq");if(i){i.value=q;askRemember(q);if(smartOn())aiSmart(q);else askRun(q)}}
+let aiSendT=0;function aiSendNow(){if(Date.now()-aiSendT<500)return;aiSendT=Date.now();const i=$("#askq");const v=i?i.value:"";if(!v.trim())return;askRemember(v);aiSmart(v)}
+function aiAgain(){const i=$("#askq");if(!i)return;i.value="";i.focus();askRun("")}
 function aiTyping(v){const box=$("#askres");if(!box)return;if(!v.trim()){askRun("");return}box.innerHTML=`<div class="aitype">✦ Tap <b>➤</b> or <b>Enter</b> to ask Gemini</div>`}
 function askGo(kind,id){askRemember($("#askq")?.value||"");closeSheet();setTimeout(()=>{if(kind==="w")openPerson(id);else if(kind==="s")openSite(id);else go(id)},180)}
 const chipsH=a=>`<div class="askchips">${a.map(x=>`<button onclick="askChip(this.textContent)">${esc(x)}</button>`).join("")}</div>`;
