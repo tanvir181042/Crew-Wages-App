@@ -737,7 +737,7 @@ const JOIN=(()=>{const m=(location.hash||"").match(/join=(CW1\.[A-Za-z0-9_\-]+)/
 if(JOIN&&!IS_APP){const l=document.querySelector('link[rel="manifest"]');if(l)l.remove()}
 let deferredInstall=null;
 addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredInstall=e;setTimeout(showInstallGuide,50)});
-const APP_VERSION="7.0.1";
+const APP_VERSION="7.0.2";
 /* ============ data layer ============ */
 const TABLES=["clients","sites","workers","rates","entries","income"];
 const EMPTY=()=>({clients:[],sites:[],workers:[],rates:[],entries:[],income:[]});
@@ -1911,10 +1911,11 @@ function reportCSV(){const q=v=>`"${String(v??"").replace(/"/g,'""')}"`,rows=[["
   try{download(`Hourza_report_${RP.by}_${RP.all?"all":state.month}.csv`,"﻿"+rows.map(r=>r.map(q).join(",")).join("\r\n"),"text/csv");toast("✓ Report downloaded")}catch(e){}}
 
 /* ---------- More ---------- */
+function sheetId(){const t=String((CONN&&CONN.u)||"").replace(/\/u\/\d+\//,"/");let h=5381;for(const c of t)h=((h*33)^c.charCodeAt(0))>>>0;return h.toString(36).toUpperCase().slice(-4).padStart(4,"0")}
 function morePage(){
   return `
   ${online()?`<div class="list settings" style="margin-bottom:22px">
-    <div class="row" style="cursor:default"><div class="av" style="background:var(--ok-s);color:var(--ok)">${ICON.sheet}</div><div class="main"><div class="t1">Google Sheet</div><div class="t2">${syncBadge()}</div></div><button class="link" onclick="pull()">Sync now</button></div>
+    <div class="row" style="cursor:default"><div class="av" style="background:var(--ok-s);color:var(--ok)">${ICON.sheet}</div><div class="main"><div class="t1">Google Sheet <span class="tag mut" style="font-size:11.5px;letter-spacing:.06em">ID ${sheetId()}</span></div><div class="t2">${syncBadge()}</div></div><button class="link" onclick="pull()">Sync now</button></div>
     ${CONN.s?`<div class="row" onclick="window.open('${CONN.s}','_blank')"><div class="main"><div class="t1">Open my Google Sheet</div><div class="t2">See or download everything as Excel</div></div>${ICON.chev}</div>`:""}
     <div class="row" onclick="showConnectQR()"><div class="main"><div class="t1">Add a person or device</div><div class="t2">Show a QR or send an invite</div></div>${ICON.chev}</div>
     <div class="row" onclick="setPin(()=>toast('✓ PIN changed'))"><div class="main"><div class="t1">Change PIN</div></div>${ICON.chev}</div>
