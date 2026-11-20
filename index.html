@@ -706,7 +706,7 @@ const JOIN=(()=>{const m=(location.hash||"").match(/join=(CW1\.[A-Za-z0-9_\-]+)/
 if(JOIN&&!IS_APP){const l=document.querySelector('link[rel="manifest"]');if(l)l.remove()}
 let deferredInstall=null;
 addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredInstall=e;setTimeout(showInstallGuide,50)});
-const APP_VERSION="6.7.4";
+const APP_VERSION="6.7.5";
 /* ============ data layer ============ */
 const TABLES=["clients","sites","workers","rates","entries","income"];
 const EMPTY=()=>({clients:[],sites:[],workers:[],rates:[],entries:[],income:[]});
@@ -1244,15 +1244,19 @@ For QUESTIONS about numbers (hours, pay owed, profit, who worked, a person/site/
 If the request is unclear (e.g. two workers share a first name), ask a short question in "say" with action null.
 For how-to questions about the app, answer in "say" (max 40 words). Never claim something is saved — the user taps Save.`;
 async function gaiCall(text){const g=GAI.get();if(!g)throw new Error("off");
-  const contents=[...GAI.hist.slice(-6),{role:"user",parts:[{text}]}];
-  const body={systemInstruction:{parts:[{text:GAI_SYS+"\n\n"+gaiCtx()}]},contents,generationConfig:{responseMimeType:"application/json",temperature:.2,maxOutputTokens:700}};
-  const models=[g.m,...(g.alt||[]),"gemini-flash-latest","gemini-flash-lite-latest"].filter((x,i,a)=>x&&a.indexOf(x)===i);let last;
-  for(const m of models){try{const ctl=new AbortController(),to=setTimeout(()=>ctl.abort(),15000);
-      const r=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent`,{method:"POST",headers:{"Content-Type":"application/json","x-goog-api-key":g.k},body:JSON.stringify(body),signal:ctl.signal});clearTimeout(to);
-      const j=await r.json();if(!r.ok){last=new Error((j.error&&j.error.message)||"AI error "+r.status);if(r.status===404||r.status===429||r.status>=500)continue;throw last}
-      const t=(((j.candidates||[])[0]||{}).content||{}).parts?.map(p=>p.text||"").join("")||"";const o=JSON.parse(t.replace(/^```(json)?|```$/g,"").trim());
-      if(m!==g.m)GAI.set({...g,m});GAI.hist.push({role:"user",parts:[{text}]},{role:"model",parts:[{text:t}]});GAI.hist=GAI.hist.slice(-8);return o}
-    catch(e){last=e;if(e.name==="AbortError")break}}
+  const contents=[...GAI.hist.slice(-6),{role:"user",parts:[{text}]}],t0=Date.now();
+  const mk=th=>({systemInstruction:{parts:[{text:GAI_SYS+"\n\n"+gaiCtx()}]},contents,generationConfig:{responseMimeType:"application/json",temperature:.2,maxOutputTokens:4096,...(th===1?{thinkingConfig:{thinkingLevel:"low"}}:th===2?{thinkingConfig:{thinkingBudget:0}}:{})}});
+  const models=[g.m,...(g.alt||[]),"gemini-flash-latest","gemini-flash-lite-latest"].filter((x,i,a)=>x&&a.indexOf(x)===i).slice(0,3);let last;
+  const parse=t=>{t=(t||"").replace(/^```(json)?|```$/g,"").trim();try{return JSON.parse(t)}catch(_){const a=t.indexOf("{"),b=t.lastIndexOf("}");if(a>=0&&b>a)return JSON.parse(t.slice(a,b+1));throw new Error("AI reply wasn't readable")}};
+  for(const m of models){for(const th of [1,2,0]){if(Date.now()-t0>28000)throw last||new Error("Gemini is taking too long — try again");
+    try{const ctl=new AbortController(),to=setTimeout(()=>ctl.abort(),20000);
+      const r=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent`,{method:"POST",headers:{"Content-Type":"application/json","x-goog-api-key":g.k},body:JSON.stringify(mk(th)),signal:ctl.signal});clearTimeout(to);
+      const j=await r.json().catch(()=>({}));
+      if(!r.ok){const msg=(j.error&&j.error.message)||"AI error "+r.status;last=new Error(msg);if(r.status===400&&/thinking/i.test(msg))continue;if(r.status===404||r.status===429||r.status>=500)break;throw last}
+      const c=(j.candidates||[])[0]||{},t=((c.content||{}).parts||[]).filter(p=>!p.thought).map(p=>p.text||"").join("");
+      if(!t.trim()){last=new Error(c.finishReason==="SAFETY"?"Gemini wouldn't answer that":"Gemini sent an empty reply ("+(c.finishReason||"?")+")");break}
+      const o=parse(t);if(m!==g.m)GAI.set({...g,m});GAI.hist.push({role:"user",parts:[{text}]},{role:"model",parts:[{text:t}]});GAI.hist=GAI.hist.slice(-8);return o}
+    catch(e){last=e;if(e.name==="AbortError"){last=new Error("Gemini is taking too long — try again");throw last}if(/readable/.test(e.message))break;throw e}}}
   throw last||new Error("AI unavailable")}
 const okD=d=>/^\d{4}-\d{2}-\d{2}$/.test(d||"")&&!isNaN(parseD(d));
 function gaiRender(o,q){const a=o.action,say=esc(o.say||"");AI.say=o.say||"";AI.p=null;const td=todayD();const bad=()=>ansHead("Hmm",say||"I didn't get that — try again?");
@@ -1283,9 +1287,9 @@ function gaiRender(o,q){const a=o.action,say=esc(o.say||"");AI.say=o.say||"";AI.
   if(o.query){const h=askAnswer(o.query);return lead+h}
   return say?ansHead(say,""):bad()}
 async function aiSmart(q){const box=$("#askres");if(!box||!q.trim())return;const w=$(".askw");
-  box.innerHTML=`<div class="aithink"><div class="aiorb sm"></div><span>Thinking…</span></div>`;w&&w.classList.add("thinking");
+  box.innerHTML=`<div class="aithink"><div class="aiorb sm"></div><span>Thinking… <small style="opacity:.7">Gemini</small></span></div>`;w&&w.classList.add("thinking");
   try{const o=await gaiCall(q);if($("#askq")?.value.trim()!==q.trim()&&!AI.voice)return;box.innerHTML=`<div class="aisrc">✦ Gemini</div>`+gaiRender(o,q);aiTalk(AI.say||(box.querySelector(".ansb")?.textContent||""))}
-  catch(e){const loc=aiCmd(q)||askAnswer(q),m=String(e&&e.message||e);box.innerHTML=`<div class="aierr"><b>Gemini didn't answer</b> — showing the quick answer instead.<br><small>${esc(/API key|API_KEY|key not valid|PERMISSION|unregistered/i.test(m)?"The Google key isn't accepted. Settings → Smart AI → Change key.":/quota|429|RESOURCE_EXHAUSTED/i.test(m)?"Free limit reached for now — try again in a minute.":/Failed to fetch|NetworkError|Load failed|abort/i.test(m)?"No internet, or Google is blocked on this network.":m.slice(0,160))}</small></div></div>`+loc}
+  catch(e){const loc=aiCmd(q)||askAnswer(q),m=String(e&&e.message||e);box.innerHTML=`<div class="aierr"><b>Gemini didn't answer</b> — showing the quick answer instead.<br><small>${esc(/API key|API_KEY|key not valid|PERMISSION|unregistered/i.test(m)?"The Google key isn't accepted. Settings → Smart AI → Change key.":/quota|429|RESOURCE_EXHAUSTED/i.test(m)?"Free limit reached for now — try again in a minute.":/too long/i.test(m)?"Gemini took too long to answer — tap ➤ to try again.":/Failed to fetch|NetworkError|Load failed/i.test(m)?"Couldn't reach Google ("+m.slice(0,60)+"). Check the internet and try again.":m.slice(0,160))}</small></div></div>`+loc}
   finally{w&&w.classList.remove("thinking")}}
 function aiTalk(t){if(!AI.speak||!AI.voice||!window.speechSynthesis)return;try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t.replace(/<[^>]+>/g,"").replace(/·/g,",").replace(/\$/g,"$"));u.lang=/[\u0980-\u09FF]/.test(t)?"bn-BD":"en-AU";u.rate=1.04;speechSynthesis.speak(u)}catch(e){}}
 function aiSpeakToggle(b){AI.speak=!AI.speak;try{localStorage.setItem("cw_aispeak",AI.speak?"1":"0")}catch(e){}b.classList.toggle("off",!AI.speak);if(!AI.speak&&window.speechSynthesis)speechSynthesis.cancel()}
@@ -1312,6 +1316,7 @@ function askRun(q,keep){const box=$("#askres");if(!box)return;let h=null;if(!kee
 function ansHead(big,sub){return `<div class="ans"><div class="ansb">${big}</div>${sub?`<div class="anss">${sub}</div>`:""}</div>`}
 function askAnswer(q0){
   const q=(q0||"").toLowerCase().replace(/[’']/g,"'").trim();
+  if(/^(hi|hello|hey|salam|assalamu ?alaikum|hola|yo|good (morning|afternoon|evening))\b[!. ]*$/.test(q))return ansHead("Hi! 👋","Ask about hours or pay, or tell me what to do.")+`<div class="asklbl">Try</div>${chipsH(askIdeas())}`;
   if(!q){const rec=askRecent();return `${rec.length?`<div class="asklbl">Recent</div>${chipsH(rec)}`:""}<div class="asklbl">Try</div>${chipsH(askIdeas())}<div class="t2" style="margin:14px 2px 0;line-height:1.5">Ask a question (“Sam last week”, “who do I owe”) or tell it what to do (“Sam 8 hours Mon to Fri”, “Ali covers Sam today”, “pay Sam”, “received 5000 from Bupa”). Tap the mic to speak. Nothing is saved until you tap Save.</div>`}
   const E=askEnt(q),{R:R0,t:rest}=askRange(E.t),has=re=>re.test(q);
   const anyR=!!R0, monthR=(()=>{const m=todayD().slice(0,7);return RR(m+"-01",mEnd(m),mLabel(m))})();
