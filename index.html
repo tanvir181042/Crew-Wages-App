@@ -698,7 +698,7 @@ const JOIN=(()=>{const m=(location.hash||"").match(/join=(CW1\.[A-Za-z0-9_\-]+)/
 if(JOIN&&!IS_APP){const l=document.querySelector('link[rel="manifest"]');if(l)l.remove()}
 let deferredInstall=null;
 addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredInstall=e;setTimeout(showInstallGuide,50)});
-const APP_VERSION="6.5.1";
+const APP_VERSION="6.5.2";
 /* ============ data layer ============ */
 const TABLES=["clients","sites","workers","rates","entries","income"];
 const EMPTY=()=>({clients:[],sites:[],workers:[],rates:[],entries:[],income:[]});
@@ -1203,7 +1203,7 @@ async function aiDo(){const p=AI.p;if(!p)return;askRemember($("#askq")?.value||"
 /* ---------- Smart AI (Gemini, free tier, key stays on this device) ---------- */
 const GAI={get(){try{return JSON.parse(localStorage.getItem("cw_ai")||"null")}catch(e){return null}},set(v){try{v?localStorage.setItem("cw_ai",JSON.stringify(v)):localStorage.removeItem("cw_ai")}catch(e){}},hist:[]};
 const smartOn=()=>{const g=GAI.get();return !!(g&&g.k)&&navigator.onLine!==false};
-async function gaiModels(k){const r=await fetch("https://generativelanguage.googleapis.com/v1beta/models?pageSize=200&key="+encodeURIComponent(k));const j=await r.json();if(!r.ok)throw new Error((j.error&&j.error.message)||"Key not accepted");
+async function gaiModels(k){const r=await fetch("https://generativelanguage.googleapis.com/v1beta/models?pageSize=200",{headers:{"x-goog-api-key":k}});const j=await r.json();if(!r.ok)throw new Error((j.error&&j.error.message)||"Key not accepted");
   const ok=(j.models||[]).filter(m=>(m.supportedGenerationMethods||[]).includes("generateContent")).map(m=>m.name.replace("models/",""));
   const score=n=>(/flash-latest$/.test(n)?100:0)+(/flash-lite-latest$/.test(n)?90:0)+(/flash/.test(n)?50:0)+(/lite/.test(n)?-5:0)+(/preview|exp|tts|image|live|audio|thinking|embedding/.test(n)?-80:0)+(parseFloat((n.match(/gemini-(\d+(\.\d+)?)/)||[])[1])||0);
   return ok.filter(n=>/^gemini/.test(n)).sort((a,b)=>score(b)-score(a))}
@@ -1212,10 +1212,10 @@ function aiSetup(){const g=GAI.get();showSheet(`<h3>Smart AI</h3><div class="lea
   ${g?`<div class="dupbox" style="background:var(--ok-s);color:var(--ok);margin-bottom:14px"><b>✓ Smart AI is on</b><div class="t2" style="white-space:normal;margin-top:3px;color:inherit">Model: ${esc(g.m)}</div></div>`:""}
   <div class="steps"><div><b>1</b><span>Open Google AI Studio and sign in with your Google account</span></div><div><b>2</b><span>Tap <b>Create API key</b>, then copy it</span></div><div><b>3</b><span>Paste it here and tap Turn on</span></div></div>
   <button class="btn ghost" style="margin:12px 0 14px" onclick="window.open('https://aistudio.google.com/apikey','_blank')">Open Google AI Studio</button>
-  <div class="f"><input class="inp" id="gk" placeholder="Paste your key (starts with AIza…)" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" value=""></div><div id="gkerr"></div>
+  <div class="f"><input class="inp" id="gk" placeholder="Paste your key here" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" value=""></div><div id="gkerr"></div>
   <button class="btn" id="gkb" onclick="aiSaveKey()">${g?"Change key":"Turn on"}</button>${g?`<button class="btn ghost" style="margin-top:10px" onclick="GAI.set(null);closeSheet();render();toast('Smart AI turned off')">Turn off</button>`:""}
   <div class="hint" style="margin-top:14px;line-height:1.5">What is sent to Google: what you say, plus the names of your workers, sites and companies (no money amounts). Google's free plan may use it to improve their products. The key is kept on this phone${online()?" and shared with people you invite":""}.</div>`)}
-async function aiSaveKey(){const k=$("#gk").value.trim(),b=$("#gkb");if(!/^AIza[\w-]{20,}$/.test(k)){$("#gkerr").innerHTML='<div class="err">That doesn\'t look like a Google key. It starts with AIza.</div>';return}
+async function aiSaveKey(){const k=$("#gk").value.trim(),b=$("#gkb");if(!/^[\w.\-]{20,}$/.test(k)){$("#gkerr").innerHTML='<div class="err">That doesn\'t look like a full key. Copy it again with the Copy button.</div>';return}
   b.disabled=true;b.textContent="Checking…";try{await aiSetKey(k);closeSheet();render();toast("✓ Smart AI is on")}catch(e){b.disabled=false;b.textContent="Turn on";$("#gkerr").innerHTML=`<div class="err">${esc(e.message||"Couldn't check the key")}</div>`}}
 function gaiCtx(){const td=todayD();
   const ws=DB.workers.filter(w=>w.active!==false).map(w=>{const rs=DB.rates.filter(r=>r.workerId===w.id&&r.siteId!==SUP).map(r=>r.siteId);return `${w.id}|${w.name}${w.role==="supervisor"?"|supervisor":""}|sites:${rs.join(",")}`}).join("\n");
@@ -1240,7 +1240,7 @@ async function gaiCall(text){const g=GAI.get();if(!g)throw new Error("off");
   const body={systemInstruction:{parts:[{text:GAI_SYS+"\n\n"+gaiCtx()}]},contents,generationConfig:{responseMimeType:"application/json",temperature:.2,maxOutputTokens:700}};
   const models=[g.m,...(g.alt||[]),"gemini-flash-latest","gemini-flash-lite-latest"].filter((x,i,a)=>x&&a.indexOf(x)===i);let last;
   for(const m of models){try{const ctl=new AbortController(),to=setTimeout(()=>ctl.abort(),15000);
-      const r=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent?key=${encodeURIComponent(g.k)}`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body),signal:ctl.signal});clearTimeout(to);
+      const r=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent`,{method:"POST",headers:{"Content-Type":"application/json","x-goog-api-key":g.k},body:JSON.stringify(body),signal:ctl.signal});clearTimeout(to);
       const j=await r.json();if(!r.ok){last=new Error((j.error&&j.error.message)||"AI error "+r.status);if(r.status===404||r.status===429||r.status>=500)continue;throw last}
       const t=(((j.candidates||[])[0]||{}).content||{}).parts?.map(p=>p.text||"").join("")||"";const o=JSON.parse(t.replace(/^```(json)?|```$/g,"").trim());
       if(m!==g.m)GAI.set({...g,m});GAI.hist.push({role:"user",parts:[{text}]},{role:"model",parts:[{text:t}]});GAI.hist=GAI.hist.slice(-8);return o}
