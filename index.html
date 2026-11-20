@@ -676,7 +676,7 @@ html,body{overscroll-behavior-y:none}
 .aisay{margin:16px 2px 0;font-size:17px;font-weight:650;line-height:1.35;animation:ansIn .3s cubic-bezier(.32,.72,0,1)}.aisay+.aicard{margin-top:10px}
 .aithink{display:flex;align-items:center;gap:12px;margin:18px 2px;color:var(--mut);font-weight:600}.aiorb.sm{width:26px;height:26px;animation-duration:1s}
 .askw.thinking .aiorb{animation-duration:1s}
-.steps{display:grid;gap:10px;margin:4px 0}.steps>div{display:flex;gap:12px;align-items:center;font-size:15px}.steps b{width:28px;height:28px;flex:none;border-radius:50%;background:var(--soft);display:grid;place-items:center;font-size:14px}
+.steps{display:grid;gap:10px;margin:4px 0}.steps>div{display:flex;gap:12px;align-items:center;font-size:15px}.steps>div>b{width:28px;height:28px;flex:none;border-radius:50%;background:var(--soft);display:grid;place-items:center;font-size:14px}.steps span b{font-weight:750}
 </style>
 </head>
 <body>
@@ -698,7 +698,7 @@ const JOIN=(()=>{const m=(location.hash||"").match(/join=(CW1\.[A-Za-z0-9_\-]+)/
 if(JOIN&&!IS_APP){const l=document.querySelector('link[rel="manifest"]');if(l)l.remove()}
 let deferredInstall=null;
 addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredInstall=e;setTimeout(showInstallGuide,50)});
-const APP_VERSION="6.5";
+const APP_VERSION="6.5.1";
 /* ============ data layer ============ */
 const TABLES=["clients","sites","workers","rates","entries","income"];
 const EMPTY=()=>({clients:[],sites:[],workers:[],rates:[],entries:[],income:[]});
