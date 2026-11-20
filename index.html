@@ -722,6 +722,8 @@ html,body{overscroll-behavior-y:none}
 .airep td{padding:9px 6px;border-bottom:1px solid var(--line);vertical-align:top}.airep td.num,.airep th:not(:first-child){text-align:right;white-space:nowrap}.airep td small{color:var(--mut)}
 .airep th.l{text-align:left!important}.airep tfoot td{font-weight:780;border-bottom:0;border-top:1.5px solid var(--ink)}.airep tr.tap:active{background:var(--soft)}
 .aib .aicard{padding:16px}
+.aiu-voice .adots i{background:#fff;opacity:.6}.adots.light i{background:#fff}
+.askw.vlevel .aiwave i{animation:none;transition:transform .08s}
 </style>
 </head>
 <body>
@@ -743,7 +745,7 @@ const JOIN=(()=>{const m=(location.hash||"").match(/join=(CW1\.[A-Za-z0-9_\-]+)/
 if(JOIN&&!IS_APP){const l=document.querySelector('link[rel="manifest"]');if(l)l.remove()}
 let deferredInstall=null;
 addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredInstall=e;setTimeout(showInstallGuide,50)});
-const APP_VERSION="7.1";
+const APP_VERSION="7.2";
 /* ============ data layer ============ */
 const TABLES=["clients","sites","workers","rates","entries","income"];
 const EMPTY=()=>({clients:[],sites:[],workers:[],rates:[],entries:[],income:[]});
@@ -1236,6 +1238,9 @@ function aiHoursCard(){const p=AI.p,w=W(p.wid),r=DB.rates.find(x=>x.workerId===p
     (nd.length?`<button class="btn" onclick="aiDo()">Save${nd.length>1?" "+plural(nd.length,"day"):""}</button>`:"")+`<button class="btn ghost" onclick="aiEdit()">Edit first</button>`)}
 function aiEdit(){const p=AI.p;closeSheet();setTimeout(()=>{openAdd("hours",p.wid);F.siteId=p.sid;const hh=d=>String(p.hm&&p.hm[d]?p.hm[d]:p.h);if(p.ds.length===1){F.mode="day";F.date=p.ds[0];F.hours=hh(p.ds[0])}else{const a=p.ds[0],b=p.ds[p.ds.length-1];if(weekStart(a)===weekStart(b)){F.mode="week";F.wk=weekStart(a);F.days=Array(7).fill("");p.ds.forEach(d=>F.days[Math.round((parseD(d)-parseD(F.wk))/864e5)]=hh(d));F.dkey=F.wk}else{F.mode="month";F.month=a.slice(0,7);F.days=Array(mDays(F.month+"-01")).fill("");p.ds.filter(d=>d.slice(0,7)===F.month).forEach(d=>F.days[+d.slice(8)-1]=hh(d));F.dkey=F.month+"-01"}}drawAdd()},200)}
 async function aiDo(mode){const p=AI.p;if(!p)return;
+  if(p.k==="undo"){const m=await aiUndoLast();const box=$("#askres");box&&box.querySelectorAll(".aibtns").forEach(b=>b.remove());box&&box.insertAdjacentHTML("beforeend",`<div class="aiok">${m?"↺ Undone: "+esc(m):"Nothing to undo"}</div>`);return}
+  if(p.k==="rename"){const x=DB[p.tbl].find(y=>y.id===p.id),old={...x};await put(p.tbl,{...x,name:p.name});render();aiDone(`✓ Renamed to ${esc(p.name)}`,async()=>{await put(p.tbl,old);render()});return}
+  if(p.k==="delete"){aiKeep();closeSheet();setTimeout(()=>{p.kind==="worker"?delWorker(p.id):p.kind==="site"?delSiteAll(p.id):delClientAll(p.id)},250);return}
   if(mode==="save"&&p.k==="worker"){const w={id:uid(),name:p.name.trim(),active:true,role:"crew",payType:"hourly",salary:0,salaryPer:"",createdAt:todayD()};await put("workers",w);const nr={id:uid(),workerId:w.id,siteId:p.sid,rate:+p.rate};await put("rates",nr);render();aiDone(`✓ ${esc(w.name)} added at ${esc(Sx(p.sid).name)}`,async()=>{await del("rates",nr.id);await del("workers",w.id);render()});return}
   if(p.k==="paid"){const now=todayD(),old=DB.entries.filter(e=>p.ids.includes(e.id)).map(e=>({...e}));await putMany("entries",old.map(e=>({...e,paid:true,paidAt:now})));render();aiDone(`✓ Marked ${money(old.reduce((x,e)=>x+wage(e),0))} as paid`,async()=>{await putMany("entries",old);render()});return}
   if(p.k==="edit"){const now=todayD(),es=DB.entries.filter(e=>e.workerId===p.wid&&e.siteId===p.sid&&e.date===p.d&&isWork(e)&&!e.paid),old=es.map(e=>({...e})),r=DB.rates.find(x=>x.workerId===p.wid&&x.siteId===p.sid)||{};let add=null;
@@ -1290,7 +1295,7 @@ function gaiData(){try{const td=todayD(),cm=td.slice(0,7),lm=addM(cm,-1),ws=week
   const sites=DB.sites.map(x=>{const r=siteR(x,RR(cm+"-01",mEnd(cm),""));return `${x.name}: ${Math.round(r.h)}h wages $${Math.round(r.w)}${r.b!=null?` charged $${Math.round(r.b)} kept $${Math.round(r.p)}`:" (no charge rate)"}`}).join("; ");
   return `DATA (exact, computed by the app):\nOwed now: ${owed}\nThis week (from ${ws}): ${sum(e=>e.date>=ws)}\nLast week (${lw} to ${addD(ws,-1)}): ${sum(e=>e.date>=lw&&e.date<ws)}\nThis month ${cm}: ${sum(e=>e.month===cm)}\nLast month ${lm}: ${sum(e=>e.month===lm)}\nSites this month: ${sites}`.slice(0,6000)}catch(e){return ""}}
 const GAI_SYS=`You are Hourza AI inside a payroll app for a cleaning labour-hire business in Australia. The user (the business owner or staff) speaks English, Bangla/Banglish or Nepali (Devanagari or romanised), by voice or text. Workers are often Nepali. Reply ONLY with JSON:
-{"say": short friendly reply in the same language and script the user used (max 25 words; for actions describe what will happen; never invent numbers), "action": null or one action object, "actions": optional array of action objects, "query": null or a search string}
+{"heard": only for voice messages — what they said, "say": short friendly reply in the same language and script the user used (max 25 words; for actions describe what will happen; never invent numbers), "action": null or one action object, "actions": optional array of action objects, "query": null or a search string}
 Actions (use ids from the lists; dates are YYYY-MM-DD; never invent ids):
 - {"type":"add_hours","worker_id":"..","site_id":".." or null if unclear,"days":[{"date":"..","hours":8}]}  // "Mon to Fri" = weekdays of the meant week; "last month" = weekdays only up to today
 - {"type":"cover","cover_worker_id":"..","sick_worker_id":"..","site_id":".." or null,"dates":[".."],"hours":number or null}
@@ -1320,12 +1325,19 @@ Actions (use ids from the lists; dates are YYYY-MM-DD; never invent ids):
    // "what do I owe Tanvir for the last 15 days" → worker_ids [Tanvir], from today-14, paid "unpaid", offer_pay true
    // "who worked at each site this week" → group_by ["site","worker"]
 - {"type":"list","what":"workers|sites|clients","fields":["sites","rate","owed","last_worked","charge"],"site_ids":[],"client_ids":[],"include_left":false,"title":"..."}   // "show all my employees", "who works where", "list sites"
+- {"type":"export","title":"..","from":..,"to":..,"worker_ids":[],"site_ids":[],"client_ids":[],"paid":"all|paid|unpaid"}   // "make me an Excel / spreadsheet / file / report to send" → downloadable sheet
+- {"type":"undo"}   // "undo", "that was wrong", "bhul hoise, firao", "go back"
+- {"type":"rename","kind":"worker|site|client","id":"..","name":"new name"}
+- {"type":"assign","worker_id":"..","site_id":"..","rate":number or null}   // a worker also works at another site
+- {"type":"delete","kind":"worker|site|client","id":".."}   // only when they clearly say delete/remove permanently
 You may return several actions at once as "actions":[...] (e.g. "Sam 8 and Ali 6 today" → two add_hours). Use "action" for one.
 For pay requests over a period ("pay Tanvir for the last 15 days", "Ayush-er 3 tarikher payment") use mark_paid with from/to.
 Use show_* whenever the user wants to SEE something ("show", "dekhao", "देखाउ"). Do what the user asks — don't just explain how.
 For QUESTIONS about numbers you may answer in "say" ONLY with numbers copied exactly from DATA below; if DATA doesn't have it, do NOT guess: set "query" to a short English search the app understands, using exact names, e.g. "sam lee last week", "who do i owe", "who worked today", "who worked at mascot last week", "bupa parramatta this month", "ken november", "anish 3 nov", "sites losing money", "top workers this month", "summary last month", "anish so far". Then "say" can be a short lead-in like "Here's Sam's last week".
 If the user asks to add/create/change something but leaves out details (e.g. "can you add a site for me"), still return that action with the missing fields null — the app opens a form for them. NEVER put a command into "query"; "query" is only for questions about existing data.
 If the request is unclear (e.g. two workers share a first name), ask a short question in "say" with action null.
+You are an expert, proactive assistant for a non-technical owner. Whatever they ask — see data in any shape, add or change anything, fix a mistake, make a file — map it to the actions above (combine several if needed). "report"/"list" can answer almost any question about people, sites, hours, money, dates.
+Names may be misspelled or mis-heard (voice, accents, Nepali/Bangla/English): always pick the closest worker/site/client from the lists by sound and spelling (e.g. "Aayush", "Ayus", "Ayush" are the same person). Only ask if two names are equally close.
 Understand the MEANING, not keywords. People talk casually, indirectly, with typos, mixed languages and incomplete sentences — work out what they want. If something is missing, choose the most sensible default (today, the person's only site) or ask ONE short question; never reply that you can't find it.
 Examples (worker/site ids come from the lists):
 "can u put a new place for me" → {"say":"Sure — what's the site called and which company is it for?","action":{"type":"new_site","name":null,"client_id":null,"client_name":null}}
@@ -1344,11 +1356,11 @@ Examples (worker/site ids come from the lists):
 "thanks" / "ok" → short friendly "say", action null
 For how-to questions about the app, answer in "say" (max 40 words). Never claim something is saved — the user taps Save.`;
 async function gaiCall(text,onPart){const g=GAI.get();if(!g)throw new Error("off");
-  const contents=[...GAI.hist.slice(-6),{role:"user",parts:[{text}]}],t0=Date.now();
-  const mk=th=>({systemInstruction:{parts:[{text:GAI_SYS+"\n\n"+gaiCtx()}]},contents,generationConfig:{responseMimeType:"application/json",temperature:.2,maxOutputTokens:4096,...(th===1?{thinkingConfig:{thinkingLevel:"low"}}:th===2?{thinkingConfig:{thinkingBudget:0}}:{})}});
+  const aud=AI.audio;AI.audio=null;const contents=[...GAI.hist.slice(-6),{role:"user",parts:aud?[{text:"The user sent this voice message. First write exactly what they said in \"heard\" (fix names to match the lists; keep their language), then act on it."},{inline_data:{mime_type:"audio/wav",data:aud.b64}}]:[{text}]}],t0=Date.now();if(aud)AI.audU=aud.u;
+  const mk=th=>({systemInstruction:{parts:[{text:GAI_SYS+"\n\n"+gaiCtx()}]},contents,generationConfig:{responseMimeType:"application/json",temperature:.2,maxOutputTokens:4096,...(th===1?{thinkingConfig:{thinkingLevel:"low"}}:th===2?{thinkingConfig:{thinkingBudget:0}}:th===3?{thinkingConfig:{thinkingLevel:"minimal"}}:{})}});
   const models=[g.m,...(g.alt||[]),"gemini-flash-lite-latest","gemini-flash-latest"].filter((x,i,a)=>x&&a.indexOf(x)===i).slice(0,3);let last;
   const parse=t=>{t=(t||"").replace(/^```(json)?|```$/g,"").trim();try{return JSON.parse(t)}catch(_){const a=t.indexOf("{"),b=t.lastIndexOf("}");if(a>=0&&b>a)return JSON.parse(t.slice(a,b+1));throw new Error("AI reply wasn't readable")}};
-  for(const m of models){const thc=(g.thm&&g.thm[m]!=null)?[g.thm[m]]:[2,1,0];for(const th of thc){if(Date.now()-t0>40000)throw last||new Error("Gemini is taking too long — try again");
+  for(const m of models){const thc=(g.thm&&g.thm[m]!=null)?[g.thm[m]]:[2,3,1,0];for(const th of thc){if(Date.now()-t0>40000)throw last||new Error("Gemini is taking too long — try again");
     try{const ctl=new AbortController(),to=setTimeout(()=>ctl.abort(),30000);
       const stream=!!(onPart&&window.ReadableStream);
       const r=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${m}:${stream?"streamGenerateContent?alt=sse":"generateContent"}`,{method:"POST",headers:{"Content-Type":"application/json","x-goog-api-key":g.k},body:JSON.stringify(mk(th)),signal:ctl.signal});
@@ -1362,7 +1374,7 @@ async function gaiCall(text,onPart){const g=GAI.get();if(!g)throw new Error("off
       if(!r.ok){const msg=(j.error&&j.error.message)||"AI error "+r.status;last=new Error(msg);if(r.status===400&&/thinking/i.test(msg))continue;if(r.status===404||r.status===429||r.status>=500)break;throw last}
       const c=(j.candidates||[])[0]||{},t=((c.content||{}).parts||[]).filter(p=>!p.thought).map(p=>p.text||"").join("");
       if(!t.trim()){last=new Error(c.finishReason==="SAFETY"?"Gemini wouldn't answer that":"Gemini sent an empty reply ("+(c.finishReason||"?")+")");break}
-      const o=parse(t);{const ng=GAI.get()||g;GAI.set({...ng,m,thm:{...(ng.thm||{}),[m]:th}})}GAI.hist.push({role:"user",parts:[{text}]},{role:"model",parts:[{text:t}]});GAI.hist=GAI.hist.slice(-8);return o}
+      const o=parse(t);if(aud){if(AI.audU){AI.audU.textContent="🎤 "+(o.heard||"(voice)");AI.audU=null}text=o.heard||"(voice message)"}{const ng=GAI.get()||g;GAI.set({...ng,m,thm:{...(ng.thm||{}),[m]:th}})}GAI.hist.push({role:"user",parts:[{text}]},{role:"model",parts:[{text:t}]});GAI.hist=GAI.hist.slice(-8);return o}
     catch(e){last=e;if(e.name==="AbortError"){last=new Error("Gemini is taking too long — try again");throw last}if(/readable/.test(e.message))break;throw e}}}
   throw last||new Error("AI unavailable")}
 const okD=d=>/^\d{4}-\d{2}-\d{2}$/.test(d||"")&&!isNaN(parseD(d));
@@ -1414,6 +1426,11 @@ function gaiRender(o,q){if(Array.isArray(o.actions)&&o.actions.length>1){const s
       return lead+aiCard(`${esc(x.name)}: client pays`,`<b>${money(+a.amount)}${bill==="fixed"?" per month":"/hr"}</b>`,"",`<button class="btn" onclick="aiDo()">Save</button>`)}
     if(t==="worker_left"){const w=DB.workers.find(x=>x.id===a.worker_id);if(!w)return lead||bad();AI.p={k:"left",wid:w.id};return lead+aiCard(`${esc(w.name)} has left?`,"Hidden from lists. Their history and anything owed stays.","",`<button class="btn" onclick="aiDo()">Mark as left</button>`)}
     if(t==="report")return lead+aiReport(a);
+    if(t==="export")return lead+aiExport(a);
+    if(t==="undo"){AI.p={k:"undo"};const u=AIUNDO[AIUNDO.length-1];return lead+(u?aiCard("Undo the last change?",esc(u.msg),"",`<button class="btn" onclick="aiDo()">Undo</button>`):aiCard("Nothing to undo","I can only undo changes made here in this chat.","",""))}
+    if(t==="rename"){const kind=["worker","site","client"].includes(a.kind)?a.kind:"worker",tbl=kind==="worker"?"workers":kind==="site"?"sites":"clients",x=DB[tbl].find(y=>y.id===a.id);if(!x||!a.name)return lead||bad();AI.p={k:"rename",tbl,id:x.id,name:String(a.name).trim()};return lead+aiCard(`Rename ${esc(x.name)}`,`→ <b>${esc(a.name)}</b>`,"",`<button class="btn" onclick="aiDo()">Rename</button>`)}
+    if(t==="assign"){const w=DB.workers.find(x=>x.id===a.worker_id),x=DB.sites.find(y=>y.id===a.site_id);if(!w||!x)return lead||bad();if(!(+a.rate>0))return lead+aiCard(`${esc(w.name)} at ${esc(x.name)}`,"What's the pay per hour there?","","");AI.p={k:"rate",wid:w.id,sid:x.id,rate:+a.rate};return lead+aiCard(`Add ${esc(w.name)} to ${esc(x.name)}`,`<b>${money(+a.rate)}/hr</b>`,"",`<button class="btn" onclick="aiDo()">Save</button>`)}
+    if(t==="delete"){const kind=["worker","site","client"].includes(a.kind)?a.kind:"worker",x=(kind==="worker"?DB.workers:kind==="site"?DB.sites:DB.clients).find(y=>y.id===a.id);if(!x)return lead||bad();AI.p={k:"delete",kind,id:x.id};return lead+aiCard(`Delete ${esc(x.name)}?`,kind==="worker"?"Removes the person and all their hours. To keep history, say they left instead.":kind==="site"?"Removes the site and its hours.":"Removes the company, its sites and hours.","",`<button class="btn danger" onclick="aiDo()">Delete…</button>`)}
     if(t==="list")return lead+aiRoster(a);
     if(t==="open"&&TITLES[a.page])return lead+aiCard(`Open ${TITLES[a.page]}`,"","",`<button class="btn" onclick="askGo('t','${a.page}')">Open</button>`)}
   if(o.query){const h=askAnswer(o.query);if(!/Couldn't find that/.test(h))return lead+h;return lead||ansHead("Hmm, I didn't find that","Tell me a bit more — which person, site or dates?")}
@@ -1427,7 +1444,7 @@ async function aiSmart(q){const box=$("#askres");if(!box||!q.trim())return;const
 const AILANG={"en-AU":"EN","bn-BD":"বাং","ne-NP":"नेपा"},AILANGN={"en-AU":"English","bn-BD":"বাংলা","ne-NP":"नेपाली"};
 function aiLang(b){const k=Object.keys(AILANG),n=k[(k.indexOf(AI.lang)+1)%k.length];AI.lang=n;try{localStorage.setItem("cw_ailang",n)}catch(e){}b.textContent=AILANG[n];toast("Mic: "+AILANGN[n])}
 function aiNav(fn,now){AI.navT&&clearTimeout(AI.navT);AI.navT=setTimeout(()=>{aiKeep();closeSheet();setTimeout(fn,220)},now?0:900)}
-function aiDone(msg,undo){const box=$("#askres");if(box&&$("#aimsgs")){box.querySelectorAll(".aibtns").forEach(b=>b.remove());box.insertAdjacentHTML("beforeend",`<div class="aiok">${msg}${undo?` <button class="link aiundo">Undo</button>`:""}</div>`);const u=box.querySelector(".aiundo:last-of-type");if(u)u.onclick=async()=>{u.disabled=true;await undo();u.parentNode.innerHTML="↺ Undone"};haptic();aiTalk(msg.replace(/^✓\s*/,""))}else toast(msg,undo)}
+function aiDone(msg,undo){if(undo){AIUNDO.push({fn:undo,msg:String(msg).replace(/^✓\s*/,"").replace(/<[^>]+>/g,"")});if(AIUNDO.length>20)AIUNDO.shift()}const box=$("#askres");if(box&&$("#aimsgs")){box.querySelectorAll(".aibtns").forEach(b=>b.remove());box.insertAdjacentHTML("beforeend",`<div class="aiok">${msg}${undo?` <button class="link aiundo">Undo</button>`:""}</div>`);const u=box.querySelector(".aiundo:last-of-type");if(u)u.onclick=async()=>{u.disabled=true;await undo();u.parentNode.innerHTML="↺ Undone"};haptic();aiTalk(msg.replace(/^✓\s*/,""))}else toast(msg,undo)}
 function aiKeep(){const m=$("#aimsgs");if(m){AI.saved={html:m.innerHTML,t:Date.now()}}}
 /* ---------- AI report engine: Gemini describes, the app computes ---------- */
 function aiReport(a){const td=todayD();const from=okD(a.from)?a.from:null,to=okD(a.to)?a.to:(from?td:null);const R=from?RR(from,to,""):{all:true};
@@ -1472,6 +1489,50 @@ function aiRoster(a){const what=a.what==="sites"?"sites":a.what==="clients"?"cli
   const cs=DB.clients.slice().sort((p,q)=>p.name.localeCompare(q.name));return aiCard("Companies",`${cs.length}`,`<div class="airep"><table><thead><tr><th>Company</th><th class="l">Sites</th></tr></thead><tbody>${cs.map(c=>`<tr><td>${esc(c.name)}</td><td>${DB.sites.filter(x=>x.clientId===c.id).map(x=>esc(x.name)).join(", ")||"–"}</td></tr>`).join("")}</tbody></table></div>`,"")}
 function aiDoN(i,mode){AI.p=AI.ps&&AI.ps[i];if(AI.p)return aiDo(mode)}
 async function aiDoAll(){const ps=(AI.ps||[]).filter(p=>p&&["hours","money","paid","edit","rate","charge","left","del"].includes(p.k));for(const p of ps){AI.p=p;await aiDo()}}
+/* ---------- Gemini voice: record WAV, send audio to Gemini (handles any accent/mixed language) ---------- */
+const VREC={on:false};
+async function aiVoice(){const i=$("#askq");if(!i)return;
+  if(VREC.on){VREC.stop&&VREC.stop();return}
+  if(!smartOn()||!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia||!(window.AudioContext||window.webkitAudioContext))return aiMic();
+  let stream;try{stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,channelCount:1}})}catch(e){return aiMic()}
+  const AC=window.AudioContext||window.webkitAudioContext,ctx=new AC();try{await ctx.resume()}catch(e){}
+  const src=ctx.createMediaStreamSource(stream),proc=ctx.createScriptProcessor(4096,1,1),chunks=[];let spoke=false,quietMs=0,total=0,done=false;
+  const w=$(".askw");w&&w.classList.add("listening","vlevel");i.value="";i.placeholder="Listening… speak in any language";haptic();VREC.on=true;
+  const bars=[...document.querySelectorAll(".aiwave i")];
+  proc.onaudioprocess=e=>{if(done)return;const d=e.inputBuffer.getChannelData(0);chunks.push(new Float32Array(d));let s=0;for(let k=0;k<d.length;k+=4)s+=d[k]*d[k];const rms=Math.sqrt(s/(d.length/4));
+    const ms=d.length/ctx.sampleRate*1000;total+=ms;if(rms>0.02){spoke=true;quietMs=0}else quietMs+=ms;
+    bars.forEach((b,n)=>{b.style.transform=`scaleY(${Math.min(1.6,.3+rms*18*(.6+((n*7)%5)/5))})`});
+    if((spoke&&quietMs>1300)||total>20000||(!spoke&&total>8000))stop()};
+  src.connect(proc);proc.connect(ctx.destination);
+  function stop(){if(done)return;done=true;VREC.on=false;VREC.stop=null;try{proc.disconnect();src.disconnect()}catch(e){}stream.getTracks().forEach(t=>t.stop());
+    w&&w.classList.remove("listening","vlevel");bars.forEach(b=>b.style.transform="");i.placeholder="Message Hourza AI";const rate=ctx.sampleRate;try{ctx.close()}catch(e){}
+    if(!spoke){aiNote("I couldn't hear anything — try again a bit closer to the phone.");return}
+    const wav=aiWav(chunks,rate,16000);aiSendAudio(wav)}
+  VREC.stop=stop}
+function aiWav(chunks,inRate,outRate){let n=0;chunks.forEach(c=>n+=c.length);const all=new Float32Array(n);let o=0;chunks.forEach(c=>{all.set(c,o);o+=c.length});
+  const ratio=inRate/outRate,len=Math.floor(n/ratio),pcm=new Int16Array(len);for(let k=0;k<len;k++){const v=all[Math.floor(k*ratio)];pcm[k]=Math.max(-1,Math.min(1,v))*0x7fff}
+  const buf=new ArrayBuffer(44+pcm.length*2),dv=new DataView(buf),ws=(p,t)=>{for(let k=0;k<t.length;k++)dv.setUint8(p+k,t.charCodeAt(k))};
+  ws(0,"RIFF");dv.setUint32(4,36+pcm.length*2,true);ws(8,"WAVE");ws(12,"fmt ");dv.setUint32(16,16,true);dv.setUint16(20,1,true);dv.setUint16(22,1,true);dv.setUint32(24,outRate,true);dv.setUint32(28,outRate*2,true);dv.setUint16(32,2,true);dv.setUint16(34,16,true);ws(36,"data");dv.setUint32(40,pcm.length*2,true);
+  new Uint8Array(buf,44).set(new Uint8Array(pcm.buffer));let bin="";const u=new Uint8Array(buf);for(let k=0;k<u.length;k+=0x8000)bin+=String.fromCharCode.apply(null,u.subarray(k,k+0x8000));return btoa(bin)}
+function aiSendAudio(b64){const m=$("#aimsgs");if(!m)return;m.querySelector(".aiwel")?.remove();m.querySelectorAll(".aib").forEach(b=>{b.classList.add("old");b.querySelector("#askres")?.removeAttribute("id")});
+  const u=document.createElement("div");u.className="aiu aiu-voice";u.innerHTML=`<span class="adots light"><i></i><i></i><i></i></span>`;m.appendChild(u);
+  const b=document.createElement("div");b.className="aib";b.innerHTML=`<div id="askres"></div>`;m.appendChild(b);aiScroll(u);AI.voice=true;AI.audio={b64,u};aiSmart("(voice message)")}
+/* ---------- export, undo, rename, assign, delete ---------- */
+const AIUNDO=[];
+function aiExport(a){const rows=aiReportRows(a);if(!rows)return aiCard("Nothing to export","No hours in that period","","");
+  AI.exp={name:(a.title||"Hourza report").replace(/[^\w\- ]+/g,"").trim()||"Hourza report",rows};
+  return aiCard(`📊 ${esc(AI.exp.name)}`,`${rows.length-1} rows · opens in Excel, Numbers or Google Sheets`,"",`<button class="btn" onclick="aiShareExport()">Save / Share</button>`)}
+function aiReportRows(a){const td=todayD();const from=okD(a.from)?a.from:null,to=okD(a.to)?a.to:(from?td:null);const R=from?RR(from,to,""):{all:true};
+  const wids=new Set(a.worker_ids||[]),sids=new Set(a.site_ids||[]),cids=new Set(a.client_ids||[]),paid=a.paid==="paid"?true:a.paid==="unpaid"?false:null;
+  const es=DB.entries.filter(e=>e.hours>0&&inR(e,R)&&(!wids.size||wids.has(e.workerId))&&(!sids.size||sids.has(e.siteId))&&(!cids.size||cids.has(Sx(e.siteId).clientId))&&(paid===null||!!e.paid===paid)).sort((x,y)=>String(x.date||x.month).localeCompare(String(y.date||y.month))||W(x.workerId).name.localeCompare(W(y.workerId).name));
+  if(!es.length)return null;const out=[["Date","Worker","Site","Company","Hours","Rate","Wages","Paid","Notes"]];
+  es.forEach(e=>out.push([e.date||e.month,W(e.workerId).name,Sx(e.siteId).name,C(Sx(e.siteId).clientId).name||"",+e.hours,+e.rate,Math.round(wage(e)*100)/100,e.paid?"Yes":"No",e.notes||""]));
+  const th=es.filter(isWork).reduce((t,e)=>t+ +e.hours,0),tw=es.reduce((t,e)=>t+wage(e),0);out.push(["Total","","","",th,"",Math.round(tw*100)/100,"",""]);return out}
+async function aiShareExport(){const x=AI.exp;if(!x)return;const csv="﻿"+x.rows.map(r=>r.map(v=>{v=String(v);return /[",\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v}).join(",")).join("\r\n");
+  const fname=x.name+" "+todayD()+".csv",file=new File([csv],fname,{type:"text/csv"});
+  try{if(navigator.canShare&&navigator.canShare({files:[file]})){await navigator.share({files:[file],title:x.name});return}}catch(e){if(e.name==="AbortError")return}
+  const a=document.createElement("a");a.href=URL.createObjectURL(file);a.download=fname;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},2000)}
+async function aiUndoLast(){const u=AIUNDO.pop();if(!u)return false;await u.fn();render();return u.msg}
 function aiTalk(t){if(!AI.speak||!AI.voice||!window.speechSynthesis)return;try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t.replace(/<[^>]+>/g,"").replace(/·/g,",").replace(/\$/g,"$"));u.lang=/[\u0980-\u09FF]/.test(t)?"bn-BD":/[\u0900-\u097F]/.test(t)?"ne-NP":"en-AU";u.rate=1.04;speechSynthesis.speak(u)}catch(e){}}
 function aiSpeakToggle(b){AI.speak=!AI.speak;try{localStorage.setItem("cw_aispeak",AI.speak?"1":"0")}catch(e){}b.classList.toggle("off",!AI.speak);if(!AI.speak&&window.speechSynthesis)speechSynthesis.cancel()}
 function aiMicStop(){const r=AI.rec,end=AI.recEnd;if(!r)return;try{r.stop()}catch(e){}const w=$(".askw");w&&w.classList.remove("listening");setTimeout(()=>{if(AI.rec===r){try{r.abort()}catch(e){}end&&end()}},900)}
@@ -1495,7 +1556,7 @@ function openAsk(q=""){hideToast();AI.voice=false;AI.p=null;const keep=AI.saved&
   showSheet(`<div class="askw chat"><div class="aihead"><div class="ailogo">${AILOGO}</div><div style="flex:1;min-width:0"><h3 style="margin:0">Hourza AI${smartOn()?' <span class="aibadge">Smart</span>':""}</h3><div class="t2">${smartOn()?"English · বাংলা · नेपाली":"Ask anything, or tell me what to do"}</div></div>${smartOn()?`<button class="aispk" style="font-size:12.5px;font-weight:750;margin-right:6px;width:auto;padding:0 10px" onclick="aiLang(this)" aria-label="Mic language">${AILANG[AI.lang]||"EN"}</button>`:""}<button class="aispk${AI.speak?"":" off"}" onclick="aiSpeakToggle(this)" aria-label="Speak answers">🔊</button></div>
     <div class="aimsgs" id="aimsgs"><div class="aiwel">${(()=>{const rec=askRecent();return `${rec.length?`<div class="asklbl">Recent</div>${chipsH(rec)}`:""}<div class="asklbl">Try</div>${chipsH(askIdeas())}`})()}</div></div>
     <div class="aiwave"><i></i><i></i><i></i><i></i><i></i><span>Listening… tap the mic again when you finish</span></div>
-    <div class="askin aicomp"><input id="askq" class="inp" placeholder="${smartOn()?"Message Hourza AI":"Ask or tell me what to do"}" autocomplete="off" autocorrect="on" autocapitalize="sentences" spellcheck="false" enterkeyhint="send" value="" oninput="AI.voice=false" onkeydown="if(event.key==='Enter'){event.preventDefault();aiSendNow()}" ontouchend="if(document.activeElement!==this){this.focus()}"><button class="aisend" onmousedown="event.preventDefault()" ontouchend="event.preventDefault();aiSendNow()" onclick="aiSendNow()" aria-label="Send">${ICON.send||"➤"}</button><button class="aimic" onmousedown="event.preventDefault()" onclick="aiMic()" aria-label="Speak">${ICON.mic}</button></div></div>`);
+    <div class="askin aicomp"><input id="askq" class="inp" placeholder="${smartOn()?"Message Hourza AI":"Ask or tell me what to do"}" autocomplete="off" autocorrect="on" autocapitalize="sentences" spellcheck="false" enterkeyhint="send" value="" oninput="AI.voice=false" onkeydown="if(event.key==='Enter'){event.preventDefault();aiSendNow()}" ontouchend="if(document.activeElement!==this){this.focus()}"><button class="aisend" onmousedown="event.preventDefault()" ontouchend="event.preventDefault();aiSendNow()" onclick="aiSendNow()" aria-label="Send">${ICON.send||"➤"}</button><button class="aimic" onmousedown="event.preventDefault()" onclick="aiVoice()" aria-label="Speak">${ICON.mic}</button></div></div>`);
   $("#sheet").classList.add("chatmode");if(keep){const m=$("#aimsgs");m.innerHTML=AI.saved.html;m.querySelectorAll("#askres").forEach(x=>x.removeAttribute("id"));m.querySelectorAll(".aib").forEach(b=>b.classList.add("old"));setTimeout(()=>m.scrollTop=m.scrollHeight,50)}
   if(q)setTimeout(()=>aiSend(q),200);else setTimeout(()=>{const i=$("#askq");if(i)i.focus()},300)}
 function aiScroll(el){const m=$("#aimsgs");if(!m)return;requestAnimationFrame(()=>{if(el){const t=el.offsetTop-12;m.scrollTo({top:Math.max(t,m.scrollHeight-m.clientHeight>t?t:m.scrollHeight),behavior:"smooth"})}else m.scrollTo({top:m.scrollHeight,behavior:"smooth"})})}
