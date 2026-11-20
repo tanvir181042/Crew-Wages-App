@@ -745,7 +745,7 @@ const JOIN=(()=>{const m=(location.hash||"").match(/join=(CW1\.[A-Za-z0-9_\-]+)/
 if(JOIN&&!IS_APP){const l=document.querySelector('link[rel="manifest"]');if(l)l.remove()}
 let deferredInstall=null;
 addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredInstall=e;setTimeout(showInstallGuide,50)});
-const APP_VERSION="7.2.1";
+const APP_VERSION="7.3";
 /* ============ data layer ============ */
 const TABLES=["clients","sites","workers","rates","entries","income"];
 const EMPTY=()=>({clients:[],sites:[],workers:[],rates:[],entries:[],income:[]});
@@ -1276,6 +1276,7 @@ function aiSetup(){const g=GAI.get();setTimeout(aiFillModels,300);showSheet(`<h3
   <button class="btn ghost" style="margin:12px 0 14px" onclick="window.open('https://aistudio.google.com/apikey','_blank')">Open Google AI Studio</button>
   <div class="f"><input class="inp" id="gk" placeholder="Paste your key here" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" value=""></div><div id="gkerr"></div>
   ${g?`<div class="f" style="margin-top:4px"><label>Model</label><select class="inp" id="gmsel" onchange="const x=GAI.get();GAI.set({...x,m:this.value,alt:[]});toast('Model: '+this.value)"><option>${esc(g.m)}</option></select></div><button class="btn ghost" style="margin-bottom:10px" onclick="aiTest()">Test Smart AI now</button><div id="gtest"></div>`:""}<button class="btn" id="gkb" onclick="aiSaveKey()">${g?"Change key":"Turn on"}</button>${g?`<button class="btn ghost" style="margin-top:10px" onclick="GAI.set(null);closeSheet();render();toast('Smart AI turned off')">Turn off</button>`:""}
+  <div class="row" style="margin:14px 0 4px;padding:0;background:none;border:0"><div class="main"><div class="t1">Do things right away</div><div class="t2">AI saves changes immediately — say “undo” to reverse</div></div><span class="sw${AI.auto?" on":""}" role="switch" onclick="AI.auto=!AI.auto;try{localStorage.setItem('cw_aiauto',AI.auto?'1':'0')}catch(e){};this.classList.toggle('on',AI.auto)" aria-label="Do things right away"></span></div>
   <div class="hint" style="margin-top:14px;line-height:1.5">What is sent to Google: what you say, plus the names of your workers, sites and companies (no money amounts). Google's free plan may use it to improve their products. The key is kept on this phone${online()?" and shared with people you invite":""}.</div>`)}
 async function aiTest(){const g=GAI.get(),box=$("#gtest");if(!g||!box)return;box.innerHTML='<div class="hint">Testing…</div>';const t0=Date.now();
   try{const ctl=new AbortController(),to=setTimeout(()=>ctl.abort(),45000);const r=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${g.m}:generateContent`,{method:"POST",headers:{"Content-Type":"application/json","x-goog-api-key":g.k},body:JSON.stringify({contents:[{role:"user",parts:[{text:"Reply with just: OK"}]}],generationConfig:{maxOutputTokens:256}}),signal:ctl.signal});clearTimeout(to);
@@ -1326,6 +1327,9 @@ Actions (use ids from the lists; dates are YYYY-MM-DD; never invent ids):
    // "who worked at each site this week" → group_by ["site","worker"]
 - {"type":"list","what":"workers|sites|clients","fields":["sites","rate","owed","last_worked","charge"],"site_ids":[],"client_ids":[],"include_left":false,"title":"..."}   // "show all my employees", "who works where", "list sites"
 - {"type":"export","title":"..","from":..,"to":..,"worker_ids":[],"site_ids":[],"client_ids":[],"paid":"all|paid|unpaid"}   // "make me an Excel / spreadsheet / file / report to send" → downloadable sheet
+- {"type":"payslip","worker_id":".." or null for everyone,"from":"..","to":".."}   // payslip PDF ("make Sam's payslip for last fortnight", "payslips for everyone")
+- {"type":"invoice","client_id":".." or null,"site_id":".." or null,"from":"..","to":"..","gst":true}   // invoice PDF for a company/site
+- {"type":"send","channel":"whatsapp|sms|email","to":"phone or email or empty","text":"message"}   // write and send a message (e.g. tell a worker their hours)
 - {"type":"undo"}   // "undo", "that was wrong", "bhul hoise, firao", "go back"
 - {"type":"rename","kind":"worker|site|client","id":"..","name":"new name"}
 - {"type":"assign","worker_id":"..","site_id":"..","rate":number or null}   // a worker also works at another site
@@ -1336,7 +1340,7 @@ Use show_* whenever the user wants to SEE something ("show", "dekhao", "दे�
 For QUESTIONS about numbers you may answer in "say" ONLY with numbers copied exactly from DATA below; if DATA doesn't have it, do NOT guess: set "query" to a short English search the app understands, using exact names, e.g. "sam lee last week", "who do i owe", "who worked today", "who worked at mascot last week", "bupa parramatta this month", "ken november", "anish 3 nov", "sites losing money", "top workers this month", "summary last month", "anish so far". Then "say" can be a short lead-in like "Here's Sam's last week".
 If the user asks to add/create/change something but leaves out details (e.g. "can you add a site for me"), still return that action with the missing fields null — the app opens a form for them. NEVER put a command into "query"; "query" is only for questions about existing data.
 If the request is unclear (e.g. two workers share a first name), ask a short question in "say" with action null.
-You are an expert, proactive assistant for a non-technical owner. Whatever they ask — see data in any shape, add or change anything, fix a mistake, make a file — map it to the actions above (combine several if needed). "report"/"list" can answer almost any question about people, sites, hours, money, dates.
+You are an expert, proactive assistant for a non-technical owner. Changes run immediately (the user can say "undo"), so be accurate and never refuse — always find a way with the actions available. Whatever they ask — see data in any shape, add or change anything, fix a mistake, make a file — map it to the actions above (combine several if needed). "report"/"list" can answer almost any question about people, sites, hours, money, dates.
 Names may be misspelled or mis-heard (voice, accents, Nepali/Bangla/English): always pick the closest worker/site/client from the lists by sound and spelling (e.g. "Aayush", "Ayus", "Ayush" are the same person). Only ask if two names are equally close.
 Understand the MEANING, not keywords. People talk casually, indirectly, with typos, mixed languages and incomplete sentences — work out what they want. If something is missing, choose the most sensible default (today, the person's only site) or ask ONE short question; never reply that you can't find it.
 Examples (worker/site ids come from the lists):
@@ -1427,6 +1431,8 @@ function gaiRender(o,q){if(Array.isArray(o.actions)&&o.actions.length>1){const s
     if(t==="worker_left"){const w=DB.workers.find(x=>x.id===a.worker_id);if(!w)return lead||bad();AI.p={k:"left",wid:w.id};return lead+aiCard(`${esc(w.name)} has left?`,"Hidden from lists. Their history and anything owed stays.","",`<button class="btn" onclick="aiDo()">Mark as left</button>`)}
     if(t==="report")return lead+aiReport(a);
     if(t==="export")return lead+aiExport(a);
+    if(t==="payslip"||t==="invoice")return lead+aiFileCard(t,a);
+    if(t==="send"){const ch=["whatsapp","sms","email"].includes(a.channel)?a.channel:"whatsapp";AI.send={ch,to:a.to||"",text:a.text||""};return lead+aiCard(`Send by ${ch==="sms"?"message":ch==="email"?"email":"WhatsApp"}`,a.to?esc(a.to):"Pick the person in "+(ch==="email"?"Mail":ch==="sms"?"Messages":"WhatsApp"),`<div class="aic3" style="white-space:pre-wrap">${esc(a.text||"")}</div>`,`<button class="btn" onclick="aiSendLink(AI.send.ch,AI.send.to,AI.send.text)">Open ${ch==="sms"?"Messages":ch==="email"?"Mail":"WhatsApp"}</button>`)}
     if(t==="undo"){AI.p={k:"undo"};const u=AIUNDO[AIUNDO.length-1];return lead+(u?aiCard("Undo the last change?",esc(u.msg),"",`<button class="btn" onclick="aiDo()">Undo</button>`):aiCard("Nothing to undo","I can only undo changes made here in this chat.","",""))}
     if(t==="rename"){const kind=["worker","site","client"].includes(a.kind)?a.kind:"worker",tbl=kind==="worker"?"workers":kind==="site"?"sites":"clients",x=DB[tbl].find(y=>y.id===a.id);if(!x||!a.name)return lead||bad();AI.p={k:"rename",tbl,id:x.id,name:String(a.name).trim()};return lead+aiCard(`Rename ${esc(x.name)}`,`→ <b>${esc(a.name)}</b>`,"",`<button class="btn" onclick="aiDo()">Rename</button>`)}
     if(t==="assign"){const w=DB.workers.find(x=>x.id===a.worker_id),x=DB.sites.find(y=>y.id===a.site_id);if(!w||!x)return lead||bad();if(!(+a.rate>0))return lead+aiCard(`${esc(w.name)} at ${esc(x.name)}`,"What's the pay per hour there?","","");AI.p={k:"rate",wid:w.id,sid:x.id,rate:+a.rate};return lead+aiCard(`Add ${esc(w.name)} to ${esc(x.name)}`,`<b>${money(+a.rate)}/hr</b>`,"",`<button class="btn" onclick="aiDo()">Save</button>`)}
@@ -1438,7 +1444,7 @@ function gaiRender(o,q){if(Array.isArray(o.actions)&&o.actions.length>1){const s
 async function aiSmart(q){const box=$("#askres");if(!box||!q.trim())return;const w=$(".askw");
   box.innerHTML=aiDots();w&&w.classList.add("thinking");
   let live=null,streamed=false;const onPart=t=>{if(!box.isConnected)return;if(!live){box.innerHTML=`<div class="aisay">${esc(t)}</div>`;live=box.firstChild;streamed=true;aiScroll(box.parentNode.previousElementSibling)}else live.textContent=t};
-  try{const o=await gaiCall(q,onPart);if(!box.isConnected)return;box.innerHTML=gaiRender(o,q);if(streamed){box.querySelectorAll(".aicard,.list,.askchips,.btn,.aierr").forEach((e,n)=>{e.style.animation=`ansIn .3s ${n*.04}s cubic-bezier(.32,.72,0,1) both`})}else aiPolish(box);aiScroll(box.parentNode.previousElementSibling);aiTalk(AI.say||(box.querySelector(".ansb")?.textContent||""))}
+  try{const o=await gaiCall(q,onPart);if(!box.isConnected)return;AI.ps=null;box.innerHTML=gaiRender(o,q);setTimeout(aiAutoRun,350);if(streamed){box.querySelectorAll(".aicard,.list,.askchips,.btn,.aierr").forEach((e,n)=>{e.style.animation=`ansIn .3s ${n*.04}s cubic-bezier(.32,.72,0,1) both`})}else aiPolish(box);aiScroll(box.parentNode.previousElementSibling);aiTalk(AI.say||(box.querySelector(".ansb")?.textContent||""))}
   catch(e){const loc=aiCmd(q)||askAnswer(q),m=String(e&&e.message||e);box.innerHTML=`<div class="aierr"><b>Gemini didn't answer</b> — showing the quick answer instead.<br><small>${esc(/API key|API_KEY|key not valid|PERMISSION|unregistered/i.test(m)?"The Google key isn't accepted. Settings → Smart AI → Change key.":/quota|429|RESOURCE_EXHAUSTED/i.test(m)?"Free limit reached for now — try again in a minute.":/too long/i.test(m)?"Gemini took too long to answer — tap ➤ to try again.":/Failed to fetch|NetworkError|Load failed/i.test(m)?"Couldn't reach Google ("+m.slice(0,60)+"). Check the internet and try again.":m.slice(0,160))}</small></div></div>`+loc}
   finally{w&&w.classList.remove("thinking")}}
 const AILANG={"en-AU":"EN","bn-BD":"বাং","ne-NP":"नेपा"},AILANGN={"en-AU":"English","bn-BD":"বাংলা","ne-NP":"नेपाली"};
@@ -1534,6 +1540,67 @@ async function aiShareExport(){const x=AI.exp;if(!x)return;const csv="﻿"+x.row
   try{if(navigator.canShare&&navigator.canShare({files:[file]})){await navigator.share({files:[file],title:x.name});return}}catch(e){if(e.name==="AbortError")return}
   const a=document.createElement("a");a.href=URL.createObjectURL(file);a.download=fname;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},2000)}
 async function aiUndoLast(){const u=AIUNDO.pop();if(!u)return false;await u.fn();render();return u.msg}
+/* ---------- tiny PDF writer (A4, Helvetica) for payslips & invoices ---------- */
+function pdfMake(pages){const W=595,H=842,esc=t=>String(t).replace(/[–—]/g,"-").replace(/·/g,"-").replace(/[’‘]/g,"'").replace(/[“”]/g,'"').replace(/[^\x20-\x7E]/g,"?").replace(/\\/g,"\\\\").replace(/\(/g,"\\(").replace(/\)/g,"\\)");
+  const objs=[];const add=s=>{objs.push(s);return objs.length};
+  const font=add("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>"),bold=add("<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica-Bold /Encoding /WinAnsiEncoding >>");
+  const pagesId=objs.length+1;objs.push(null);const kids=[];
+  pages.forEach(ops=>{let c="";ops.forEach(o=>{if(o.t==="text")c+=`BT /${o.b?"F2":"F1"} ${o.s||10} Tf ${o.c?o.c.join(" ")+" rg ":"0 0 0 rg "}${o.x.toFixed(1)} ${(H-o.y).toFixed(1)} Td (${esc(o.v)}) Tj ET\n`;
+      else if(o.t==="line")c+=`${o.w||.5} w ${o.c?o.c.join(" ")+" RG ":"0.85 0.85 0.85 RG "}${o.x1} ${H-o.y1} m ${o.x2} ${H-o.y2} l S\n`;
+      else if(o.t==="rect")c+=`${o.c.join(" ")} rg ${o.x} ${H-o.y-o.h} ${o.w} ${o.h} re f\n`});
+    const cs=add(`<< /Length ${c.length} >>\nstream\n${c}endstream`);kids.push(add(`<< /Type /Page /Parent ${pagesId} 0 R /MediaBox [0 0 ${W} ${H}] /Resources << /Font << /F1 ${font} 0 R /F2 ${bold} 0 R >> >> /Contents ${cs} 0 R >>`))});
+  objs[pagesId-1]=`<< /Type /Pages /Kids [${kids.map(k=>k+" 0 R").join(" ")}] /Count ${kids.length} >>`;const cat=add(`<< /Type /Catalog /Pages ${pagesId} 0 R >>`);
+  let out="%PDF-1.4\n";const offs=[];objs.forEach((o,i)=>{offs.push(out.length);out+=`${i+1} 0 obj\n${o}\nendobj\n`});const xref=out.length;
+  out+=`xref\n0 ${objs.length+1}\n0000000000 65535 f \n`+offs.map(o=>String(o).padStart(10,"0")+" 00000 n \n").join("")+`trailer\n<< /Size ${objs.length+1} /Root ${cat} 0 R >>\nstartxref\n${xref}\n%%EOF`;
+  const bytes=new Uint8Array(out.length);for(let i=0;i<out.length;i++)bytes[i]=out.charCodeAt(i)&255;return new Blob([bytes],{type:"application/pdf"})}
+const tw=(t,s)=>String(t).length*s*0.5;
+function pdfDoc(title,sub,meta,head,rows,totals,foot){const pages=[];let ops=[],y=0;const L=50,Rr=545;
+  const newPage=first=>{ops=[];pages.push(ops);y=60;if(first){ops.push({t:"rect",x:0,y:0,w:595,h:8,c:[0.79,0.95,0.42]});ops.push({t:"text",x:L,y:y,v:"HOURZA",s:9,b:1,c:[0.45,0.5,0.55]});y+=34;ops.push({t:"text",x:L,y,v:title,s:22,b:1});y+=20;ops.push({t:"text",x:L,y,v:sub,s:11,c:[0.4,0.43,0.47]});y+=22;
+      meta.forEach(([k,v])=>{ops.push({t:"text",x:L,y,v:k,s:9,c:[0.45,0.5,0.55]});ops.push({t:"text",x:L+90,y,v,s:10,b:1});y+=15});y+=14}
+    const cols=head.length;ops.push({t:"line",x1:L,y1:y,x2:Rr,y2:y,w:1,c:[0.1,0.1,0.1]});y+=14;head.forEach((h,i)=>{const x=colX(i,cols),H2=h.toUpperCase();ops.push({t:"text",x:(i===0||(i===1&&cols>4))?x:x-tw(H2,8.5)*1.12,y,v:H2,s:8.5,b:1,c:[0.4,0.43,0.47]})});y+=8;ops.push({t:"line",x1:L,y1:y,x2:Rr,y2:y});y+=16};
+  const colX=(i,n)=>i===0?L:i===1&&n>4?L+150:Rr-(n-1-i)*80;
+  newPage(true);
+  rows.forEach(r=>{if(y>770)newPage(false);r.forEach((v,i)=>{const x=colX(i,r.length);v=String(v);if(i===0||(i===1&&r.length>4))ops.push({t:"text",x,y,v:v.slice(0,i===0?(r.length>4?26:44):24),s:10});else ops.push({t:"text",x:x-tw(v,10),y,v,s:10})});y+=8;ops.push({t:"line",x1:L,y1:y,x2:Rr,y2:y,c:[0.92,0.92,0.92]});y+=14});
+  y+=6;totals.forEach(([k,v,big])=>{if(y>780)newPage(false);ops.push({t:"text",x:Rr-200,y,v:k,s:big?12:10,b:big?1:0,c:big?[0,0,0]:[0.4,0.43,0.47]});ops.push({t:"text",x:Rr-tw(v,big?14:10)-(big?6:0),y,v,s:big?14:10,b:1});y+=big?22:16});
+  if(foot){y+=20;foot.forEach(t=>{ops.push({t:"text",x:L,y,v:t,s:9,c:[0.45,0.5,0.55]});y+=13})}
+  return pdfMake(pages)}
+async function aiShareFile(blob,fname,title){const file=new File([blob],fname,{type:blob.type});
+  try{if(navigator.canShare&&navigator.canShare({files:[file]})){await navigator.share({files:[file],title});return}}catch(e){if(e.name==="AbortError")return}
+  const a=document.createElement("a");a.href=URL.createObjectURL(file);a.download=fname;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},3000)}
+const pm=n=>"$"+(Math.round(n*100)/100).toLocaleString("en-AU",{minimumFractionDigits:2,maximumFractionDigits:2});
+function aiPayslip(a){const w=DB.workers.find(x=>x.id===a.worker_id);if(!w)return null;const td=todayD(),from=okD(a.from)?a.from:addD(td,-13),to=okD(a.to)?a.to:td,R=RR(from,to,"");
+  const es=DB.entries.filter(e=>e.workerId===w.id&&e.hours>0&&inR(e,R)).sort((x,y)=>String(x.date||x.month).localeCompare(String(y.date||y.month)));if(!es.length)return {empty:true,w,from,to};
+  const tot=es.reduce((t,e)=>t+wage(e),0),paidAmt=es.filter(e=>e.paid).reduce((t,e)=>t+wage(e),0),h=es.filter(isWork).reduce((t,e)=>t+ +e.hours,0);
+  const blob=pdfDoc("Payslip",w.name,[["Period",rngLabel(from,to)],["Issued",dayLabel(td)],["Hours",String(Math.round(h*100)/100)]],["Date","Site","Hours","Rate","Amount"],
+    es.map(e=>[e.date?dayLabel(e.date):mLabel(e.month),Sx(e.siteId).name+(e.kind==="salary"?" (salary)":""),String(+e.hours),pm(+e.rate),pm(wage(e))]),
+    [["Total earned",pm(tot)],["Already paid",pm(paidAmt)],["To pay",pm(tot-paidAmt),1]],["Made with Hourza"]);
+  return {blob,fname:`Payslip ${w.name} ${from} to ${to}.pdf`,w,from,to,tot,due:tot-paidAmt}}
+function aiInvoice(a){const c=DB.clients.find(x=>x.id===a.client_id)||(DB.sites.find(x=>x.id===a.site_id)?C(Sx(a.site_id).clientId):null);if(!c)return null;const td=todayD(),from=okD(a.from)?a.from:td.slice(0,8)+"01",to=okD(a.to)?a.to:td,R=RR(from,to,"");
+  const sites=DB.sites.filter(x=>x.clientId===c.id&&(!a.site_id||x.id===a.site_id));const lines=[];let total=0,missing=[];
+  sites.forEach(x=>{const r=siteR(x,R);if(!r.h&&x.billType!=="fixed")return;if(!hasBill(x)){if(r.h)missing.push(x.name);return}
+    if(x.billType==="fixed"){let n=0,m=from.slice(0,7);while(m<=to.slice(0,7)&&n<60){n++;m=addM(m,1)}const amt=(+x.fixed)*n;lines.push([x.name,`${n} month${n>1?"s":""}`,pm(+x.fixed)+"/mo",pm(amt)]);total+=amt}else{lines.push([x.name,`${Math.round(r.h*100)/100} hrs`,pm(+x.charge)+"/hr",pm(r.b)]);total+=r.b}});
+  if(!lines.length)return {empty:true,c,from,to,missing};const gst=a.gst===false?0:Math.round(total*10)/100,no="INV-"+td.replace(/-/g,"").slice(2)+"-"+String(DB.clients.indexOf(c)+1).padStart(2,"0");
+  const blob=pdfDoc("Tax Invoice",c.name,[["Invoice no.",no],["Date",dayLabel(td)],["Period",rngLabel(from,to)]],["Site","Quantity","Rate","Amount"],lines,
+    gst?[["Subtotal",pm(total)],["GST 10%",pm(gst)],["Total due",pm(total+gst),1]]:[["Total due",pm(total),1]],missing.length?["No charge rate set for: "+missing.join(", ")]:["Thank you for your business."]);
+  return {blob,fname:`Invoice ${c.name} ${from} to ${to}.pdf`,c,from,to,total:total+gst,missing}}
+
+const AUTOK=["hours","money","paid","edit","rate","charge","left","rename","worker","undo"];
+AI.auto=(()=>{try{return localStorage.getItem("cw_aiauto")!=="0"}catch(e){return true}})();
+function aiAutoRun(){if(!AI.auto)return;if(AI.ps&&AI.ps.filter(Boolean).length>1){const ok=AI.ps.filter(p=>p&&AUTOK.includes(p.k)&&aiReady(p));if(ok.length===AI.ps.filter(Boolean).length){aiDoAll();return}}
+  const p=AI.p;if(p&&AUTOK.includes(p.k)&&aiReady(p))aiDo(p.k==="worker"?"save":undefined)}
+function aiReady(p){if(p.k==="hours")return !!p.sid&&p.ds&&p.ds.some(d=>!DB.entries.some(e=>e.workerId===p.wid&&e.siteId===p.sid&&e.date===d&&isWork(e)));if(p.k==="worker")return !!(p.name&&p.sid&&p.rate);if(p.k==="edit")return !!p.sid;return true}
+function aiFileCard(kind,a){
+  if(kind==="payslip"){const ws=a.worker_id?[a.worker_id]:DB.workers.filter(w=>w.active!==false).map(w=>w.id);const docs=ws.map(id=>aiPayslip({...a,worker_id:id})).filter(d=>d&&!d.empty);
+    if(!docs.length){const d=aiPayslip(a)||{};return aiCard("No payslip to make",`${d.w?esc(d.w.name)+" has no ":"No "}hours ${d.from?rngLabel(d.from,d.to):"in that period"}`,"","")}
+    AI.files=docs;return aiCard(`🧾 ${docs.length>1?docs.length+" payslips":"Payslip · "+esc(docs[0].w.name)}`,`${rngLabel(docs[0].from,docs[0].to)}${docs.length===1?` · to pay <b>${money(docs[0].due)}</b>`:""} · PDF`,docs.length>1?`<div class="aic3">${docs.map(d=>esc(d.w.name)).join(", ")}</div>`:"",`<button class="btn" onclick="aiShareFiles()">Share / Save PDF</button><button class="btn ghost" onclick="aiPreview(0)">View</button>`)}
+  if(kind==="invoice"){const d=aiInvoice(a);if(!d)return aiCard("Which company?","Tell me who the invoice is for","","");if(d.empty)return aiCard("Nothing to invoice",`${esc(d.c.name)} · ${rngLabel(d.from,d.to)}${d.missing&&d.missing.length?" · set a charge rate for "+esc(d.missing.join(", ")):""}`,"","");
+    AI.files=[d];return aiCard(`🧾 Invoice · ${esc(d.c.name)}`,`${rngLabel(d.from,d.to)} · <b>${money(d.total)}</b> incl. GST · PDF`,d.missing.length?`<div class="aic3">⚠ No charge rate for ${esc(d.missing.join(", "))} — not included.</div>`:"",`<button class="btn" onclick="aiShareFiles()">Share / Save PDF</button><button class="btn ghost" onclick="aiPreview(0)">View</button>`)}}
+async function aiShareFiles(){const fs=(AI.files||[]).map(d=>new File([d.blob],d.fname,{type:"application/pdf"}));if(!fs.length)return;
+  try{if(navigator.canShare&&navigator.canShare({files:fs})){await navigator.share({files:fs,title:fs.length>1?"Payslips":fs[0].name});return}}catch(e){if(e.name==="AbortError")return}
+  for(const d of AI.files)await aiShareFile(d.blob,d.fname,d.fname)}
+function aiPreview(i){const d=(AI.files||[])[i];if(!d)return;const u=URL.createObjectURL(d.blob);const w=window.open(u,"_blank");if(!w){location.href=u}}
+function aiSendLink(ch,to,text){to=String(to||"").replace(/[^\d+@.\w-]/g,"");const t=encodeURIComponent(text||"");
+  const url=ch==="whatsapp"?`https://wa.me/${to.replace(/^\+/,"").replace(/^0/,"61")}?text=${t}`:ch==="email"?`mailto:${to}?body=${t}`:`sms:${to}${/iPhone|iPad/.test(navigator.userAgent)?"&":"?"}body=${t}`;location.href=url}
 function aiTalk(t){if(!AI.speak||!AI.voice||!window.speechSynthesis)return;try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t.replace(/<[^>]+>/g,"").replace(/·/g,",").replace(/\$/g,"$"));u.lang=/[\u0980-\u09FF]/.test(t)?"bn-BD":/[\u0900-\u097F]/.test(t)?"ne-NP":"en-AU";u.rate=1.04;speechSynthesis.speak(u)}catch(e){}}
 function aiSpeakToggle(b){AI.speak=!AI.speak;try{localStorage.setItem("cw_aispeak",AI.speak?"1":"0")}catch(e){}b.classList.toggle("off",!AI.speak);if(!AI.speak&&window.speechSynthesis)speechSynthesis.cancel()}
 function aiMicStop(){const r=AI.rec,end=AI.recEnd;if(!r)return;try{r.stop()}catch(e){}const w=$(".askw");w&&w.classList.remove("listening");setTimeout(()=>{if(AI.rec===r){try{r.abort()}catch(e){}end&&end()}},900)}
