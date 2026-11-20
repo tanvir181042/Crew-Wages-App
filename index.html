@@ -699,7 +699,7 @@ const JOIN=(()=>{const m=(location.hash||"").match(/join=(CW1\.[A-Za-z0-9_\-]+)/
 if(JOIN&&!IS_APP){const l=document.querySelector('link[rel="manifest"]');if(l)l.remove()}
 let deferredInstall=null;
 addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredInstall=e;setTimeout(showInstallGuide,50)});
-const APP_VERSION="6.6.1";
+const APP_VERSION="6.6.3";
 /* ============ data layer ============ */
 const TABLES=["clients","sites","workers","rates","entries","income"];
 const EMPTY=()=>({clients:[],sites:[],workers:[],rates:[],entries:[],income:[]});
@@ -2232,13 +2232,15 @@ function needSheetForInvite(){hideToast();
     <div class="row"><div class="av">2</div><div class="main"><div class="t1">Connect this phone</div><div class="t2" style="white-space:normal">In the Sheet: Hourza → Connect a device, then scan the QR here</div></div></div>
     <div class="row"><div class="av">3</div><div class="main"><div class="t1">Add people</div><div class="t2" style="white-space:normal">Then this button shows a QR that others scan with their Camera</div></div></div></div>
   <button class="btn" onclick="openConnect()">I have the Sheet — connect now</button><button class="btn ghost" onclick="closeSheet()">Later</button>`)}
+let CW_LAST="";function fixConnect(){const u=($("#fixu")?.value||"").trim();if(!/^https:\/\/script\.google\.com\/.+\/exec/.test(u)){toast("Paste the link that ends with /exec");return}const o=readCode(CW_LAST);if(!o)return openConnect();tryConnect(makeCodeRaw({...o,u}))}
+const makeCodeRaw=o=>"CW1."+b64u.enc(JSON.stringify(o));
 async function tryConnect(text){
-  const c=readCode(text); const err=m=>{const e=$("#cerr");if(e)e.innerHTML=`<div class="err">${m}</div>`;else toast(m)};
+  const c=readCode(text);if(c)CW_LAST=text; const err=m=>{const e=$("#cerr");if(e)e.innerHTML=`<div class="err">${m}</div>`;else toast(m)};
   if(!c)return err("That isn't a Hourza connect code.");
   showSheet(`<div class="empty" style="padding:40px 0">Connecting…</div>`);
   let data;
   try{const prev=CONN;CONN=c;data=await api("getAll");CONN=prev}
-  catch(e){CONN=null;showSheet(`<h3>Couldn't connect</h3><div class="lead">${e.server?esc(e.message):e.html?"Google asked for a sign-in instead of answering. In Apps Script: Deploy → New deployment → Web app → Who has access: <b>Anyone</b> → Deploy. Then copy a fresh code from the Sheet (Hourza → Connect a device).":"No answer from Google. Check the internet, and that the script is deployed with access set to “Anyone”."}</div><div class="hint" style="margin:-6px 0 14px;word-break:break-all">Link in code: …${esc(String(c.u||"").slice(-28))}</div><button class="btn" onclick="openConnect()">Try again</button>`);return}
+  catch(e){CONN=null;showSheet(`<h3>Couldn't connect</h3><div class="lead">${e.server?esc(e.message):e.html?"Google asked for a sign-in instead of answering. In Apps Script: Deploy → New deployment → Web app → Who has access: <b>Anyone</b> → Deploy. Then copy a fresh code from the Sheet (Hourza → Connect a device).":"No answer from Google. Check the internet, and that the script is deployed with access set to “Anyone”."}</div><div class="hint" style="margin:-6px 0 14px;word-break:break-all">Link in code: …${esc(String(c.u||"").slice(-28))}</div><div class="f" style="margin-top:4px"><label>Fix it with the Web app link</label><input class="inp" id="fixu" placeholder="https://script.google.com/macros/s/…/exec" autocapitalize="off" autocorrect="off" spellcheck="false"></div><div class="hint" style="margin:-4px 0 12px">In Apps Script: Deploy → Manage deployments → Web app URL → Copy, then paste here.</div><button class="btn" onclick="fixConnect()">Connect with this link</button><button class="btn ghost" style="margin-top:10px" onclick="openConnect()">Try again</button>`);return}
   if(c.g&&!GAI.get())GAI.set({k:c.g,m:c.gm||"gemini-flash-latest",alt:[]});
   const sheetUrl=data.sheetUrl; delete data.sheetUrl;
   setPin(async()=>{
@@ -2295,7 +2297,7 @@ async function scanQR(onCode){
 async function hashPin(pin,salt){try{const b=await crypto.subtle.digest("SHA-256",new TextEncoder().encode(salt+":"+pin));return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,"0")).join("")}catch(e){let h=0;for(const c of salt+pin)h=(h*31+c.charCodeAt(0))>>>0;return "x"+h}}
 function pinPad(title,sub,onDone,opts={}){
   let v="";const el=document.createElement("div");el.className="lock";document.body.appendChild(el);
-  const draw=(shake)=>{el.innerHTML=`<div class="lk-in"><div class="logo" style="width:56px;height:56px;font-size:24px;border-radius:17px;margin:0 auto 18px">C</div>
+  const draw=(shake)=>{el.innerHTML=`<div class="lk-in"><div class="logo" style="width:56px;height:56px;border-radius:17px;margin:0 auto 18px;background:none;padding:0"><svg viewBox="0 0 100 100" width="100%" height="100%" aria-hidden="true"><rect width="100" height="100" rx="23.5" fill="#C9F26B"/><circle cx="50" cy="50" r="23" fill="none" stroke="#111" stroke-width="6.6"/><path d="M50 50V35.7M50 50l11 8.4" stroke="#111" stroke-width="6.6" stroke-linecap="round" fill="none"/><circle cx="76.5" cy="25.5" r="5.6" fill="#111"/></svg></div>
     <div class="lk-t">${title}</div><div class="lk-s">${sub}</div>
     <div class="dots${shake?" shake":""}">${[0,1,2,3].map(i=>`<i class="${i<v.length?"on":""}"></i>`).join("")}</div>
     <div class="pad">${[1,2,3,4,5,6,7,8,9,"",0,"⌫"].map(k=>k===""?"<span></span>":`<button data-k="${k}">${k}</button>`).join("")}</div>
