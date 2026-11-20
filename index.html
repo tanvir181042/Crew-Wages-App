@@ -685,6 +685,30 @@ html,body{overscroll-behavior-y:none}
 @media (prefers-color-scheme:dark){.aisrc{background:#26330F;color:#C9F26B}}
 .aierr{margin:12px 2px 4px;padding:12px 14px;border-radius:14px;background:var(--warn-s);color:var(--warn);font-size:14px;line-height:1.4}.aierr small{display:block;margin-top:4px;opacity:.9}
 .joincard.aiw{background:var(--soft)!important;color:var(--ink)!important}.joincard.aiw small{color:var(--mut)!important}.joincard.aiw .ji{background:#111214!important;color:#C9F26B!important}.joincard.aiw .ji svg,.joincard.aiw .ji svg path{fill:#C9F26B!important;stroke:none!important;opacity:1}
+.sheet.chatmode{overflow:hidden;display:flex;flex-direction:column}
+.askw.chat{display:flex;flex-direction:column;height:calc(var(--vvh,100vh) - env(safe-area-inset-top) - 70px);max-height:780px;min-height:320px}
+.askw.chat .aihead{flex:none;margin-bottom:10px}
+.aimsgs{flex:1;min-height:0;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;padding:2px 2px 12px;display:flex;flex-direction:column}
+.aiu{align-self:flex-end;max-width:82%;background:#111214;color:#fff;padding:10px 15px;border-radius:20px 20px 6px 20px;font-size:16px;line-height:1.35;margin:12px 0 2px;animation:aiIn .28s cubic-bezier(.32,.72,0,1) both;word-wrap:break-word}
+@media (prefers-color-scheme:dark){.aiu{background:#C9F26B;color:#111214}}
+.aib{align-self:stretch;margin:4px 0}.aib .ans{margin-top:8px}.aib .aisay{margin-top:8px}.aib.old .aibtns,.aib.old .opts{opacity:.4;pointer-events:none}
+@keyframes aiIn{from{opacity:0;transform:translateY(8px) scale(.98)}to{opacity:1;transform:none}}
+.aicomp{flex:none;margin-top:6px}.aicomp #askq{padding-left:16px!important;border-radius:24px!important;height:52px}
+.askw.chat .aisend{right:52px;border-radius:50%;width:38px;height:38px;margin-top:-19px;background:#111214;color:#C9F26B}
+.askw.chat .aimic{border-radius:50%;width:38px;height:38px;margin-top:-19px;background:var(--soft);color:var(--ink)}
+@media (prefers-color-scheme:dark){.askw.chat .aisend{background:#C9F26B;color:#111214}}
+.ailogo{width:44px;height:44px;border-radius:14px;flex:none;background:#C9F26B;display:grid;place-items:center;box-shadow:0 6px 18px rgba(155,209,47,.35);position:relative}
+.ailogo svg{transition:transform .3s}
+.askw.thinking .ailogo svg{animation:aispin 1.4s cubic-bezier(.5,0,.5,1) infinite}.askw.listening .ailogo{animation:aipulse 1.1s ease-in-out infinite}
+@keyframes aispin{0%{transform:rotate(0) scale(1)}50%{transform:rotate(180deg) scale(.82)}100%{transform:rotate(360deg) scale(1)}}
+@keyframes aipulse{0%,100%{box-shadow:0 0 0 0 rgba(201,242,107,.7)}50%{box-shadow:0 0 0 10px rgba(201,242,107,0)}}
+.aithink{display:flex;align-items:center;gap:10px;margin:10px 2px;padding:10px 14px;background:var(--soft);border-radius:20px 20px 20px 6px;width:fit-content;animation:aiIn .25s both}
+.adots{display:flex;gap:4px}.adots i{width:7px;height:7px;border-radius:50%;background:var(--ink);opacity:.35;animation:adot 1s infinite}.adots i:nth-child(2){animation-delay:.15s}.adots i:nth-child(3){animation-delay:.3s}
+@keyframes adot{0%,100%{transform:translateY(0);opacity:.3}40%{transform:translateY(-5px);opacity:.9}}
+.ashim{font-weight:650;font-size:14px;background:linear-gradient(90deg,var(--mut) 0%,var(--ink) 50%,var(--mut) 100%);background-size:200% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;animation:shim 1.2s linear infinite}
+@keyframes shim{from{background-position:200% 0}to{background-position:-200% 0}}
+.askw.chat .aiwave{flex:none;margin:6px 4px 0}
+@media (prefers-reduced-motion:reduce){.adots i,.ashim,.ailogo svg,.ailogo{animation:none!important}}
 </style>
 </head>
 <body>
@@ -706,7 +730,7 @@ const JOIN=(()=>{const m=(location.hash||"").match(/join=(CW1\.[A-Za-z0-9_\-]+)/
 if(JOIN&&!IS_APP){const l=document.querySelector('link[rel="manifest"]');if(l)l.remove()}
 let deferredInstall=null;
 addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredInstall=e;setTimeout(showInstallGuide,50)});
-const APP_VERSION="6.7.7";
+const APP_VERSION="6.8";
 /* ============ data layer ============ */
 const TABLES=["clients","sites","workers","rates","entries","income"];
 const EMPTY=()=>({clients:[],sites:[],workers:[],rates:[],entries:[],income:[]});
@@ -862,6 +886,7 @@ const avc=n=>{let h=0;for(const c of n)h=(h*31+c.charCodeAt(0))>>>0;return PAL[h
 const av=(n,extra="")=>{const[b,f]=avc(n);return `<div class="av" style="background:${b};color:${f};${extra}">${esc(initials(n))}</div>`};
 const plural=(n,w)=>n+" "+(n===1?w:(w==="person"?"people":w==="entry"?"entries":w+"s"));
 const ICON={
+  send:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>',
   mic:'<svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>',
   spark:'<svg width="24" height="24" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2.5c.4 4.6 2.9 7.1 7.5 7.5-4.6.4-7.1 2.9-7.5 7.5-.4-4.6-2.9-7.1-7.5-7.5 4.6-.4 7.1-2.9 7.5-7.5z"/><path d="M19 15c.2 2 1.2 3 3 3.2-1.8.2-2.8 1.2-3 3.2-.2-2-1.2-3-3-3.2 1.8-.2 2.8-1.2 3-3.2z" opacity=".7"/></svg>',
   home:'<svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg>',
@@ -1294,8 +1319,8 @@ function gaiRender(o,q){const a=o.action,say=esc(o.say||"");AI.say=o.say||"";AI.
   if(o.query){const h=askAnswer(o.query);return lead+h}
   return say?ansHead(say,""):bad()}
 async function aiSmart(q){const box=$("#askres");if(!box||!q.trim())return;const w=$(".askw");
-  box.innerHTML=`<div class="aithink"><div class="aiorb sm"></div><span>Thinking… <small style="opacity:.7">Gemini</small></span></div>`;w&&w.classList.add("thinking");
-  try{const o=await gaiCall(q);if($("#askq")?.value.trim()!==q.trim()&&!AI.voice)return;box.innerHTML=`<div class="aisrc">✦ Gemini</div>`+gaiRender(o,q)+`<button class="link" style="margin-top:14px;font-size:15px" onclick="aiAgain()">↺ Ask something else</button>`;aiTalk(AI.say||(box.querySelector(".ansb")?.textContent||""))}
+  box.innerHTML=aiDots();w&&w.classList.add("thinking");
+  try{const o=await gaiCall(q);if(!box.isConnected)return;box.innerHTML=gaiRender(o,q);aiPolish(box);aiScroll(box.parentNode.previousElementSibling);aiTalk(AI.say||(box.querySelector(".ansb")?.textContent||""))}
   catch(e){const loc=aiCmd(q)||askAnswer(q),m=String(e&&e.message||e);box.innerHTML=`<div class="aierr"><b>Gemini didn't answer</b> — showing the quick answer instead.<br><small>${esc(/API key|API_KEY|key not valid|PERMISSION|unregistered/i.test(m)?"The Google key isn't accepted. Settings → Smart AI → Change key.":/quota|429|RESOURCE_EXHAUSTED/i.test(m)?"Free limit reached for now — try again in a minute.":/too long/i.test(m)?"Gemini took too long to answer — tap ➤ to try again.":/Failed to fetch|NetworkError|Load failed/i.test(m)?"Couldn't reach Google ("+m.slice(0,60)+"). Check the internet and try again.":m.slice(0,160))}</small></div></div>`+loc}
   finally{w&&w.classList.remove("thinking")}}
 function aiTalk(t){if(!AI.speak||!AI.voice||!window.speechSynthesis)return;try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t.replace(/<[^>]+>/g,"").replace(/·/g,",").replace(/\$/g,"$"));u.lang=/[\u0980-\u09FF]/.test(t)?"bn-BD":"en-AU";u.rate=1.04;speechSynthesis.speak(u)}catch(e){}}
@@ -1308,15 +1333,28 @@ function aiMic(){const i=$("#askq");if(!i)return;
   const w=$(".askw");w&&w.classList.add("listening");i.value="";i.placeholder="Listening…";haptic();
   r.onresult=e=>{let t="";for(const x of e.results)t+=x[0].transcript;fin=t;i.value=t};
   r.onerror=e=>{if(e.error==="not-allowed"||e.error==="service-not-allowed")toast("Allow the microphone, or tap 🎤 on your keyboard")};
-  r.onend=()=>{AI.rec=null;w&&w.classList.remove("listening");i.placeholder="Ask or tell me what to do";if(fin.trim()){AI.voice=true;askRemember(fin);if(smartOn()){aiSmart(fin);return}askRun(fin);aiTalk(AI.say||(document.querySelector("#askres .ansb")?.textContent||""))}};
+  r.onend=()=>{AI.rec=null;w&&w.classList.remove("listening");i.placeholder=smartOn()?"Message Hourza AI":"Ask or tell me what to do";if(fin.trim()){AI.voice=true;i.value="";aiSend(fin)}};
   try{r.start()}catch(e){AI.rec=null;w&&w.classList.remove("listening");i.focus()}}
+const AILOGO=`<svg viewBox="0 0 24 24" width="22" height="22" fill="#111214"><path d="M12 2.5c.4 4.6 2.9 7.1 7.5 7.5-4.6.4-7.1 2.9-7.5 7.5-.4-4.6-2.9-7.1-7.5-7.5 4.6-.4 7.1-2.9 7.5-7.5z"/><path d="M19 15c.2 2 1.2 3 3 3.2-1.8.2-2.8 1.2-3 3.2-.2-2-1.2-3-3-3.2 1.8-.2 2.8-1.2 3-3.2z" opacity=".55"/></svg>`;
 function openAsk(q=""){hideToast();AI.voice=false;AI.p=null;GAI.hist=[];
-  showSheet(`<div class="askw"><div class="aihead"><div class="aiorb"></div><div style="flex:1"><h3 style="margin:0">Hourza AI${smartOn()?' <span class="aibadge">Smart</span>':""}</h3><div class="t2">${smartOn()?"Say anything — English or Bangla":"Ask anything, or tell me what to do"}</div></div>${smartOn()?`<button class="aispk" style="font-size:13px;font-weight:750;margin-right:6px" onclick="AI.lang=AI.lang==='en-AU'?'bn-BD':'en-AU';try{localStorage.setItem('cw_ailang',AI.lang)}catch(e){};this.textContent=AI.lang==='en-AU'?'EN':'বাং';toast(AI.lang==='en-AU'?'Mic: English':'Mic: বাংলা')" aria-label="Mic language">${AI.lang==="en-AU"?"EN":"বাং"}</button>`:""}<button class="aispk${AI.speak?"":" off"}" onclick="aiSpeakToggle(this)" aria-label="Speak answers">🔊</button></div>
-    <div class="askin">${ICON.search||""}<input id="askq" class="inp" placeholder="Ask or tell me what to do" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="go" value="${esc(q)}" oninput="AI.voice=false;if(smartOn()){aiTyping(this.value)}else askRun(this.value)" onkeydown="if(event.key==='Enter'){event.preventDefault();if(smartOn())aiSendNow();else{askRemember(this.value);this.blur()}}" ontouchend="if(document.activeElement!==this){this.focus()}">${smartOn()?`<button class="aisend" onmousedown="event.preventDefault()" ontouchend="event.preventDefault();aiSendNow()" onclick="aiSendNow()" aria-label="Ask">➤</button>`:""}<button class="aimic" onclick="aiMic()" aria-label="Speak">${ICON.mic}</button></div><div class="aiwave"><i></i><i></i><i></i><i></i><i></i><span>Listening… tap the mic to stop</span><button class="askx" onclick="const i=$('#askq');i.value='';askRun('');i.focus()" aria-label="Clear">×</button></div>
-    <div id="askres"></div></div>`);
-  askRun(q);setTimeout(()=>{const i=$("#askq");if(i&&!q)i.focus()},280)}
-function askChip(q){const i=$("#askq");if(i){i.value=q;askRemember(q);if(smartOn())aiSmart(q);else askRun(q)}}
-let aiSendT=0;function aiSendNow(){if(Date.now()-aiSendT<500)return;aiSendT=Date.now();const i=$("#askq");const v=i?i.value:"";if(!v.trim())return;askRemember(v);aiSmart(v)}
+  showSheet(`<div class="askw chat"><div class="aihead"><div class="ailogo">${AILOGO}</div><div style="flex:1;min-width:0"><h3 style="margin:0">Hourza AI${smartOn()?' <span class="aibadge">Smart</span>':""}</h3><div class="t2">${smartOn()?"Say anything — English or Bangla":"Ask anything, or tell me what to do"}</div></div>${smartOn()?`<button class="aispk" style="font-size:13px;font-weight:750;margin-right:6px" onclick="AI.lang=AI.lang==='en-AU'?'bn-BD':'en-AU';try{localStorage.setItem('cw_ailang',AI.lang)}catch(e){};this.textContent=AI.lang==='en-AU'?'EN':'বাং';toast(AI.lang==='en-AU'?'Mic: English':'Mic: বাংলা')" aria-label="Mic language">${AI.lang==="en-AU"?"EN":"বাং"}</button>`:""}<button class="aispk${AI.speak?"":" off"}" onclick="aiSpeakToggle(this)" aria-label="Speak answers">🔊</button></div>
+    <div class="aimsgs" id="aimsgs"><div class="aiwel">${(()=>{const rec=askRecent();return `${rec.length?`<div class="asklbl">Recent</div>${chipsH(rec)}`:""}<div class="asklbl">Try</div>${chipsH(askIdeas())}`})()}</div></div>
+    <div class="aiwave"><i></i><i></i><i></i><i></i><i></i><span>Listening… tap the mic to stop</span></div>
+    <div class="askin aicomp"><input id="askq" class="inp" placeholder="${smartOn()?"Message Hourza AI":"Ask or tell me what to do"}" autocomplete="off" autocorrect="on" autocapitalize="sentences" spellcheck="false" enterkeyhint="send" value="" oninput="AI.voice=false" onkeydown="if(event.key==='Enter'){event.preventDefault();aiSendNow()}" ontouchend="if(document.activeElement!==this){this.focus()}"><button class="aisend" onmousedown="event.preventDefault()" ontouchend="event.preventDefault();aiSendNow()" onclick="aiSendNow()" aria-label="Send">${ICON.send||"➤"}</button><button class="aimic" onmousedown="event.preventDefault()" onclick="aiMic()" aria-label="Speak">${ICON.mic}</button></div></div>`);
+  $("#sheet").classList.add("chatmode");
+  if(q)setTimeout(()=>aiSend(q),200);else setTimeout(()=>{const i=$("#askq");if(i)i.focus()},300)}
+function aiScroll(el){const m=$("#aimsgs");if(!m)return;requestAnimationFrame(()=>{if(el){const t=el.offsetTop-12;m.scrollTo({top:Math.max(t,m.scrollHeight-m.clientHeight>t?t:m.scrollHeight),behavior:"smooth"})}else m.scrollTo({top:m.scrollHeight,behavior:"smooth"})})}
+function aiSend(text){text=(text||"").trim();const m=$("#aimsgs");if(!text||!m)return;askRemember(text);
+  m.querySelector(".aiwel")?.remove();m.querySelectorAll(".aib").forEach(b=>{b.classList.add("old");b.querySelector("#askres")?.removeAttribute("id")});
+  const u=document.createElement("div");u.className="aiu";u.textContent=text;m.appendChild(u);
+  const b=document.createElement("div");b.className="aib";b.innerHTML=`<div id="askres"></div>`;m.appendChild(b);
+  const i=$("#askq");if(i)i.value="";aiScroll(u);
+  if(smartOn())aiSmart(text);else{const box=$("#askres");box.innerHTML=aiDots();setTimeout(()=>{AI.p=null;let h=null;try{h=aiCmd(text)}catch(e){}box.innerHTML=h||askAnswer(text);aiPolish(box);aiTalk(AI.say||(box.querySelector(".ansb")?.textContent||""));aiScroll(u)},260)}}
+const aiDots=()=>`<div class="aithink"><span class="adots"><i></i><i></i><i></i></span><span class="ashim">Thinking</span></div>`;
+function aiPolish(box){const t=box.querySelector(".aisay,.ansb");if(!t||RM)return;const full=t.textContent;if(full.length<4)return;t.textContent="";let k=0;const step=()=>{k=Math.min(full.length,k+Math.max(2,Math.ceil(full.length/40)));t.textContent=full.slice(0,k);if(k<full.length)requestAnimationFrame(step)};requestAnimationFrame(step);
+  box.querySelectorAll(".aicard,.list,.askchips,.btn,.aierr").forEach((e,n)=>{e.style.animation=`ansIn .35s ${.12+n*.05}s cubic-bezier(.32,.72,0,1) both`})}
+function askChip(q){if($("#aimsgs"))aiSend(q);else{const i=$("#askq");if(i){i.value=q;askRun(q)}}}
+let aiSendT=0;function aiSendNow(){if(Date.now()-aiSendT<500)return;aiSendT=Date.now();const i=$("#askq");const v=i?i.value:"";if(!v.trim())return;aiSend(v)}
 function aiAgain(){const i=$("#askq");if(!i)return;i.value="";i.focus();askRun("")}
 function aiTyping(v){const box=$("#askres");if(!box)return;if(!v.trim()){askRun("");return}box.innerHTML=`<div class="aitype">✦ Tap <b>➤</b> or <b>Enter</b> to ask Gemini</div>`}
 function askGo(kind,id){askRemember($("#askq")?.value||"");closeSheet();setTimeout(()=>{if(kind==="w")openPerson(id);else if(kind==="s")openSite(id);else go(id)},180)}
@@ -1840,7 +1878,7 @@ function morePage(){
 /* ============ sheets ============ */
 let sheetClose=null;
 function openSheet(html,onClose){$("#sheet").innerHTML=`<div class="grab"></div>`+html;void $("#sheet").offsetHeight;$("#sheet").classList.add("on");$("#scrim").classList.add("on");sheetClose=onClose||null;$("#sheet").scrollTop=0}
-function closeSheet(){document.body.classList.remove("sheet-open");const sh=$("#sheet");if(sh.style.transform){sh.style.transition="transform .25s";sh.style.transform="translateY(110%)";setTimeout(()=>{sh.style.transition="";sh.style.transform=""},300)}sh.classList.remove("on");$("#scrim").classList.remove("on");if(sheetClose)sheetClose()}
+function closeSheet(){setTimeout(()=>{if(!$("#sheet").classList.contains("on"))$("#sheet").classList.remove("chatmode")},400);document.body.classList.remove("sheet-open");const sh=$("#sheet");if(sh.style.transform){sh.style.transition="transform .25s";sh.style.transform="translateY(110%)";setTimeout(()=>{sh.style.transition="";sh.style.transform=""},300)}sh.classList.remove("on");$("#scrim").classList.remove("on");if(sheetClose)sheetClose()}
 $("#scrim").onclick=closeSheet;
 document.addEventListener("touchstart",()=>{},{passive:true});
 const tint={on:false};let sheetY=0,wasOn=false;
@@ -2152,7 +2190,7 @@ function openEntry(id){hideToast();
 }
 
 /* ---- edit worker / rate / client / site / money ---- */
-function showSheet(html){$("#sheet").innerHTML=`<div class="grab"></div>`+html;void $("#sheet").offsetHeight;$("#sheet").classList.add("on");$("#scrim").classList.add("on");sheetClose=null;$("#sheet").scrollTop=0}
+function showSheet(html){$("#sheet").classList.remove("chatmode");$("#sheet").innerHTML=`<div class="grab"></div>`+html;void $("#sheet").offsetHeight;$("#sheet").classList.add("on");$("#scrim").classList.add("on");sheetClose=null;$("#sheet").scrollTop=0}
 function editWorker(id){hideToast();const w=W(id);let name=w.name,active=w.active!==false;
   const draw=()=>{showSheet(`<h3>Edit worker</h3><div class="lead">Change the name, or mark them as left.</div>
     <div class="f"><label>Name</label><input class="inp" id="en" autocapitalize="words" value="${esc(name)}"></div>
