@@ -745,7 +745,7 @@ const JOIN=(()=>{const m=(location.hash||"").match(/join=(CW1\.[A-Za-z0-9_\-]+)/
 if(JOIN&&!IS_APP){const l=document.querySelector('link[rel="manifest"]');if(l)l.remove()}
 let deferredInstall=null;
 addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredInstall=e;setTimeout(showInstallGuide,50)});
-const APP_VERSION="7.3.2";
+const APP_VERSION="7.3.3";
 /* ============ data layer ============ */
 const TABLES=["clients","sites","workers","rates","entries","income"];
 const EMPTY=()=>({clients:[],sites:[],workers:[],rates:[],entries:[],income:[]});
@@ -1295,7 +1295,7 @@ function gaiData(){try{const td=todayD(),cm=td.slice(0,7),lm=addM(cm,-1),ws=week
   const owed=owedByWorker().map(o=>`${W(o.workerId).name} $${Math.round(o.amount)}`).join("; ")||"nobody";
   const sites=DB.sites.map(x=>{const r=siteR(x,RR(cm+"-01",mEnd(cm),""));return `${x.name}: ${Math.round(r.h)}h wages $${Math.round(r.w)}${r.b!=null?` charged $${Math.round(r.b)} kept $${Math.round(r.p)}`:" (no charge rate)"}`}).join("; ");
   return `DATA (exact, computed by the app):\nOwed now: ${owed}\nThis week (from ${ws}): ${sum(e=>e.date>=ws)}\nLast week (${lw} to ${addD(ws,-1)}): ${sum(e=>e.date>=lw&&e.date<ws)}\nThis month ${cm}: ${sum(e=>e.month===cm)}\nLast month ${lm}: ${sum(e=>e.month===lm)}\nSites this month: ${sites}`.slice(0,6000)}catch(e){return ""}}
-const GAI_SYS=`You are Hourza AI inside a payroll app for a cleaning labour-hire business in Australia. The user (the business owner or staff) speaks English, Bangla/Banglish or Nepali (Devanagari or romanised), by voice or text. Workers are often Nepali. Reply ONLY with JSON:
+const GAI_SYS=`You are Hourza AI inside a payroll app for a cleaning labour-hire business in Australia. The user (the business owner or staff) speaks English, Bangla/Banglish or Nepali (Devanagari or romanised), by voice or text. Workers are often Nepali. You are a real assistant: understand meaning, not keywords. Spelling mistakes, voice-to-text errors, mixed languages, slang, half sentences and wrong grammar are normal — work out what they most likely mean, and match names to the lists by sound (e.g. "sem"/"shyam" → Sam). Greetings, small talk, thanks and general questions (about anything, not only the app) get a natural friendly reply in "say" (up to 80 words then) with action null. If something truly can't be guessed, ask ONE short question in "say" — never answer "couldn't find". Reply ONLY with JSON:
 {"heard": only for voice messages — what they said, "say": short friendly reply in the same language and script the user used (max 25 words; for actions describe what will happen; never invent numbers), "action": null or one action object, "actions": optional array of action objects, "query": null or a search string}
 Actions (use ids from the lists; dates are YYYY-MM-DD; never invent ids):
 - {"type":"add_hours","worker_id":"..","site_id":".." or null if unclear,"days":[{"date":"..","hours":8}]}  // "Mon to Fri" = weekdays of the meant week; "last month" = weekdays only up to today
@@ -1363,9 +1363,9 @@ async function gaiCall(text,onPart){const g=GAI.get();if(!g)throw new Error("off
   const aud=AI.audio;AI.audio=null;let clean=false;const hist=()=>clean?[]:GAI.hist.slice(-6).filter(h=>h&&h.parts&&h.parts.every(x=>x.text&&String(x.text).trim()));const contents=()=>[...hist(),{role:"user",parts:aud?[{text:"The user sent this voice message. First write exactly what they said in \"heard\" (fix names to match the lists; keep their language), then act on it."},{inlineData:{mimeType:"audio/wav",data:aud.b64}}]:[{text}]}],t0=Date.now();if(aud)AI.audU=aud.u;void 0;
   const mk=th=>({systemInstruction:{parts:[{text:GAI_SYS+"\n\n"+gaiCtx()}]},contents:contents(),generationConfig:{responseMimeType:"application/json",temperature:.2,maxOutputTokens:4096,...(th===1?{thinkingConfig:{thinkingLevel:"low"}}:th===2?{thinkingConfig:{thinkingBudget:0}}:th===3?{thinkingConfig:{thinkingLevel:"minimal"}}:{})}});
   const models=(aud?[g.m,"gemini-flash-latest","gemini-2.5-flash"]:[g.m,...(g.alt||[]),"gemini-flash-lite-latest","gemini-flash-latest"]).filter((x,i,a)=>x&&a.indexOf(x)===i).slice(0,3);let last;
-  const parse=t=>{t=(t||"").replace(/^```(json)?|```$/g,"").trim();try{return JSON.parse(t)}catch(_){const a=t.indexOf("{"),b=t.lastIndexOf("}");if(a>=0&&b>a)return JSON.parse(t.slice(a,b+1));throw new Error("AI reply wasn't readable")}};
-  for(const m of models){const thc=aud?[0]:(g.thm&&g.thm[m]!=null)?[g.thm[m]]:[2,3,1,0];for(const th of thc){if(Date.now()-t0>40000)throw last||new Error("Gemini is taking too long — try again");
-    try{const ctl=new AbortController(),to=setTimeout(()=>ctl.abort(),30000);
+  const parse=t=>{t=(t||"").replace(/^```(json)?|```$/g,"").trim();try{return JSON.parse(t)}catch(_){const a=t.indexOf("{"),b=t.lastIndexOf("}");if(a>=0&&b>a){try{return JSON.parse(t.slice(a,b+1))}catch(_){}}if(t&&!/^[\[{]/.test(t))return {say:t.slice(0,600),action:null};throw new Error("AI reply wasn't readable")}};
+  for(const m of models){const thc=aud?[0]:(g.thm&&g.thm[m]!=null)?[g.thm[m]]:[2,3,1,0];for(const th of thc){if(Date.now()-t0>45000)throw last||new Error("Gemini is taking too long — try again");
+    try{const ctl=new AbortController(),to=setTimeout(()=>ctl.abort(),Math.max(8000,Math.min(22000,45000-(Date.now()-t0))));
       const stream=!!(onPart&&window.ReadableStream);
       const r=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${m}:${stream?"streamGenerateContent?alt=sse":"generateContent"}`,{method:"POST",headers:{"Content-Type":"application/json","x-goog-api-key":g.k},body:JSON.stringify(mk(th)),signal:ctl.signal});
       let j;
@@ -1379,7 +1379,7 @@ async function gaiCall(text,onPart){const g=GAI.get();if(!g)throw new Error("off
       const c=(j.candidates||[])[0]||{},t=((c.content||{}).parts||[]).filter(p=>!p.thought).map(p=>p.text||"").join("");
       if(!t.trim()){last=new Error(c.finishReason==="SAFETY"?"Gemini wouldn't answer that":"Gemini sent an empty reply ("+(c.finishReason||"?")+")");break}
       const o=parse(t);if(aud){if(AI.audU){AI.audU.textContent="🎤 "+(o.heard||"(voice)");AI.audU=null}text=o.heard||"(voice message)"}if(!aud){const ng=GAI.get()||g;GAI.set({...ng,m,thm:{...(ng.thm||{}),[m]:th}})}GAI.hist.push({role:"user",parts:[{text}]},{role:"model",parts:[{text:t}]});GAI.hist=GAI.hist.slice(-8);return o}
-    catch(e){last=e;if(e.name==="AbortError"){last=new Error("Gemini is taking too long — try again");throw last}if(/readable/.test(e.message))break;throw e}}}
+    catch(e){last=e;if(e.name==="AbortError"){last=new Error("Gemini is taking too long — try again");if(Date.now()-t0<36000)break;throw last}if(/readable/.test(e.message))break;throw e}}}
   throw last||new Error("AI unavailable")}
 const okD=d=>/^\d{4}-\d{2}-\d{2}$/.test(d||"")&&!isNaN(parseD(d));
 function gaiRender(o,q){if(Array.isArray(o.actions)&&o.actions.length>1){const say=esc(o.say||"");AI.say=o.say||"";AI.ps=[];let h=say?`<div class="aisay">${say}</div>`:"";
