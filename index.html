@@ -192,6 +192,7 @@ body.kb-open .nav,body.kb-open #ig{display:none!important}
 .wkhead{display:flex;align-items:baseline;gap:8px;margin-bottom:8px}.wkhead b{font-size:16px}.wkhead small{color:var(--mut);font-size:13px}.wkhead .wkt{margin-left:auto;font-weight:750;font-size:15px}.wkhead .wk8{font-size:13px;padding:0 0 0 6px}
 .wkcells{display:grid;grid-template-columns:repeat(7,1fr);gap:5px}.wkcells label{display:flex;flex-direction:column;align-items:center;gap:3px}.wkcells small{font-size:11px;color:var(--mut);font-weight:600}
 .wkcells input,.wkcells span{width:100%;min-width:0;height:42px;border-radius:10px;border:1.5px solid var(--line);background:var(--field,#fff);text-align:center;font-size:16px;font-weight:650;padding:0;-webkit-appearance:none;outline:0;box-sizing:border-box}.wkcells span{display:grid;place-items:center}.wkcells input::placeholder{text-align:center;color:var(--mut)}
+.wkm{row-gap:6px}.wkm>i{font-style:normal;font-size:11px;font-weight:700;color:var(--mut);text-align:center}.wkm small{font-size:10px}.wkm input,.wkm span{height:36px;font-size:15px}
 .wkcells input:focus{border-color:var(--ink)}.wkcells .today small{color:var(--ink)}.wkcells .pd span{background:var(--ok-s);color:var(--ok);border-color:transparent}
 .daychips input{position:absolute;inset:0;opacity:0;width:100%;height:100%}
 /* native feel */
@@ -657,7 +658,7 @@ const JOIN=(()=>{const m=(location.hash||"").match(/join=(CW1\.[A-Za-z0-9_\-]+)/
 if(JOIN&&!IS_APP){const l=document.querySelector('link[rel="manifest"]');if(l)l.remove()}
 let deferredInstall=null;
 addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredInstall=e;setTimeout(showInstallGuide,50)});
-const APP_VERSION="5.8";
+const APP_VERSION="5.9";
 /* ============ data layer ============ */
 const TABLES=["clients","sites","workers","rates","entries","income"];
 const EMPTY=()=>({clients:[],sites:[],workers:[],rates:[],entries:[],income:[]});
@@ -1408,44 +1409,46 @@ async function coverAdd(sid,wid){let rate=usualRate(wid,sid);
   setTimeout(()=>{const i=document.querySelector(`input.tdin[aria-label="Hours for ${W(wid).name.replace(/"/g,'')}"]`);if(i){i.scrollIntoView({block:"center"});i.focus()}},350)}
 function tdPaid(k,date){const[w,si]=k.split("|");return DB.entries.filter(e=>e.date===(date||TD.date)&&e.workerId===w&&e.siteId===si&&isWork(e)&&e.paid).reduce((a,e)=>a+ +e.hours,0)}
 function tdTotals(){let h=0,w=0;const ppl=new Set();tdRates().forEach(r=>{const v=parseFloat(TD.vals[r.workerId+"|"+r.siteId])||0;if(v>0){h+=v;w+=v*r.rate;ppl.add(r.workerId)}});return {h,w,p:ppl.size}}
-let WK={wk:null,vals:{},dirty:false};
-function wkLoad(ws){WK={wk:ws,vals:{},dirty:false};const we=addD(ws,6);DB.entries.filter(e=>e.date&&e.date>=ws&&e.date<=we&&isWork(e)).forEach(e=>{const k=e.workerId+"|"+e.siteId+"|"+e.date;WK.vals[k]=String((parseFloat(WK.vals[k])||0)+ +e.hours)})}
+let WK={wk:null,n:7,vals:{},dirty:false};
+const mDays=ws=>{const[y,m]=ws.split("-");return new Date(+y,+m,0).getDate()};
+function wkLoad(ws,n){n=n||7;WK={wk:ws,n,vals:{},dirty:false};const we=addD(ws,n-1);DB.entries.filter(e=>e.date&&e.date>=ws&&e.date<=we&&isWork(e)).forEach(e=>{const k=e.workerId+"|"+e.siteId+"|"+e.date;WK.vals[k]=String((parseFloat(WK.vals[k])||0)+ +e.hours)})}
 function wkPaid(k){const[w,si,d]=k.split("|");return DB.entries.some(e=>e.date===d&&e.workerId===w&&e.siteId===si&&isWork(e)&&e.paid)}
-function wkTotals(){let h=0,w=0;const ppl=new Set();tdRates().forEach(r=>{for(let i=0;i<7;i++){const v=parseFloat(WK.vals[r.workerId+"|"+r.siteId+"|"+addD(WK.wk,i)])||0;if(v>0){h+=v;w+=v*r.rate;ppl.add(r.workerId)}}});return {h,w,p:ppl.size}}
-function wkRowTot(r){let h=0;for(let i=0;i<7;i++)h+=parseFloat(WK.vals[r.workerId+"|"+r.siteId+"|"+addD(WK.wk,i)])||0;return h}
-function wkSaveLabel(){const t=wkTotals();return WK.dirty?`Save week · ${t.h} hrs · ${money(t.w)}`:"Saved"}
+function wkTotals(){let h=0,w=0;const ppl=new Set();tdRates().forEach(r=>{for(let i=0;i<WK.n;i++){const v=parseFloat(WK.vals[r.workerId+"|"+r.siteId+"|"+addD(WK.wk,i)])||0;if(v>0){h+=v;w+=v*r.rate;ppl.add(r.workerId)}}});return {h,w,p:ppl.size}}
+function wkRowTot(r){let h=0;for(let i=0;i<WK.n;i++)h+=parseFloat(WK.vals[r.workerId+"|"+r.siteId+"|"+addD(WK.wk,i)])||0;return h}
+function wkSaveLabel(){const t=wkTotals();return WK.dirty?`Save ${WK.n>7?"month":"week"} · ${t.h} hrs · ${money(t.w)}`:"Saved"}
 function wkSet(k,el){el.value=el.value.replace(/[^0-9.]/g,"");WK.vals[k]=el.value;WK.dirty=true;const[w,si]=k.split("|"),r=tdRates().find(x=>x.workerId===w&&x.siteId===si);const tt=$(`[data-wt="${w}|${si}"]`);if(tt&&r)tt.textContent=wkRowTot(r)+" hrs";const b=$("#wksave");if(b){b.parentNode.style.display="";b.disabled=false;b.textContent=wkSaveLabel()}}
-function wkGo(n){if(WK.dirty&&!confirmBox("Leave this week without saving?"))return;wkLoad(addD(WK.wk,7*n));render()}
-function wkFill(w,si){for(let i=0;i<5;i++){const k=w+"|"+si+"|"+addD(WK.wk,i);if(!wkPaid(k))WK.vals[k]="8"}WK.dirty=true;render()}
-function wkCopyLast(){const pw=addD(WK.wk,-7),v={};DB.entries.filter(e=>e.date&&e.date>=pw&&e.date<=addD(pw,6)&&isWork(e)).forEach(e=>{const k=e.workerId+"|"+e.siteId+"|"+addD(e.date,7);v[k]=String((parseFloat(v[k])||0)+ +e.hours)});
-  Object.keys(WK.vals).forEach(k=>{if(wkPaid(k))v[k]=WK.vals[k]});WK.vals=v;WK.dirty=true;render();toast("Copied last week — check, then Save")}
-function hoursModeBar(){const m=state.hmode||"day";return `<div class="daychips hchips" style="margin-bottom:12px"><button class="${m==="day"?"on":""}" onclick="setHMode('day')">One day</button><button class="${m==="week"?"on":""}" onclick="setHMode('week')">Whole week</button></div>`}
-function setHMode(m){if((state.hmode||"day")===m)return;if((m==="week"?TD.dirty:WK.dirty)&&!confirmBox("Leave without saving?"))return;state.hmode=m;if(m==="week")wkLoad(weekStart(TD.date||todayD()));else{TD.dirty=false}render()}
-function weekPage(){if(!WK.wk)wkLoad(weekStart(todayD()));else if(!WK.dirty)wkLoad(WK.wk);
+function wkGo(n){if(WK.dirty&&!confirmBox("Leave without saving?"))return;if(WK.n>7){const[y,m]=WK.wk.split("-").map(Number),d=new Date(y,m-1+n,1),ms=isoD(d);wkLoad(ms,mDays(ms))}else wkLoad(addD(WK.wk,7*n));render()}
+function wkFill(w,si){for(let i=0;i<WK.n;i++){const d=addD(WK.wk,i),wd=parseD(d).getDay();if(wd===0||wd===6)continue;const k=w+"|"+si+"|"+d;if(!wkPaid(k))WK.vals[k]="8"}WK.dirty=true;render()}
+function wkCopyLast(){const sh=WK.n>7?28:7,pw=addD(WK.wk,-sh),v={};DB.entries.filter(e=>e.date&&e.date>=pw&&e.date<=addD(pw,WK.n-1)&&isWork(e)).forEach(e=>{const nd=addD(e.date,sh);if(WK.n>7&&nd.slice(0,7)!==WK.wk.slice(0,7))return;const k=e.workerId+"|"+e.siteId+"|"+nd;v[k]=String((parseFloat(v[k])||0)+ +e.hours)});
+  Object.keys(WK.vals).forEach(k=>{if(wkPaid(k))v[k]=WK.vals[k]});WK.vals=v;WK.dirty=true;render();toast(WK.n>7?"Copied the same weekdays from 4 weeks before — check, then Save":"Copied last week — check, then Save")}
+function hoursModeBar(){const m=state.hmode||"day";return `<div class="daychips hchips" style="margin-bottom:12px"><button class="${m==="day"?"on":""}" onclick="setHMode('day')">Day</button><button class="${m==="week"?"on":""}" onclick="setHMode('week')">Week</button><button class="${m==="month"?"on":""}" onclick="setHMode('month')">Month</button></div>`}
+function setHMode(m){const c=state.hmode||"day";if(c===m)return;if((c==="day"?TD.dirty:WK.dirty)&&!confirmBox("Leave without saving?"))return;state.hmode=m;const base=TD.date||todayD();
+  if(m==="week")wkLoad(weekStart(base));else if(m==="month"){const ms=base.slice(0,7)+"-01";wkLoad(ms,mDays(ms))}else TD.dirty=false;render()}
+function weekPage(){const isM=state.hmode==="month";if(!WK.wk||isM!==(WK.n>7)){if(isM){const ms=todayD().slice(0,7)+"-01";wkLoad(ms,mDays(ms))}else wkLoad(weekStart(todayD()))}else if(!WK.dirty)wkLoad(WK.wk,WK.n);
   const rs=tdRates(),t=wkTotals(),ws=WK.wk,td=todayD();
   const bySite={};rs.forEach(r=>(bySite[r.siteId]=bySite[r.siteId]||[]).push(r));
   const sites=Object.keys(bySite).sort((a,b)=>Sx(a).name.localeCompare(Sx(b).name));
-  const days=[0,1,2,3,4,5,6].map(i=>addD(ws,i));
+  const days=Array.from({length:WK.n},(_,i)=>addD(ws,i)),lead=isM?(parseD(ws).getDay()+6)%7:0,cm=td.slice(0,7)+"-01";
   return `${hoursModeBar()}
-    <div class="card mcard" style="margin-bottom:14px"><div class="mhead"><div class="month pstep" style="margin:0"><button onclick="wkGo(-1)" aria-label="Previous week">‹</button><span>${ws===weekStart(td)?"This week · ":ws===weekStart(addD(td,-7))?"Last week · ":""}${weekLabel(ws)}</span><button onclick="wkGo(1)" aria-label="Next week">›</button></div></div>
+    <div class="card mcard" style="margin-bottom:14px"><div class="mhead"><div class="month pstep" style="margin:0"><button onclick="wkGo(-1)" aria-label="Previous week">‹</button><span>${isM?(ws===cm?"This month · ":"")+mLabel(ws.slice(0,7)):(ws===weekStart(td)?"This week · ":ws===weekStart(addD(td,-7))?"Last week · ":"")+weekLabel(ws)}</span><button onclick="wkGo(1)" aria-label="Next week">›</button></div></div>
       <div class="mgrid" style="grid-template-columns:1fr 1fr 1fr"><div><span>Hours</span><b class="num">${t.h}</b></div><div><span>Wages</span><b class="num">${money(t.w)}</b></div><div><span>People</span><b class="num">${t.p}</b></div></div>
-      <div class="mfoot" style="display:flex;gap:16px;flex-wrap:wrap"><button class="link" style="padding:0" onclick="wkCopyLast()">Copy last week</button></div></div>
+      <div class="mfoot" style="display:flex;gap:16px;flex-wrap:wrap"><button class="link" style="padding:0" onclick="wkCopyLast()">${isM?"Copy from 4 weeks before":"Copy last week"}</button></div></div>
     ${sites.map(sid=>`<div class="sec" style="margin-top:18px"><h2 style="font-size:16px">${esc(Sx(sid).name)}</h2>${sid===SUP?"":`<button class="link" style="font-size:14px" onclick="coverPick('${sid}')">+ Cover</button>`}</div>
       <div class="list">${bySite[sid].sort((a,b)=>W(a.workerId).name.localeCompare(W(b.workerId).name)).map(r=>`<div class="wkrow"><div class="wkhead"><b>${esc(W(r.workerId).name)}${r.cover?' <span class="tag mut" style="font-size:11px">cover</span>':""}</b><small>${money(r.rate)}/hr</small><span class="wkt num" data-wt="${r.workerId}|${r.siteId}">${wkRowTot(r)} hrs</span><button class="link wk8" onclick="wkFill('${r.workerId}','${r.siteId}')">8h M–F</button></div>
-        <div class="wkcells">${days.map(d=>{const k=r.workerId+"|"+r.siteId+"|"+d,pd=wkPaid(k);return `<label class="${d===td?"today":""}${pd?" pd":""}"><small>${DOW[parseD(d).getDay()].slice(0,1)}${parseD(d).getDate()}</small>${pd?`<span class="num">${esc(WK.vals[k]||"")}</span>`:`<input class="num" inputmode="decimal" placeholder="–" value="${esc(WK.vals[k]||"")}" oninput="wkSet('${k}',this)" aria-label="${esc(W(r.workerId).name)} ${dayLabel(d)}">`}</label>`}).join("")}</div></div>`).join("")}</div>`).join("")}
+        <div class="wkcells${isM?" wkm":""}">${isM?["M","T","W","T","F","S","S"].map(x=>`<i>${x}</i>`).join("")+"<b></b>".repeat(lead):""}${days.map(d=>{const k=r.workerId+"|"+r.siteId+"|"+d,pd=wkPaid(k);return `<label class="${d===td?"today":""}${pd?" pd":""}"><small>${isM?"":DOW[parseD(d).getDay()].slice(0,1)}${parseD(d).getDate()}</small>${pd?`<span class="num">${esc(WK.vals[k]||"")}</span>`:`<input class="num" inputmode="decimal" placeholder="–" value="${esc(WK.vals[k]||"")}" oninput="wkSet('${k}',this)" aria-label="${esc(W(r.workerId).name)} ${dayLabel(d)}">`}</label>`}).join("")}</div></div>`).join("")}</div>`).join("")}
     <div class="tdbar" style="${WK.dirty?"":"display:none"}"><button class="btn" id="wksave" ${WK.dirty?"":"disabled"} onclick="wkSave()">${wkSaveLabel()}</button></div>`}
 async function wkSave(){const now=todayD(),ups=[],dels=[];let n=0,gone=0;
-  tdRates().forEach(r=>{for(let i=0;i<7;i++){const d=addD(WK.wk,i),k=r.workerId+"|"+r.siteId+"|"+d,want=parseFloat(WK.vals[k])||0;
+  tdRates().forEach(r=>{for(let i=0;i<WK.n;i++){const d=addD(WK.wk,i),k=r.workerId+"|"+r.siteId+"|"+d,want=parseFloat(WK.vals[k])||0;
     const ex=DB.entries.filter(e=>e.date===d&&e.workerId===r.workerId&&e.siteId===r.siteId&&isWork(e)),cur=ex.reduce((a,e)=>a+ +e.hours,0);
     if(want===cur||ex.some(e=>e.paid))continue;n++;if(cur>0&&!want)gone++;
     if(ex.length){if(want>0)ups.push({...ex[0],hours:want});else dels.push(ex[0]);ex.slice(1).forEach(e=>dels.push(e))}
     else ups.push({id:uid(),date:d,month:d.slice(0,7),workerId:r.workerId,siteId:r.siteId,hours:want,rate:r.rate,paid:false,paidAt:"",notes:"",createdAt:now,kind:"work"})}});
-  if(gone&&!confirmBox(`Delete ${plural(gone,"day")} of hours you cleared this week?\nPaid hours are kept.`))return;
+  if(gone&&!confirmBox(`Delete ${plural(gone,"day")} of hours you cleared?\nPaid hours are kept.`))return;
   const old=dels.map(e=>({...e})),prev=ups.map(u=>{const o=DB.entries.find(e=>e.id===u.id);return o?{...o}:null});
   if(ups.length)await putMany("entries",ups);if(dels.length)await delMany("entries",dels.map(e=>e.id));
-  WK.dirty=false;render();toast(n?`✓ Week saved · ${plural(n,"change")}`:"Nothing to save",n?async()=>{const add=ups.filter((u,i)=>!prev[i]).map(u=>u.id);if(add.length)await delMany("entries",add);const back=prev.filter(Boolean).concat(old);if(back.length)await putMany("entries",back);render()}:null)}
+  WK.dirty=false;render();toast(n?`✓ ${WK.n>7?"Month":"Week"} saved · ${plural(n,"change")}`:"Nothing to save",n?async()=>{const add=ups.filter((u,i)=>!prev[i]).map(u=>u.id);if(add.length)await delMany("entries",add);const back=prev.filter(Boolean).concat(old);if(back.length)await putMany("entries",back);render()}:null)}
 function todayPage(){
-  if(state.hmode==="week")return (DB.rates.length?"":"")+weekPage();
+  if(state.hmode==="week"||state.hmode==="month")return weekPage();
   if(!TD.date)tdLoad(todayD());else if(!TD.dirty)tdLoad(TD.date);
   const d=TD.date,rs=tdRates(),t=tdTotals();
   if(!rs.length)return `<div class="card empty" style="margin-top:8px"><div class="e" style="color:var(--mut)">${ICON.find}</div>Add a site and a worker first.<br><button class="link" onclick="openAdd('${DB.sites.length?"worker":"site"}')">+ ${DB.sites.length?"New worker":"New site"}</button></div>`;
