@@ -668,7 +668,7 @@ const JOIN=(()=>{const m=(location.hash||"").match(/join=(CW1\.[A-Za-z0-9_\-]+)/
 if(JOIN&&!IS_APP){const l=document.querySelector('link[rel="manifest"]');if(l)l.remove()}
 let deferredInstall=null;
 addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredInstall=e;setTimeout(showInstallGuide,50)});
-const APP_VERSION="6.0.1";
+const APP_VERSION="6.1";
 /* ============ data layer ============ */
 const TABLES=["clients","sites","workers","rates","entries","income"];
 const EMPTY=()=>({clients:[],sites:[],workers:[],rates:[],entries:[],income:[]});
@@ -1663,26 +1663,31 @@ function drawAdd(){
   an.onfinish=an.oncancel=()=>{sh.style.overflow="";sh.classList.toggle("scrolly",sh.scrollHeight>sh.clientHeight+4)};
 }
 function monthField(){return `<div class="f"><label>Month</label><div class="month" style="box-shadow:none;border:1.5px solid var(--line);height:52px;border-radius:14px;justify-content:space-between"><button onclick="F.month=addM(F.month,-1);drawAdd()">‹</button><span>${mLabel(F.month)}</span><button onclick="F.month=addM(F.month,1);drawAdd()">›</button></div></div>`}
-function hoursTotal(){return F.mode==="week"?F.days.reduce((a,v)=>a+(parseFloat(v)||0),0):(parseFloat(F.hours)||0)}
-function dupDays(){if(!(F.workerId&&F.siteId)||F.mode==="month")return[];const ds=F.mode==="day"?(parseFloat(F.hours)>0?[F.date]:[]):[0,1,2,3,4,5,6].filter(i=>parseFloat(F.days[i])>0).map(i=>addD(F.wk,i));
+const fStart=()=>F.mode==="month"?F.month+"-01":F.wk, fN=()=>F.mode==="month"?mDays(F.month+"-01"):7;
+function fMonthGrid(){const st=fStart(),lead=(parseD(st).getDay()+6)%7,td=todayD();
+  return `<div class="wkcells wkm" style="margin-top:4px">${["M","T","W","T","F","S","S"].map(x=>`<i>${x}</i>`).join("")}${"<b></b>".repeat(lead)}${fIdx().map(i=>{const d=addD(st,i);return `<label class="${d===td?"today":""}"><small>${parseD(d).getDate()}</small><input class="num" inputmode="decimal" placeholder="–" value="${esc(F.days[i]||"")}" oninput="F.days[${i}]=this.value.replace(/[^0-9.]/g,'');this.value=F.days[${i}];updPreview()"></label>`}).join("")}</div>`}
+function fIdx(){return Array.from({length:fN()},(_,i)=>i)}
+function hoursTotal(){return F.mode!=="day"?F.days.reduce((a,v)=>a+(parseFloat(v)||0),0):(parseFloat(F.hours)||0)}
+function dupDays(){if(!(F.workerId&&F.siteId))return[];const ds=F.mode==="day"?(parseFloat(F.hours)>0?[F.date]:[]):fIdx().filter(i=>parseFloat(F.days[i])>0).map(i=>addD(fStart(),i));
   return ds.filter(d=>DB.entries.some(e=>e.workerId===F.workerId&&e.siteId===F.siteId&&e.date===d&&isWork(e)))}
 function dupBox(h){const dd=dupDays();if(!dd.length)return "";
   const ex=DB.entries.filter(e=>e.workerId===F.workerId&&e.siteId===F.siteId&&dd.includes(e.date)&&isWork(e)),exH=ex.reduce((a,e)=>a+ +e.hours,0),unp=ex.filter(e=>!e.paid),allPaid=!unp.length;
   if(allPaid)F.dupAct="add";else F.dupAct=F.dupAct||"replace";
-  const newH=F.mode==="day"?h:dd.reduce((a,d)=>a+(parseFloat(F.days[(parseD(d)-parseD(F.wk))/864e5|0])||0),0);
-  const when=dd.length===1?dayLabel(dd[0]):plural(dd.length,"day")+" this week";
+  const newH=F.mode==="day"?h:dd.reduce((a,d)=>a+(parseFloat(F.days[Math.round((parseD(d)-parseD(fStart()))/864e5)])||0),0);
+  const when=dd.length===1?dayLabel(dd[0]):plural(dd.length,"day")+(F.mode==="month"?" this month":" this week");
   return `<div class="dupbox"><b>⚠ Already entered</b><div class="t2" style="white-space:normal;margin:3px 0 10px">${esc(W(F.workerId).name)} already has ${exH} hrs at ${esc(Sx(F.siteId).name)} on ${when}${allPaid?" — already paid":ex.some(e=>e.paid)?" (some paid)":""}.</div>
   ${allPaid?`<div class="t2" style="white-space:normal">These ${newH} hrs will be added as extra hours.</div>`:`<div class="pseg" style="margin:0"><button class="${F.dupAct==="replace"?"on":""}" onclick="F.dupAct='replace';updPreview()">Replace · ${newH+(exH-unp.reduce((a,e)=>a+ +e.hours,0))} hrs</button><button class="${F.dupAct==="add"?"on":""}" onclick="F.dupAct='add';updPreview()">Keep both · ${exH+newH} hrs</button></div>`}</div>`}
 function hoursDup(){
   if(!(F.workerId&&F.siteId))return "";
   const mine=DB.entries.filter(e=>e.workerId===F.workerId&&e.siteId===F.siteId), nm=esc(W(F.workerId).name);
   if(F.mode==="day"){if(mine.some(e=>e.date===F.date))return `⚠ ${nm} already has hours here on ${dayLabel(F.date)}.`;if(mine.some(e=>!e.date&&e.month===F.date.slice(0,7)))return `⚠ ${nm} already has a whole-month total for ${mLabel(F.date.slice(0,7))} — this may count twice.`;return ""}
-  if(F.mode==="week"){const ds=[0,1,2,3,4,5,6].filter(i=>parseFloat(F.days[i])>0).map(i=>addD(F.wk,i));const hit=ds.filter(d=>mine.some(e=>e.date===d));
+  if(F.mode!=="day"){const ds=fIdx().filter(i=>parseFloat(F.days[i])>0).map(i=>addD(fStart(),i));const hit=ds.filter(d=>mine.some(e=>e.date===d));
     if(hit.length)return `⚠ Already has hours on ${hit.map(dayLabel).join(", ")}.`;if(ds.some(d=>mine.some(e=>!e.date&&e.month===d.slice(0,7))))return `⚠ ${nm} already has a whole-month total for this month — this may count twice.`;return ""}
   if(mine.some(e=>!e.date&&e.month===F.month))return `⚠ ${nm} already has a whole-month total for ${mLabel(F.month)}.`;
   if(mine.some(e=>e.date&&e.month===F.month))return `⚠ ${nm} already has daily hours in ${mLabel(F.month)} — a whole-month total may count twice.`;return "";
 }
 function formHours(){
+  if(F.mode!=="day"&&(F.dkey!==fStart()||!F.days||F.days.length!==fN())){if(F.mode==="month"||!F.days||F.days.length!==7)F.days=Array(fN()).fill("");F.dkey=fStart()}
   const rs=F.workerId?DB.rates.filter(r=>r.workerId===F.workerId):[];
   const rate=(rs.find(r=>r.siteId===F.siteId)||{}).rate||0;
   const h=hoursTotal();
@@ -1690,8 +1695,8 @@ function formHours(){
       <button class="opt ${F.date===todayD()?"on":""}" onclick="F.date=todayD();drawAdd()">Today</button><button class="opt ${F.date===addD(todayD(),-1)?"on":""}" onclick="F.date=addD(todayD(),-1);drawAdd()">Yesterday</button></div></div>`
     :F.mode==="week"?`<div class="f"><label>Week</label><div class="month" style="box-shadow:none;border:1.5px solid var(--line);height:52px;border-radius:14px;justify-content:space-between"><button onclick="F.wk=addD(F.wk,-7);drawAdd()">‹</button><span>${weekStart(todayD())===F.wk?"This week · ":weekStart(addD(todayD(),-7))===F.wk?"Last week · ":""}${weekLabel(F.wk)}</span><button onclick="F.wk=addD(F.wk,7);drawAdd()">›</button></div></div>`
     :monthField();
-  const hoursField=F.mode==="week"?`<div class="f"><label>Hours each day</label><div class="wkgrid">${[0,1,2,3,4,5,6].map(i=>{const d=addD(F.wk,i);return `<label class="wkd${d===todayD()?" today":""}"><span>${DOW[parseD(d).getDay()]}</span><small>${parseD(d).getDate()}</small><input class="inp num" inputmode="decimal" placeholder="–" value="${esc(F.days[i])}" oninput="F.days[${i}]=this.value.replace(/[^0-9.]/g,'');this.value=F.days[${i}];updPreview()"></label>`}).join("")}</div>
-      <div class="opts" style="margin-top:8px"><button class="opt" style="padding:9px 14px;font-size:14px" onclick="F.days=F.days.map((v,i)=>i<5?'8':v);drawAdd()">8 hrs Mon–Fri</button><button class="opt" style="padding:9px 14px;font-size:14px" onclick="F.days=['','','','','','',''];drawAdd()">Clear</button></div></div>
+  const hoursField=F.mode!=="day"?`<div class="f"><label>Hours each day</label>${F.mode==="month"?fMonthGrid():`<div class="wkgrid">${[0,1,2,3,4,5,6].map(i=>{const d=addD(F.wk,i);return `<label class="wkd${d===todayD()?" today":""}"><span>${DOW[parseD(d).getDay()]}</span><small>${parseD(d).getDate()}</small><input class="inp num" inputmode="decimal" placeholder="–" value="${esc(F.days[i])}" oninput="F.days[${i}]=this.value.replace(/[^0-9.]/g,'');this.value=F.days[${i}];updPreview()"></label>`}).join("")}</div>`}
+      <div class="opts" style="margin-top:8px"><button class="opt" style="padding:9px 14px;font-size:14px" onclick="F.days=F.days.map((v,i)=>{const w=parseD(addD(fStart(),i)).getDay();return w>0&&w<6?'8':v});drawAdd()">8 hrs Mon–Fri</button><button class="opt" style="padding:9px 14px;font-size:14px" onclick="F.days=Array(fN()).fill('');drawAdd()">Clear</button></div></div>
       <div class="f"><label>Already paid?</label><button class="toggle" style="width:100%" onclick="F.paid=!F.paid;drawAdd()"><span>${F.paid?"Yes":"Not yet"}</span><span class="sw ${F.paid?"on":""}"></span></button></div>`
     :`<div class="two">
     <div class="f"><label>Hours</label><input class="inp num" id="hrs" inputmode="decimal" placeholder="0" value="${esc(F.hours)}" oninput="F.hours=this.value.replace(/[^0-9.]/g,'');this.value=F.hours;updPreview()"></div>
@@ -1713,7 +1718,7 @@ function formHours(){
 function whyHtml(h){const lim=F.mode==="day"?16:F.mode==="week"?80:250,d=hoursDup();
   return (!F.workerId?`<div class="hint">Pick who worked to continue</div>`:!F.siteId?`<div class="hint">Pick the site to continue</div>`:!(h>0)?`<div class="hint">Type the hours to continue</div>`:"")
   +(h>lim?`<div class="err">⚠ ${h} hours in ${F.mode==="day"?"one day":F.mode==="week"?"one week":"one month"} is a lot — please double-check.</div>`:"")+(dupDays().length&&h>0?"":d?`<div class="err">${d}</div>`:"")}
-function hsaveLabel(h){return dupDays().length&&h>0?(F.dupAct==="replace"?"Replace hours":"Save · keep both"):F.mode==="week"?"Save week":"Save hours"}
+function hsaveLabel(h){return dupDays().length&&h>0?(F.dupAct==="replace"?"Replace hours":"Save · keep both"):F.mode==="week"?"Save week":F.mode==="month"?"Save month":"Save hours"}
 function updPreview(){const h=hoursTotal();const wy=$("#why");if(wy)wy.innerHTML=whyHtml(h);const dw=$("#dupw");if(dw)dw.innerHTML=dupDays().length&&h>0?dupBox(h):"";const hs=$("#hsave");if(hs)hs.textContent=hsaveLabel(h);const rs=DB.rates.filter(r=>r.workerId===F.workerId);const rate=(rs.find(r=>r.siteId===F.siteId)||{}).rate||0;
   const pv=$("#pv"); if(pv){pv.querySelector(".pl").textContent=F.siteId?`${h} hrs × ${money(rate)}`:"Pay";pv.querySelector(".pv").textContent=money(h*rate)}
   const b=$("#sheet .btn"); if(b)b.disabled=!(F.workerId&&F.siteId&&h>0)}
@@ -1728,12 +1733,12 @@ async function saveHours(){
   const rate=(DB.rates.find(r=>r.workerId===F.workerId&&r.siteId===F.siteId)||{}).rate||0, now=todayD();
   const base={workerId:F.workerId,siteId:F.siteId,rate,paid:F.paid,paidAt:F.paid?now:"",notes:F.notes,createdAt:now,kind:leaveOn()?(F.hkind||"work"):"work"};
   let rows=[];
-  if(F.mode==="week")rows=[0,1,2,3,4,5,6].filter(i=>parseFloat(F.days[i])>0).map(i=>{const d=addD(F.wk,i);return {...base,id:uid(),date:d,month:d.slice(0,7),hours:parseFloat(F.days[i])}});
+  if(F.mode!=="day")rows=fIdx().filter(i=>parseFloat(F.days[i])>0).map(i=>{const d=addD(fStart(),i);return {...base,id:uid(),date:d,month:d.slice(0,7),hours:parseFloat(F.days[i])}});
   else if(F.mode==="day")rows=[{...base,id:uid(),date:F.date,month:F.date.slice(0,7),hours:parseFloat(F.hours)}];
   else rows=[{...base,id:uid(),date:"",month:F.month,hours:parseFloat(F.hours)}];
   if(!rows.length)return;
   let old=[];
-  if(F.mode!=="month"&&F.dupAct==="replace"){const dd=dupDays();old=DB.entries.filter(e=>e.workerId===F.workerId&&e.siteId===F.siteId&&dd.includes(e.date)&&isWork(e)&&!e.paid).map(e=>({...e}));for(const e of old)await del("entries",e.id)}
+  if(F.dupAct==="replace"){const dd=dupDays();old=DB.entries.filter(e=>e.workerId===F.workerId&&e.siteId===F.siteId&&dd.includes(e.date)&&isWork(e)&&!e.paid).map(e=>({...e}));for(const e of old)await del("entries",e.id)}
   await putMany("entries",rows); closeSheet(); render();
   const hrs=rows.reduce((a,e)=>a+e.hours,0),amt=rows.reduce((a,e)=>a+wage(e),0);
   toast(`✓ Saved · ${esc(W(F.workerId).name)} · ${rows.length>1?plural(rows.length,"day")+" · ":""}${hrs} hrs · ${money(amt)}${old.length?" · replaced":""}`,async()=>{for(const e of rows)await del("entries",e.id);if(old.length)await putMany("entries",old);render()});
