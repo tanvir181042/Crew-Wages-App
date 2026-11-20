@@ -727,7 +727,12 @@ html,body{overscroll-behavior-y:none}
 .askbar .askph{display:block;line-height:1.2;flex:1;color:var(--mut);font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .askbar .mic{width:42px;height:42px;border-radius:50%;background:var(--soft);color:var(--ink);display:grid;place-items:center;flex:none}.askbar .mic svg{width:20px;height:20px}
 .wkfold .wkhead{cursor:pointer}.wkchev{display:inline-grid;margin-left:6px;transition:transform .25s;opacity:.5}.wkfold.open .wkchev{transform:rotate(90deg)}.wkchev svg{width:18px;height:18px}
-.greet .me{width:40px!important;height:40px!important;border-radius:13px!important;align-self:flex-start;margin-top:-2px}
+.greet .me{width:40px!important;height:40px!important;border-radius:13px!important;align-self:flex-start}
+/* the settings button sits at exactly the same spot on every main page, whatever the title or font */
+@media (max-width:899px){#app{position:relative}
+ #app .greet .me,#app .top.root .gear,#app .welgear{position:absolute!important;top:calc(env(safe-area-inset-top) + 18px)!important;right:20px!important;left:auto!important;margin:0!important;width:40px!important;height:40px!important;border-radius:13px!important;box-shadow:none!important;background:var(--card)!important;z-index:5}
+ #app .greet .me svg,#app .top.root .gear svg,#app .welgear svg{width:20px;height:20px}
+ #app .greet{padding-right:56px}#app .top.root{padding-right:56px}}
 @media (prefers-color-scheme:dark){.nav .tabsg button:not(.on){color:#A0A0A6!important}}
 .setgh{font-size:12.5px;font-weight:750;letter-spacing:.06em;text-transform:uppercase;color:var(--mut);margin:0 4px 8px}
 .teamseg{margin:0 0 14px}
@@ -756,7 +761,7 @@ const JOIN=(()=>{const m=(location.hash||"").match(/join=(CW1\.[A-Za-z0-9_\-]+)/
 if(JOIN&&!IS_APP){const l=document.querySelector('link[rel="manifest"]');if(l)l.remove()}
 let deferredInstall=null;
 addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredInstall=e;setTimeout(showInstallGuide,50)});
-const APP_VERSION="7.5.2";
+const APP_VERSION="7.5.3";
 /* ============ data layer ============ */
 const TABLES=["clients","sites","workers","rates","entries","income"];
 const EMPTY=()=>({clients:[],sites:[],workers:[],rates:[],entries:[],income:[]});
@@ -1910,7 +1915,7 @@ function homePage(){
   const hr=new Date().getHours(),greet=hr<12?"Good morning":hr<17?"Good afternoon":"Good evening";
   if(!DB.workers.length){
     const steps=[["site","Add a site","Where the work happens, and who it's for",DB.sites.length],["worker","Add a worker","Name, site and pay rate",DB.workers.length]];
-    return `<div style="display:flex;justify-content:flex-end;margin:-4px 0 10px"><button class="icon-btn gear" style="display:grid" onclick="go('more')" aria-label="Settings">${ICON.more.replace('width="24" height="24"','width="20" height="20"')}</button></div><div class="hero"><div class="lbl">Welcome to</div><div class="big">Hourza</div><div class="sub">Two quick steps and you're ready to add hours.</div></div>
+    return `<div style="height:44px"><button class="icon-btn gear welgear" style="display:grid" onclick="go('more')" aria-label="Settings">${ICON.more.replace('width="24" height="24"','width="20" height="20"')}</button></div><div class="hero"><div class="lbl">Welcome to</div><div class="big">Hourza</div><div class="sub">Two quick steps and you're ready to add hours.</div></div>
     <div class="list" style="margin-top:14px">${steps.map(([k,t,d,done],i)=>`<div class="row tap" onclick="openAdd('${k}')"><div class="av" style="background:${done?"var(--ok-s)":"var(--acc-s)"};color:${done?"var(--ok)":"var(--acc)"}">${done?"✓":i+1}</div><div class="main"><div class="t1">${t}</div><div class="t2">${d}</div></div>${ICON.chev}</div>`).join("")}</div>
     ${online()?"":`<button class="joincard" onclick="openConnect()"><span class="ji">${ICON.sheet}</span><span><b>Got an invite?</b><small>Join your team's data — scan their QR or paste the code</small></span>${ICON.chev}</button>`}
     <button class="joincard aiw" onclick="openAsk()" style="margin-top:12px"><span class="ji">${ICON.spark}</span><span><b>Or just tell Hourza AI</b><small>“New site Kogarah for Bupa” · “New worker Sam at Kogarah $26”</small></span>${ICON.chev}</button>
