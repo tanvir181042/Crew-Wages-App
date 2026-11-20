@@ -724,9 +724,10 @@ html,body{overscroll-behavior-y:none}
 .aib .aicard{padding:16px}
 .askbar{display:flex;align-items:center;gap:10px;height:54px;padding:0 6px 0 8px;margin:4px 0 14px;border-radius:18px;background:var(--card);box-shadow:0 1px 0 var(--line),0 6px 18px rgba(0,0,0,.05);cursor:pointer}
 .askbar .ai{width:38px;height:38px;border-radius:12px;background:#C9F26B;color:#111214;display:grid;place-items:center;flex:none}.askbar .ai svg{width:20px;height:20px}
-.askbar .ph{flex:1;color:var(--mut);font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.askbar .askph{display:block;line-height:1.2;flex:1;color:var(--mut);font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .askbar .mic{width:42px;height:42px;border-radius:50%;background:var(--soft);color:var(--ink);display:grid;place-items:center;flex:none}.askbar .mic svg{width:20px;height:20px}
 .wkfold .wkhead{cursor:pointer}.wkchev{display:inline-grid;margin-left:6px;transition:transform .25s;opacity:.5}.wkfold.open .wkchev{transform:rotate(90deg)}.wkchev svg{width:18px;height:18px}
+.greet .me{width:40px!important;height:40px!important;border-radius:13px!important;align-self:flex-start;margin-top:-2px}
 .setgh{font-size:12.5px;font-weight:750;letter-spacing:.06em;text-transform:uppercase;color:var(--mut);margin:0 4px 8px}
 .teamseg{margin:0 0 14px}
 .sec .link,.row .link{padding:10px 6px;margin:-10px -6px;min-height:40px}
@@ -754,7 +755,7 @@ const JOIN=(()=>{const m=(location.hash||"").match(/join=(CW1\.[A-Za-z0-9_\-]+)/
 if(JOIN&&!IS_APP){const l=document.querySelector('link[rel="manifest"]');if(l)l.remove()}
 let deferredInstall=null;
 addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredInstall=e;setTimeout(showInstallGuide,50)});
-const APP_VERSION="7.5";
+const APP_VERSION="7.5.1";
 /* ============ data layer ============ */
 const TABLES=["clients","sites","workers","rates","entries","income"];
 const EMPTY=()=>({clients:[],sites:[],workers:[],rates:[],entries:[],income:[]});
@@ -1916,12 +1917,12 @@ function homePage(){
   }
   if(!state.hper||!["week","fort","month"].includes(state.hper.mode))state.hper={mode:"week",d:todayD()};const HP=state.hper;
   return `<div class="home simple">
-    <div class="greet"><div><small>${DOW[new Date().getDay()]} ${new Date().getDate()} ${MN[new Date().getMonth()]}</small><h1>${greet}</h1></div><button class="me" onclick="go('more')" aria-label="Settings">${ICON.more.replace('width="24" height="24"','width="22" height="22"')}</button></div>
-    <div class="askbar" role="button" onclick="openAsk()"><span class="ai">${ICON.spark}</span><span class="ph">Ask or tell Hourza anything…</span><button class="mic" onclick="event.stopPropagation();openAsk();setTimeout(()=>aiVoice&&aiVoice(),350)" aria-label="Speak">${ICON.mic}</button></div>
+    <div class="greet"><div><small>${DOW[new Date().getDay()]} ${new Date().getDate()} ${MN[new Date().getMonth()]}</small><h1>${greet}</h1></div><button class="me" onclick="go('more')" aria-label="Settings">${ICON.more.replace('width="24" height="24"','width="20" height="20"')}</button></div>
+    <div class="askbar" role="button" onclick="openAsk()"><span class="ai">${ICON.spark}</span><span class="askph">Ask or tell Hourza anything…</span><button class="mic" onclick="event.stopPropagation();openAsk();setTimeout(()=>aiVoice&&aiVoice(),350)" aria-label="Speak">${ICON.mic}</button></div>
     <div class="hero">
-      <div class="lbl" style="display:flex;justify-content:space-between;position:relative;z-index:1">You owe your crew ${online()?syncBadge():""}</div>
+      <div class="lbl" style="display:flex;justify-content:space-between;position:relative;z-index:1">To pay your team ${online()?syncBadge():""}</div>
       <div class="big num" data-count="${total}">${money(total)}</div>
-      <div class="sub">${owed.length?`${plural(owed.length,"person")} waiting to be paid`:"Everyone is paid up 🎉"}</div>
+      <div class="sub">${owed.length?`${plural(owed.length,"worker")} waiting to be paid`:"Everyone is paid 🎉"}</div>
       ${owed.length?`<button class="limebtn" onclick="go('pay')">Pay people</button>`:""}
     </div>
     <div class="tiles3">
