@@ -678,6 +678,12 @@ html,body{overscroll-behavior-y:none}
 .askw.thinking .aiorb{animation-duration:1s}
 .steps{display:grid;gap:10px;margin:4px 0}.steps>div{display:flex;gap:12px;align-items:center;font-size:15px}.steps>div>b{width:28px;height:28px;flex:none;border-radius:50%;background:var(--soft);display:grid;place-items:center;font-size:14px}.steps span b{font-weight:750}
 @media (prefers-color-scheme:dark){.tip{background:#1F2A10!important;color:#E6F5C8!important}.tip b{color:#fff}.tip button{background:#2C3A17!important;color:#E6F5C8!important}.checkrow{background:#2A2210!important;color:#F5C76B!important}}
+.aisend{position:absolute;right:52px;top:50%;margin-top:-20px;width:40px;height:40px;border-radius:12px;background:#C9F26B;color:#111214;font-size:17px;display:grid;place-items:center}
+.askin #askq{padding-right:96px!important}
+.aitype{margin:18px 4px;color:var(--mut);font-weight:600;font-size:14.5px}.aitype b{color:var(--ink)}
+.aisrc{display:inline-block;margin:14px 2px -6px;font-size:12px;font-weight:750;color:#5B7A10;background:#EEF8D6;padding:4px 9px;border-radius:99px}
+@media (prefers-color-scheme:dark){.aisrc{background:#26330F;color:#C9F26B}}
+.aierr{margin:12px 2px 4px;padding:12px 14px;border-radius:14px;background:var(--warn-s);color:var(--warn);font-size:14px;line-height:1.4}.aierr small{display:block;margin-top:4px;opacity:.9}
 </style>
 </head>
 <body>
@@ -699,7 +705,7 @@ const JOIN=(()=>{const m=(location.hash||"").match(/join=(CW1\.[A-Za-z0-9_\-]+)/
 if(JOIN&&!IS_APP){const l=document.querySelector('link[rel="manifest"]');if(l)l.remove()}
 let deferredInstall=null;
 addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredInstall=e;setTimeout(showInstallGuide,50)});
-const APP_VERSION="6.6.4";
+const APP_VERSION="6.7";
 /* ============ data layer ============ */
 const TABLES=["clients","sites","workers","rates","entries","income"];
 const EMPTY=()=>({clients:[],sites:[],workers:[],rates:[],entries:[],income:[]});
@@ -1277,8 +1283,8 @@ function gaiRender(o,q){const a=o.action,say=esc(o.say||"");AI.say=o.say||"";AI.
   return say?ansHead(say,""):bad()}
 async function aiSmart(q){const box=$("#askres");if(!box||!q.trim())return;const w=$(".askw");
   box.innerHTML=`<div class="aithink"><div class="aiorb sm"></div><span>Thinking…</span></div>`;w&&w.classList.add("thinking");
-  try{const o=await gaiCall(q);if($("#askq")?.value.trim()!==q.trim()&&!AI.voice)return;box.innerHTML=gaiRender(o,q);aiTalk(AI.say||(box.querySelector(".ansb")?.textContent||""))}
-  catch(e){const loc=aiCmd(q)||askAnswer(q);box.innerHTML=`<div class="hint" style="margin:10px 2px 0">${/key|API_KEY|permission/i.test(e.message||"")?"Smart AI key problem — check it in Settings. ":"Smart AI isn't answering right now — using the quick answer."}</div>`+loc}
+  try{const o=await gaiCall(q);if($("#askq")?.value.trim()!==q.trim()&&!AI.voice)return;box.innerHTML=`<div class="aisrc">✦ Gemini</div>`+gaiRender(o,q);aiTalk(AI.say||(box.querySelector(".ansb")?.textContent||""))}
+  catch(e){const loc=aiCmd(q)||askAnswer(q),m=String(e&&e.message||e);box.innerHTML=`<div class="aierr"><b>Gemini didn't answer</b> — showing the quick answer instead.<br><small>${esc(/API key|API_KEY|key not valid|PERMISSION|unregistered/i.test(m)?"The Google key isn't accepted. Settings → Smart AI → Change key.":/quota|429|RESOURCE_EXHAUSTED/i.test(m)?"Free limit reached for now — try again in a minute.":/Failed to fetch|NetworkError|Load failed|abort/i.test(m)?"No internet, or Google is blocked on this network.":m.slice(0,160))}</small></div></div>`+loc}
   finally{w&&w.classList.remove("thinking")}}
 function aiTalk(t){if(!AI.speak||!AI.voice||!window.speechSynthesis)return;try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t.replace(/<[^>]+>/g,"").replace(/·/g,",").replace(/\$/g,"$"));u.lang=/[\u0980-\u09FF]/.test(t)?"bn-BD":"en-AU";u.rate=1.04;speechSynthesis.speak(u)}catch(e){}}
 function aiSpeakToggle(b){AI.speak=!AI.speak;try{localStorage.setItem("cw_aispeak",AI.speak?"1":"0")}catch(e){}b.classList.toggle("off",!AI.speak);if(!AI.speak&&window.speechSynthesis)speechSynthesis.cancel()}
@@ -1294,10 +1300,11 @@ function aiMic(){const i=$("#askq");if(!i)return;
   try{r.start()}catch(e){AI.rec=null;w&&w.classList.remove("listening");i.focus()}}
 function openAsk(q=""){hideToast();AI.voice=false;AI.p=null;GAI.hist=[];
   showSheet(`<div class="askw"><div class="aihead"><div class="aiorb"></div><div style="flex:1"><h3 style="margin:0">Hourza AI${smartOn()?' <span class="aibadge">Smart</span>':""}</h3><div class="t2">${smartOn()?"Say anything — English or Bangla":"Ask anything, or tell me what to do"}</div></div>${smartOn()?`<button class="aispk" style="font-size:13px;font-weight:750;margin-right:6px" onclick="AI.lang=AI.lang==='en-AU'?'bn-BD':'en-AU';try{localStorage.setItem('cw_ailang',AI.lang)}catch(e){};this.textContent=AI.lang==='en-AU'?'EN':'বাং';toast(AI.lang==='en-AU'?'Mic: English':'Mic: বাংলা')" aria-label="Mic language">${AI.lang==="en-AU"?"EN":"বাং"}</button>`:""}<button class="aispk${AI.speak?"":" off"}" onclick="aiSpeakToggle(this)" aria-label="Speak answers">🔊</button></div>
-    <div class="askin">${ICON.search||""}<input id="askq" class="inp" placeholder="Ask or tell me what to do" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="go" value="${esc(q)}" oninput="AI.voice=false;askRun(this.value)" onkeydown="if(event.key==='Enter'){askRemember(this.value);this.blur();if(smartOn())aiSmart(this.value)}"><button class="aimic" onclick="aiMic()" aria-label="Speak">${ICON.mic}</button></div><div class="aiwave"><i></i><i></i><i></i><i></i><i></i><span>Listening… tap the mic to stop</span><button class="askx" onclick="const i=$('#askq');i.value='';askRun('');i.focus()" aria-label="Clear">×</button></div>
+    <div class="askin">${ICON.search||""}<input id="askq" class="inp" placeholder="Ask or tell me what to do" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" enterkeyhint="go" value="${esc(q)}" oninput="AI.voice=false;if(smartOn()){aiTyping(this.value)}else askRun(this.value)" onkeydown="if(event.key==='Enter'){askRemember(this.value);this.blur();if(smartOn())aiSmart(this.value)}">${smartOn()?`<button class="aisend" onclick="const v=$('#askq').value;if(v.trim()){askRemember(v);$('#askq').blur();aiSmart(v)}" aria-label="Ask">➤</button>`:""}<button class="aimic" onclick="aiMic()" aria-label="Speak">${ICON.mic}</button></div><div class="aiwave"><i></i><i></i><i></i><i></i><i></i><span>Listening… tap the mic to stop</span><button class="askx" onclick="const i=$('#askq');i.value='';askRun('');i.focus()" aria-label="Clear">×</button></div>
     <div id="askres"></div></div>`);
   askRun(q);setTimeout(()=>{const i=$("#askq");if(i&&!q)i.focus()},280)}
-function askChip(q){const i=$("#askq");if(i){i.value=q;askRemember(q);askRun(q)}}
+function askChip(q){const i=$("#askq");if(i){i.value=q;askRemember(q);if(smartOn())aiSmart(q);else askRun(q)}}
+function aiTyping(v){const box=$("#askres");if(!box)return;if(!v.trim()){askRun("");return}box.innerHTML=`<div class="aitype">✦ Tap <b>➤</b> or <b>Enter</b> to ask Gemini</div>`}
 function askGo(kind,id){askRemember($("#askq")?.value||"");closeSheet();setTimeout(()=>{if(kind==="w")openPerson(id);else if(kind==="s")openSite(id);else go(id)},180)}
 const chipsH=a=>`<div class="askchips">${a.map(x=>`<button onclick="askChip(this.textContent)">${esc(x)}</button>`).join("")}</div>`;
 function askRun(q,keep){const box=$("#askres");if(!box)return;let h=null;if(!keep)AI.p=null;try{h=keep&&AI.p&&AI.p.k==="hours"&&AI.p.sid?aiHoursCard():(q&&q.trim()?aiCmd(q):null)}catch(e){h=null}box.innerHTML=h||askAnswer(q)}
