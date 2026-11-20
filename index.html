@@ -699,7 +699,7 @@ const JOIN=(()=>{const m=(location.hash||"").match(/join=(CW1\.[A-Za-z0-9_\-]+)/
 if(JOIN&&!IS_APP){const l=document.querySelector('link[rel="manifest"]');if(l)l.remove()}
 let deferredInstall=null;
 addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredInstall=e;setTimeout(showInstallGuide,50)});
-const APP_VERSION="6.6";
+const APP_VERSION="6.6.1";
 /* ============ data layer ============ */
 const TABLES=["clients","sites","workers","rates","entries","income"];
 const EMPTY=()=>({clients:[],sites:[],workers:[],rates:[],entries:[],income:[]});
@@ -715,7 +715,7 @@ function saveLocal(){ if(online()) ls.set(K_CACHE,DB); else ls.set(KEY,DB) }
 
 async function api(action,payload={}){
   const r=await fetch(CONN.u,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({key:CONN.k,action,...payload}),redirect:"follow"});
-  const j=await r.json();
+  const txt=await r.text();let j;try{j=JSON.parse(txt)}catch(_){const e=new Error(/<html|<!doctype/i.test(txt)?"login":"bad");e.html=true;e.status=r.status;throw e}
   if(!j.ok){const e=new Error(j.error||"Failed");e.server=true;throw e}
   return j.data;
 }
@@ -2182,7 +2182,7 @@ const CDN_SCAN="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js";
 function loadScript(src){return new Promise((res,rej)=>{if(document.querySelector(`script[src="${src}"]`)){res();return}const s=document.createElement("script");s.src=src;s.onload=res;s.onerror=()=>rej(new Error("load"));document.head.appendChild(s)})}
 const b64u={enc:s=>btoa(unescape(encodeURIComponent(s))).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,""),dec:s=>decodeURIComponent(escape(atob(s.replace(/-/g,"+").replace(/_/g,"/"))))};
 function makeCode(c){const g=GAI.get(),o={u:c.u,k:c.k};if(g&&g.k){o.g=g.k;o.gm=g.m}return "CW1."+b64u.enc(JSON.stringify(o))}
-function readCode(t){t=(t||"").trim().replace(/\s+/g,"");const i=t.indexOf("CW1.");if(i<0)return null;try{const o=JSON.parse(b64u.dec(t.slice(i+4)));return o.u&&o.k?o:null}catch(e){return null}}
+function readCode(t){t=(t||"").trim().replace(/\s+/g,"");const i=t.indexOf("CW1.");if(i<0)return null;try{const o=JSON.parse(b64u.dec(t.slice(i+4)));if(o.u)o.u=String(o.u).trim().replace(/\/u\/\d+\//,"/").replace(/\/dev(\?.*)?$/,"/exec");return o.u&&o.k?o:null}catch(e){return null}}
 
 function openConnect(){hideToast();
   showSheet(`<h3>Connect your data</h3><div class="lead">Scan the QR from your Google Sheet or from an owner's phone. Everyone connected sees the same data.</div>
@@ -2238,7 +2238,7 @@ async function tryConnect(text){
   showSheet(`<div class="empty" style="padding:40px 0">Connecting…</div>`);
   let data;
   try{const prev=CONN;CONN=c;data=await api("getAll");CONN=prev}
-  catch(e){CONN=null;showSheet(`<h3>Couldn't connect</h3><div class="lead">${e.server?esc(e.message):"No answer from Google. Check the internet, and that the script is deployed with access set to “Anyone”."}</div><button class="btn" onclick="openConnect()">Try again</button>`);return}
+  catch(e){CONN=null;showSheet(`<h3>Couldn't connect</h3><div class="lead">${e.server?esc(e.message):e.html?"Google asked for a sign-in instead of answering. In Apps Script: Deploy → New deployment → Web app → Who has access: <b>Anyone</b> → Deploy. Then copy a fresh code from the Sheet (Hourza → Connect a device).":"No answer from Google. Check the internet, and that the script is deployed with access set to “Anyone”."}</div><div class="hint" style="margin:-6px 0 14px;word-break:break-all">Link in code: …${esc(String(c.u||"").slice(-28))}</div><button class="btn" onclick="openConnect()">Try again</button>`);return}
   if(c.g&&!GAI.get())GAI.set({k:c.g,m:c.gm||"gemini-flash-latest",alt:[]});
   const sheetUrl=data.sheetUrl; delete data.sheetUrl;
   setPin(async()=>{
