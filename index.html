@@ -694,8 +694,8 @@ html,body{overscroll-behavior-y:none}
 .aib{align-self:stretch;margin:4px 0}.aib .ans{margin-top:8px}.aib .aisay{margin-top:8px}.aib.old .aibtns,.aib.old .opts{opacity:.4;pointer-events:none}
 @keyframes aiIn{from{opacity:0;transform:translateY(8px) scale(.98)}to{opacity:1;transform:none}}
 .aicomp{flex:none;margin-top:6px}.aicomp #askq{padding-left:16px!important;border-radius:24px!important;height:52px}
-.askw.chat .aisend{right:52px;border-radius:50%;width:40px;height:40px;margin-top:-20px;background:#C9F26B;color:#111214;box-shadow:0 4px 12px rgba(155,209,47,.45)}.askw.chat .aisend svg{margin-left:2px}
-.askw.chat .aimic{border-radius:50%;width:38px;height:38px;margin-top:-19px;background:var(--soft);color:var(--ink)}
+.askw.chat .aisend{right:6px;border-radius:50%;width:40px;height:40px;margin-top:-20px;background:#C9F26B;color:#111214;box-shadow:0 4px 12px rgba(155,209,47,.45)}.askw.chat .aisend svg{margin-left:2px}
+.askw.chat .aimic{right:52px;border-radius:50%;width:38px;height:38px;margin-top:-19px;background:var(--soft);color:var(--ink)}
 
 .ailogo{width:44px;height:44px;border-radius:14px;flex:none;background:#C9F26B;display:grid;place-items:center;box-shadow:0 6px 18px rgba(155,209,47,.35);position:relative}
 .ailogo svg{transition:transform .3s}
@@ -735,7 +735,7 @@ const JOIN=(()=>{const m=(location.hash||"").match(/join=(CW1\.[A-Za-z0-9_\-]+)/
 if(JOIN&&!IS_APP){const l=document.querySelector('link[rel="manifest"]');if(l)l.remove()}
 let deferredInstall=null;
 addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredInstall=e;setTimeout(showInstallGuide,50)});
-const APP_VERSION="6.9.2";
+const APP_VERSION="6.9.3";
 /* ============ data layer ============ */
 const TABLES=["clients","sites","workers","rates","entries","income"];
 const EMPTY=()=>({clients:[],sites:[],workers:[],rates:[],entries:[],income:[]});
