@@ -715,6 +715,7 @@ html,body{overscroll-behavior-y:none}
 .sheet.chatmode .askw.chat{height:100%}
 @media (min-width:900px){.sheet.chatmode{height:min(720px,80vh)}}
 .wkrow,.list>.row,.wcard{content-visibility:auto;contain-intrinsic-size:auto 76px}.wkcells.wkm{contain:layout paint}
+.ainote{align-self:center;margin:10px 6px;padding:9px 14px;border-radius:14px;background:var(--warn-s);color:var(--warn);font-size:13.5px;font-weight:600;text-align:center;animation:aiIn .25s both}
 </style>
 </head>
 <body>
@@ -736,7 +737,7 @@ const JOIN=(()=>{const m=(location.hash||"").match(/join=(CW1\.[A-Za-z0-9_\-]+)/
 if(JOIN&&!IS_APP){const l=document.querySelector('link[rel="manifest"]');if(l)l.remove()}
 let deferredInstall=null;
 addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredInstall=e;setTimeout(showInstallGuide,50)});
-const APP_VERSION="7.0";
+const APP_VERSION="7.0.1";
 /* ============ data layer ============ */
 const TABLES=["clients","sites","workers","rates","entries","income"];
 const EMPTY=()=>({clients:[],sites:[],workers:[],rates:[],entries:[],income:[]});
@@ -1379,21 +1380,27 @@ function aiDone(msg,undo){const box=$("#askres");if(box&&$("#aimsgs")){box.query
 function aiKeep(){const m=$("#aimsgs");if(m){AI.saved={html:m.innerHTML,t:Date.now()}}}
 function aiTalk(t){if(!AI.speak||!AI.voice||!window.speechSynthesis)return;try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t.replace(/<[^>]+>/g,"").replace(/·/g,",").replace(/\$/g,"$"));u.lang=/[\u0980-\u09FF]/.test(t)?"bn-BD":/[\u0900-\u097F]/.test(t)?"ne-NP":"en-AU";u.rate=1.04;speechSynthesis.speak(u)}catch(e){}}
 function aiSpeakToggle(b){AI.speak=!AI.speak;try{localStorage.setItem("cw_aispeak",AI.speak?"1":"0")}catch(e){}b.classList.toggle("off",!AI.speak);if(!AI.speak&&window.speechSynthesis)speechSynthesis.cancel()}
+function aiMicStop(){const r=AI.rec,end=AI.recEnd;if(!r)return;try{r.stop()}catch(e){}const w=$(".askw");w&&w.classList.remove("listening");setTimeout(()=>{if(AI.rec===r){try{r.abort()}catch(e){}end&&end()}},900)}
 function aiMic(){const i=$("#askq");if(!i)return;
-  if(AI.rec){try{AI.rec.stop()}catch(e){}return}
-  if(!SRx){i.focus();toast("Tap the 🎤 on your keyboard and speak");return}
-  let r;try{r=new SRx()}catch(e){i.focus();toast("Tap the 🎤 on your keyboard and speak");return}
-  AI.rec=r;r.lang=AI.lang;r.interimResults=true;r.continuous=false;r.maxAlternatives=1;let fin="";
-  const w=$(".askw");w&&w.classList.add("listening");i.value="";i.placeholder="Listening…";haptic();
-  r.onresult=e=>{let t="";for(const x of e.results)t+=x[0].transcript;fin=t;i.value=t};
-  r.onerror=e=>{if(e.error==="not-allowed"||e.error==="service-not-allowed")toast("Allow the microphone, or tap 🎤 on your keyboard")};
-  r.onend=()=>{AI.rec=null;w&&w.classList.remove("listening");i.placeholder=smartOn()?"Message Hourza AI":"Ask or tell me what to do";if(fin.trim()){AI.voice=true;i.value="";aiSend(fin)}};
-  try{r.start()}catch(e){AI.rec=null;w&&w.classList.remove("listening");i.focus()}}
+  if(AI.rec){aiMicStop();return}
+  const fallback=msg=>{i.focus();aiNote(msg||"Voice isn't available here — tap the 🎤 on your keyboard and speak, then tap send.")};
+  if(!SRx)return fallback();
+  let r;try{r=new SRx()}catch(e){return fallback()}
+  AI.rec=r;r.lang=AI.lang;r.interimResults=true;r.continuous=false;r.maxAlternatives=1;let fin="",got=false,done=false,silT=null;
+  const w=$(".askw");w&&w.classList.add("listening");i.value="";i.placeholder="Listening… speak now";haptic();
+  const hard=setTimeout(aiMicStop,15000),none=setTimeout(()=>{if(!got){aiMicStop();setTimeout(()=>fallback("I couldn't hear anything. Try again, or tap the 🎤 on your keyboard to speak."),300)}},7000);
+  const finish=()=>{if(done)return;done=true;clearTimeout(hard);clearTimeout(none);clearTimeout(silT);AI.rec=null;AI.recEnd=null;w&&w.classList.remove("listening");i.placeholder=smartOn()?"Message Hourza AI":"Ask or tell me what to do";if(fin.trim()){AI.voice=true;i.value="";aiSend(fin)}};
+  AI.recEnd=finish;
+  r.onresult=e=>{got=true;let t="";for(const x of e.results)t+=x[0].transcript;fin=t;i.value=t;clearTimeout(silT);silT=setTimeout(aiMicStop,1600);if([...e.results].every(x=>x.isFinal))aiMicStop()};
+  r.onerror=e=>{if(e.error==="not-allowed"||e.error==="service-not-allowed"){fin="";finish();fallback("The microphone isn't allowed for Hourza. Tap the 🎤 on your keyboard to speak instead.")}else if(e.error==="no-speech"){fin="";finish();fallback("I couldn't hear anything. Try again, or tap the 🎤 on your keyboard.")}};
+  r.onend=finish;
+  try{r.start()}catch(e){finish();fallback()}}
+function aiNote(msg){const m=$("#aimsgs");if(!m){toast(msg);return}m.querySelector(".aiwel")?.remove();m.insertAdjacentHTML("beforeend",`<div class="ainote">${esc(msg)}</div>`);aiScroll()}
 const AILOGO=`<svg viewBox="0 0 24 24" width="22" height="22" fill="#111214"><path d="M12 2.5c.4 4.6 2.9 7.1 7.5 7.5-4.6.4-7.1 2.9-7.5 7.5-.4-4.6-2.9-7.1-7.5-7.5 4.6-.4 7.1-2.9 7.5-7.5z"/><path d="M19 15c.2 2 1.2 3 3 3.2-1.8.2-2.8 1.2-3 3.2-.2-2-1.2-3-3-3.2 1.8-.2 2.8-1.2 3-3.2z" opacity=".55"/></svg>`;
 function openAsk(q=""){hideToast();AI.voice=false;AI.p=null;const keep=AI.saved&&Date.now()-AI.saved.t<20*60e3;if(!keep)GAI.hist=[];
   showSheet(`<div class="askw chat"><div class="aihead"><div class="ailogo">${AILOGO}</div><div style="flex:1;min-width:0"><h3 style="margin:0">Hourza AI${smartOn()?' <span class="aibadge">Smart</span>':""}</h3><div class="t2">${smartOn()?"English · বাংলা · नेपाली":"Ask anything, or tell me what to do"}</div></div>${smartOn()?`<button class="aispk" style="font-size:12.5px;font-weight:750;margin-right:6px;width:auto;padding:0 10px" onclick="aiLang(this)" aria-label="Mic language">${AILANG[AI.lang]||"EN"}</button>`:""}<button class="aispk${AI.speak?"":" off"}" onclick="aiSpeakToggle(this)" aria-label="Speak answers">🔊</button></div>
     <div class="aimsgs" id="aimsgs"><div class="aiwel">${(()=>{const rec=askRecent();return `${rec.length?`<div class="asklbl">Recent</div>${chipsH(rec)}`:""}<div class="asklbl">Try</div>${chipsH(askIdeas())}`})()}</div></div>
-    <div class="aiwave"><i></i><i></i><i></i><i></i><i></i><span>Listening… tap the mic to stop</span></div>
+    <div class="aiwave"><i></i><i></i><i></i><i></i><i></i><span>Listening… tap the mic again when you finish</span></div>
     <div class="askin aicomp"><input id="askq" class="inp" placeholder="${smartOn()?"Message Hourza AI":"Ask or tell me what to do"}" autocomplete="off" autocorrect="on" autocapitalize="sentences" spellcheck="false" enterkeyhint="send" value="" oninput="AI.voice=false" onkeydown="if(event.key==='Enter'){event.preventDefault();aiSendNow()}" ontouchend="if(document.activeElement!==this){this.focus()}"><button class="aisend" onmousedown="event.preventDefault()" ontouchend="event.preventDefault();aiSendNow()" onclick="aiSendNow()" aria-label="Send">${ICON.send||"➤"}</button><button class="aimic" onmousedown="event.preventDefault()" onclick="aiMic()" aria-label="Speak">${ICON.mic}</button></div></div>`);
   $("#sheet").classList.add("chatmode");if(keep){const m=$("#aimsgs");m.innerHTML=AI.saved.html;m.querySelectorAll("#askres").forEach(x=>x.removeAttribute("id"));m.querySelectorAll(".aib").forEach(b=>b.classList.add("old"));setTimeout(()=>m.scrollTop=m.scrollHeight,50)}
   if(q)setTimeout(()=>aiSend(q),200);else setTimeout(()=>{const i=$("#askq");if(i)i.focus()},300)}
