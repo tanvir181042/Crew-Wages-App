@@ -746,7 +746,7 @@ const JOIN=(()=>{const m=(location.hash||"").match(/join=(CW1\.[A-Za-z0-9_\-]+)/
 if(JOIN&&!IS_APP){const l=document.querySelector('link[rel="manifest"]');if(l)l.remove()}
 let deferredInstall=null;
 addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredInstall=e;setTimeout(showInstallGuide,50)});
-const APP_VERSION="7.3.6";
+const APP_VERSION="7.4";
 /* ============ data layer ============ */
 const TABLES=["clients","sites","workers","rates","entries","income"];
 const EMPTY=()=>({clients:[],sites:[],workers:[],rates:[],entries:[],income:[]});
@@ -1319,6 +1319,20 @@ Actions (use ids from the lists; dates are YYYY-MM-DD; never invent ids):
 - {"type":"worker_left","worker_id":".."}  // someone stopped working
 - {"type":"report","title":"short title","from":"YYYY-MM-DD" or null,"to":"YYYY-MM-DD" or null,"worker_ids":[],"site_ids":[],"client_ids":[],"paid":"all|paid|unpaid","group_by":["worker"|"site"|"client"|"date"|"week"|"month"|"status"] (0-2),"metrics":["hours","wages","charged","profit","days","people","received"],"sort_by":"metric or null","sort_dir":"desc|asc","limit":number or null,"offer_pay":true/false,"chart":null|"bar"|"column","chart_metric":"metric or null"}
    // chart: set "bar" whenever the user asks for a chart, graph, diagram or to "see it visually" (also "column" for over time). A table is always shown too.
+- {"type":"compute","title":"short title","subtitle":"period or filter, short","code":"JavaScript function body","chart":null|{"type":"bar"|"column","label":0,"value":2}}
+   // THE GENERAL VIEWER. Use it for ANY request to see, list, filter, combine, compare, rank, count or calculate anything in the data that the other actions don't fit exactly — any mix of columns, periods, people, sites, companies, money. When unsure, use compute. The app runs your code on the real data (no internet, no DOM) and shows a table (+ chart if asked for a chart/graph/visual).
+   // Your code gets D and H and must return {columns:[{name:"Person"},{name:"Wages",type:"money"}...], rows:[["Sam",728]...], note:"optional one line"}. Column types: money|hours|date|month|percent|text|number. Keep numbers as numbers (not formatted). Sort rows sensibly. Put the label column first.
+   // D.today "YYYY-MM-DD"
+   // D.workers [{id,name,active,role("worker"|"supervisor"),payType,salary,salaryPer,createdAt,sites:[site names]}]
+   // D.sites [{id,name,clientId,client(company name),address,billType("hourly"|"fixed"|""),charge(client pays per hour),fixed(client pays per month)}]
+   // D.clients [{id,name}]   D.rates [{id,workerId,worker,siteId,site,rate(worker pay per hour),cover(temporary cover link),addedAt}]
+   // D.entries [{id,workerId,worker,siteId,site,clientId,client,date,month,hours,rate,wage(=hours*rate),paid(bool),paidAt,notes,kind("work"|other),work(bool: real work hours)}]  ← one row = one person, one site, one day
+   // D.income [{id,clientId,client,month("YYYY-MM"),amount,note}]  ← money received from companies
+   // H.sum(arr,"field"|fn) H.groupBy(arr,"field"|fn)→{key:[rows]} H.uniq(arr) H.addDays(date,n) H.weekStart(date) H.month(date) H.between(date,from,to) H.round(v,n) H.charged(entries)=what clients are billed for those entries. Profit = H.charged(es) - H.sum(es,"wage").
+   // Use worker/site/company names exactly as given to filter by id when the user names them. Only count e.work entries for hours worked; wages count all entries.
+   // Example "employees with their site and earnings last 15 days, chart": code: const from=H.addDays(D.today,-14);const es=D.entries.filter(e=>H.between(e.date,from,D.today));const g=H.groupBy(es,"workerId");return {columns:[{name:"Person"},{name:"Sites"},{name:"Hours",type:"hours"},{name:"Earned",type:"money"}],rows:Object.values(g).map(a=>[a[0].worker,H.uniq(a.map(e=>e.site)).join(", "),H.sum(a.filter(e=>e.work),"hours"),H.sum(a,"wage")]).sort((x,y)=>y[3]-x[3])}  and chart {"type":"bar","label":0,"value":3}
+- {"type":"change","summary":"short description","ops":[{"op":"create"|"update"|"delete","table":"workers|sites|clients|rates|entries|income","id":"existing id (update/delete)","where":{field:value,"from":"YYYY-MM-DD","to":"YYYY-MM-DD"} (instead of id: matches every record with those values, e.g. entries where {"workerId":"..","from":"..","to":".."}; a value can be an array of allowed values),"set":{field:value}}]}
+   // THE GENERAL EDITOR. Use it for any add / edit / delete / bulk change of any record that the specific actions don't fit (e.g. change a site's address, fix a note, move hours to another site, add a company, delete a money-in record, mark only some days paid, give everyone at a site a raise). Fields you may set — workers: name,active,role,payType,salary,salaryPer · sites: name,clientId,address,billType,charge,fixed · clients: name · rates (links a worker to a site): workerId,siteId,rate,cover · entries: workerId,siteId,date,hours,rate,paid,notes · income: clientId,month,amount,note. Use real ids from the lists. The user sees a preview and can Undo.
    // "employees list with their site and what they earned in the last 15 days, as a chart" → from today-14, group_by ["worker","site"], metrics ["hours","wages"], chart "bar", chart_metric "wages"
    // ANY question about numbers or history → report. The app computes it exactly and shows a table. Examples:
    // "where did Ayush work the last 10 days" → worker_ids [Ayush], from today-9, group_by ["date","site"], metrics ["hours"]
@@ -1432,6 +1446,8 @@ function gaiRender(o,q){if(Array.isArray(o.actions)&&o.actions.length>1){const s
     if(t==="set_charge"){const x=DB.sites.find(y=>y.id===a.site_id);if(!x||!(+a.amount>0))return lead||bad();const bill=a.bill==="fixed"?"fixed":"hourly";AI.p={k:"charge",sid:x.id,bill,amt:+a.amount};
       return lead+aiCard(`${esc(x.name)}: client pays`,`<b>${money(+a.amount)}${bill==="fixed"?" per month":"/hr"}</b>`,"",`<button class="btn" onclick="aiDo()">Save</button>`)}
     if(t==="worker_left"){const w=DB.workers.find(x=>x.id===a.worker_id);if(!w)return lead||bad();AI.p={k:"left",wid:w.id};return lead+aiCard(`${esc(w.name)} has left?`,"Hidden from lists. Their history and anything owed stays.","",`<button class="btn" onclick="aiDo()">Mark as left</button>`)}
+    if(t==="compute"){const id="cmp"+uid();setTimeout(()=>{const el=document.getElementById(id);el&&aiCompute(a,el,q)},0);return lead+`<div id="${id}">${aiDots()}</div>`}
+    if(t==="change")return lead+aiChange(a);
     if(t==="report")return lead+aiReport(a);
     if(t==="export")return lead+aiExport(a);
     if(t==="payslip"||t==="invoice")return lead+aiFileCard(t,a);
@@ -1499,6 +1515,87 @@ function aiChart(rows,G,met,head,fmt,kind){const time=["date","week","month"].in
     const lab=d.map((x,n)=>n===0||n===d.length-1||d.length<=8||n%Math.ceil(d.length/6)===0?`<text x="${(6+n*(bw+gap)+gap/2+bw/2).toFixed(1)}" y="${H-6}" text-anchor="middle" font-size="9" fill="currentColor" opacity=".6">${esc(String(x.l).slice(0,10))}</text>`:"").join("");
     return `<div class="aich">${ttl}<svg viewBox="0 0 ${W} ${H}" width="100%" role="img">${bars}${lab}<text x="6" y="10" font-size="9" fill="currentColor" opacity=".6">${fmt(met,mx)}</text></svg></div>`}
   return `<div class="aich">${ttl}${d.map(x=>`<div class="aichr"><span class="aichl">${esc(x.l)}</span><span class="aichb"><i style="width:${Math.max(2,Math.abs(x.v)/mx*100).toFixed(1)}%;${x.v<0?"background:#E5484D":""}"></i></span><span class="aichv">${fmt(met,x.v)}</span></div>`).join("")}</div>`}
+/* ---------- general engine: Gemini writes the calculation, the app runs it on the real data ---------- */
+const CMP_W=`const H={
+ sum:(a,f)=>a.reduce((t,x)=>t+(+(typeof f==="function"?f(x):f?x[f]:x)||0),0),
+ groupBy:(a,f)=>{const m={};a.forEach(x=>{const k=typeof f==="function"?f(x):x[f];(m[k]=m[k]||[]).push(x)});return m},
+ uniq:a=>[...new Set(a)],
+ addDays:(s,n)=>{const d=new Date(s+"T00:00:00");d.setDate(d.getDate()+n);return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")},
+ weekStart:s=>{const d=new Date(s+"T00:00:00");d.setDate(d.getDate()-((d.getDay()+6)%7));return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0")},
+ month:s=>String(s).slice(0,7),
+ between:(s,a,b)=>(!a||s>=a)&&(!b||s<=b),
+ round:(v,n=2)=>Math.round(v*10**n)/10**n,
+ charged:list=>{let b=0;const by={};list.forEach(e=>(by[e.siteId]=by[e.siteId]||[]).push(e));for(const sid in by){const x=SITES[sid];if(!x)continue;if(x.billType==="fixed"){b+=(+x.fixed||0)*new Set(by[sid].map(e=>e.month)).size}else b+=by[sid].filter(e=>e.work).reduce((t,e)=>t+ +e.hours,0)*(+x.charge||0)}return b}
+};let SITES={};
+onmessage=e=>{const {D,code}=e.data;SITES=Object.fromEntries(D.sites.map(s=>[s.id,s]));try{const r=(new Function("D","H",'"use strict";'+code))(D,H);postMessage({ok:true,r:JSON.parse(JSON.stringify(r===undefined?null:r))})}catch(err){postMessage({ok:false,err:String(err&&err.message||err)})}}`;
+function cmpData(){const wn=new Map(DB.workers.map(w=>[w.id,w])),sn=new Map(DB.sites.map(x=>[x.id,x])),cn=new Map(DB.clients.map(c=>[c.id,c]));
+  const site=id=>sn.get(id)||{name:id===SUP?"Supervisor":"?"};
+  return {today:todayD(),
+    workers:DB.workers.map(w=>({...w,active:w.active!==false,sites:DB.rates.filter(r=>r.workerId===w.id&&r.siteId!==SUP).map(r=>site(r.siteId).name)})),
+    sites:DB.sites.map(x=>({...x,client:(cn.get(x.clientId)||{}).name||"",charge:+x.charge||0,fixed:+x.fixed||0,billType:x.billType||""})),
+    clients:DB.clients.map(c=>({...c})),
+    rates:DB.rates.map(r=>({...r,rate:+r.rate||0,worker:(wn.get(r.workerId)||{}).name||"?",site:site(r.siteId).name})),
+    entries:DB.entries.map(e=>{const x=site(e.siteId);return {...e,hours:+e.hours||0,rate:+e.rate||0,date:e.date||e.month+"-01",paid:!!e.paid,work:isWork(e),wage:wage(e),worker:(wn.get(e.workerId)||{}).name||"?",site:x.name,clientId:x.clientId||"",client:(cn.get(x.clientId)||{}).name||""}}),
+    income:DB.income.map(i=>({...i,amount:+i.amount||0,client:(cn.get(i.clientId)||{}).name||""}))}}
+let CMPW=null;function cmpRun(code){return new Promise((res,rej)=>{let w;try{if(!CMPW)CMPW=URL.createObjectURL(new Blob([CMP_W],{type:"text/javascript"}));w=new Worker(CMPW)}catch(e){try{const f=new Function("D","H",code);return res(f(cmpData(),{}))}catch(e2){return rej(e2)}}
+  const t=setTimeout(()=>{w.terminate();rej(new Error("the calculation took too long"))},6000);
+  w.onmessage=e=>{clearTimeout(t);w.terminate();e.data.ok?res(e.data.r):rej(new Error(e.data.err))};w.onerror=e=>{clearTimeout(t);w.terminate();rej(new Error(e.message||"calculation error"))};w.postMessage({D:cmpData(),code})})}
+function cmpFmt(t,v){if(v==null||v==="")return"–";if(typeof v==="boolean")return v?"Yes":"No";if(t==="money"&&isFinite(v))return money(+v);if(t==="hours"&&isFinite(v))return (Math.round(v*100)/100)+"h";if(t==="percent"&&isFinite(v))return (Math.round(v*10)/10)+"%";if(t==="date"&&okD(v))return dayLabel(v);if(t==="month"&&/^\d{4}-\d{2}$/.test(v))return mLabel(v);if(typeof v==="number")return String(Math.round(v*100)/100);return String(v)}
+function cmpTable(r){if(!r||typeof r!=="object")return {cols:[{n:"Answer"}],rows:[[r]]};
+  let rows=Array.isArray(r)?r:r.rows||[],cols=r.columns;
+  if(rows.length&&!Array.isArray(rows[0])&&typeof rows[0]==="object"){const ks=cols&&cols.length?cols.map(c=>typeof c==="string"?c:c.key||c.name):[...new Set(rows.flatMap(o=>Object.keys(o)))];rows=rows.map(o=>ks.map(k=>o[k]));if(!cols)cols=ks}
+  else if(rows.length&&!Array.isArray(rows[0]))rows=rows.map(v=>[v]);
+  cols=(cols||(rows[0]||[]).map((_,i)=>"")).map(c=>typeof c==="string"?{n:c}:{n:c.name||c.key||"",t:c.type});
+  cols.forEach((c,i)=>{if(!c.t){const n=c.n.toLowerCase();c.t=/%|percent|margin/.test(n)?"percent":/wage|pay|earn|amount|charge|profit|income|cost|\$|money|owe|received|bill|keep|total \$/.test(n)?"money":/hour|hrs/.test(n)?"hours":/date|day$/.test(n)&&rows.some(x=>okD(x[i]))?"date":""}});
+  return {cols,rows}}
+function cmpChart(T,ch){if(!ch||!T.rows.length)return"";const idx=v=>typeof v==="number"?v:Math.max(0,T.cols.findIndex(c=>c.n===v));
+  const li=ch.label!=null?idx(ch.label):0,vi=ch.value!=null?idx(ch.value):T.cols.findIndex((c,i)=>i!==li&&T.rows.some(r=>typeof r[i]==="number"));if(vi<0)return"";
+  const t=T.cols[vi].t,rows=T.rows.filter(r=>isFinite(+r[vi])).slice(0,40),fmt=(m,v)=>cmpFmt(t,v),head={v:T.cols[vi].n};
+  const fake=rows.map(r=>({ks:[String(r[li])],labels:[cmpFmt(T.cols[li].t,r[li])],v:{v:+r[vi]}}));
+  const time=ch.type==="column"||ch.type==="line"||["date","month"].includes(T.cols[li].t);
+  return aiChart(fake,[time?"date":"x"],"v",head,fmt,time?"column":"bar").replace(/ by x<\/div>/," </div>")}
+async function aiCompute(a,box,q,again){const id=box.id;
+  try{const r=await cmpRun(String(a.code||""));const T=cmpTable(r&&r.table||r);const el=document.getElementById(id);if(!el)return;
+    const tot=a.total!==false&&T.rows.length>1&&T.cols.some((c,i)=>i>0&&["money","hours"].includes(c.t))?T.cols.map((c,i)=>i===0?"Total":["money","hours"].includes(c.t)?T.rows.reduce((s,x)=>s+(+x[i]||0),0):""):null;
+    AI.cmp=AI.cmp||{};AI.cmp[id]={name:(a.title||"Hourza").replace(/[^\w\- ]+/g,"").trim()||"Hourza",rows:[T.cols.map(c=>c.n),...T.rows.map(r=>r.map(v=>v==null?"":v))]};
+    const note=r&&typeof r==="object"&&!Array.isArray(r)&&r.note?`<div class="aic3">${esc(r.note)}</div>`:"";
+    const body=(T.rows.length?cmpChart(T,a.chart||r&&r.chart)+`<div class="airep"><table><thead><tr>${T.cols.map((c,i)=>`<th${i?"":` class="l"`}>${esc(c.n)}</th>`).join("")}</tr></thead><tbody>${T.rows.slice(0,300).map(x=>`<tr>${x.map((v,i)=>`<td${typeof v==="number"||["money","hours"].includes(T.cols[i].t)?` class="num"`:""}>${esc(cmpFmt(T.cols[i].t,v))}</td>`).join("")}</tr>`).join("")}</tbody>${tot?`<tfoot><tr>${tot.map((v,i)=>`<td${i?` class="num"`:""}>${v===""?"":i?esc(cmpFmt(T.cols[i].t,v)):"Total"}</td>`).join("")}</tr></tfoot>`:""}</table></div>${T.rows.length>300?`<div class="aic3">Showing 300 of ${T.rows.length}.</div>`:""}`:`<div class="aic3">Nothing matches that.</div>`)+note;
+    el.outerHTML=aiCard(esc(a.title||"Here it is"),esc(a.subtitle||""),body,T.rows.length?`<button class="btn ghost" onclick="AI.exp=AI.cmp['${id}'];aiShareExport()">Excel / Share</button>`:"");aiScroll()}
+  catch(e){const el=document.getElementById(id);if(!el)return;
+    if(!again&&smartOn()){try{const o=await gaiCall(`(The app ran your "compute" code for my last message "${q}" and it failed with: ${String(e.message||e).slice(0,200)}. Reply with a corrected compute action only.)`);const b=o.action||(o.actions||[])[0];if(b&&b.type==="compute"){return aiCompute(b,el,q,true)}}catch(_){}}
+    el.outerHTML=`<div class="aisay">Sorry, I couldn't work that out. Try asking it a little differently.</div><div class="aierr"><small>${esc(String(e.message||e).slice(0,140))}</small></div>`}}
+/* ---------- general edits: add / change / delete any record, with a preview and Undo ---------- */
+const CHG_T={clients:["name"],sites:["name","clientId","address","billType","charge","fixed"],workers:["name","active","role","payType","salary","salaryPer"],rates:["workerId","siteId","rate","cover"],entries:["workerId","siteId","date","hours","rate","paid","notes","kind"],income:["clientId","month","amount","note"]};
+const CHG_N={clients:"company",sites:"site",workers:"person",rates:"site link / pay rate",entries:"hours entry",income:"money in"};
+function chgName(t,r){if(!r)return"";if(t==="entries")return `${W(r.workerId).name} · ${Sx(r.siteId).name||""} · ${r.date?dayLabel(r.date):r.month} · ${+r.hours}h`;if(t==="rates")return `${W(r.workerId).name} at ${r.siteId===SUP?"Supervisor":Sx(r.siteId).name} · ${money(+r.rate)}/h`;if(t==="income")return `${C(r.clientId).name} · ${money(+r.amount)} · ${r.month}`;return r.name||r.id}
+function chgWhere(t,w){return DB[t].filter(r=>Object.entries(w).every(([k,v])=>k==="from"?((r.date||r.month+"-01")>=v):k==="to"?((r.date||r.month+"-01")<=v):k==="paid"||k==="active"||k==="cover"?!!r[k]===!!v:Array.isArray(v)?v.map(String).includes(String(r[k])):String(r[k])===String(v)))}
+function chgPlan(ops){const plan=[],errs=[];const now=new Date().toISOString();
+  ops=(ops||[]).flatMap(o=>o&&(o.op==="update"||o.op==="delete")&&!o.id&&o.where&&CHG_T[o.table]&&Object.keys(o.where).length?chgWhere(o.table,o.where).map(r=>({...o,id:r.id})):[o]);
+  ops.slice(0,500).forEach(o=>{const t=o&&o.table;if(!CHG_T[t]){errs.push("unknown table "+t);return}const set={};Object.entries(o.set||{}).forEach(([k,v])=>{if(CHG_T[t].includes(k))set[k]=["rate","hours","amount","charge","fixed","salary"].includes(k)?+v:["paid","active","cover"].includes(k)?!!v:v});
+    if(o.op==="delete"){const r=DB[t].find(x=>x.id===o.id);if(!r){errs.push("no "+CHG_N[t]+" "+o.id);return}plan.push({op:"delete",t,old:{...r}})}
+    else if(o.op==="update"){const r=DB[t].find(x=>x.id===o.id);if(!r){errs.push("no "+CHG_N[t]+" "+o.id);return}const n={...r,...set};if(t==="entries"&&n.date)n.month=n.date.slice(0,7);if(set.paid===true&&!r.paid)n.paidAt=todayD();plan.push({op:"update",t,old:{...r},row:n})}
+    else{const n={id:uid(),...set};if(t==="workers"){n.active=n.active!==false;n.createdAt=now}if(t==="rates"){n.addedAt=todayD();if(!n.rate){const w=DB.rates.find(r=>r.workerId===n.workerId&&r.siteId!==SUP);n.rate=w?+w.rate:0}}
+      if(t==="entries"){if(!okD(n.date)){errs.push("entry without a date");return}n.month=n.date.slice(0,7);n.kind=n.kind||"work";n.paid=!!n.paid;n.createdAt=now;if(!n.rate){const r=DB.rates.find(r=>r.workerId===n.workerId&&r.siteId===n.siteId)||DB.rates.find(r=>r.workerId===n.workerId);n.rate=r?+r.rate:0}}
+      if(t==="sites"&&!n.clientId&&o.client_name){const c=DB.clients.find(c=>c.name.toLowerCase()===String(o.client_name).toLowerCase());n.clientId=c?c.id:""}
+      plan.push({op:"create",t,row:n})}});
+  /* deleting a person/site/company also removes what hangs off it */
+  const extra=[];plan.filter(p=>p.op==="delete").forEach(p=>{const id=p.old.id;const add=(t,rs)=>rs.forEach(r=>{if(!plan.some(q=>q.t===t&&(q.old||q.row).id===r.id)&&!extra.some(q=>q.t===t&&q.old.id===r.id))extra.push({op:"delete",t,old:{...r},dep:1})});
+    if(p.t==="workers"){add("entries",DB.entries.filter(e=>e.workerId===id));add("rates",DB.rates.filter(r=>r.workerId===id))}
+    if(p.t==="sites"){add("entries",DB.entries.filter(e=>e.siteId===id));add("rates",DB.rates.filter(r=>r.siteId===id))}
+    if(p.t==="clients"){const ss=DB.sites.filter(x=>x.clientId===id),ids=new Set(ss.map(x=>x.id));add("sites",ss);add("entries",DB.entries.filter(e=>ids.has(e.siteId)));add("rates",DB.rates.filter(r=>ids.has(r.siteId)));add("income",DB.income.filter(i=>i.clientId===id))}});
+  return {plan:plan.concat(extra),errs}}
+async function chgApply(plan){const by=(op)=>{const m={};plan.filter(p=>p.op===op).forEach(p=>(m[p.t]=m[p.t]||[]).push(p));return m};
+  for(const[t,ps]of Object.entries(by("create")))await putMany(t,ps.map(p=>p.row));for(const[t,ps]of Object.entries(by("update")))await putMany(t,ps.map(p=>p.row));for(const[t,ps]of Object.entries(by("delete")))await delMany(t,ps.map(p=>p.old.id));
+  TDR=null;render();
+  return async()=>{for(const[t,ps]of Object.entries(by("create")))await delMany(t,ps.map(p=>p.row.id));for(const[t,ps]of Object.entries(by("update")))await putMany(t,ps.map(p=>p.old));for(const[t,ps]of Object.entries(by("delete")))await putMany(t,ps.map(p=>p.old));TDR=null;render()}}
+function aiChange(a){const {plan,errs}=chgPlan(a.ops);if(!plan.length)return aiCard("Nothing to change",esc(errs.join(", ")||"I couldn't match that to anything."),"","");
+  const k="c"+uid();AI.chg=AI.chg||{};AI.chg[k]=plan;const del=plan.some(p=>p.op==="delete"),dep=plan.filter(p=>p.dep).length;
+  const line=p=>{const n=CHG_N[p.t];if(p.op==="create")return `➕ New ${n}: ${esc(chgName(p.t,p.row))}`;if(p.op==="delete")return `🗑 Delete ${n}: ${esc(chgName(p.t,p.old))}`;const ch=Object.keys(p.row).filter(f=>CHG_T[p.t].includes(f)&&String(p.row[f])!==String(p.old[f])).map(f=>`${f}: ${esc(String(p.old[f]??"–"))} → <b>${esc(String(p.row[f]))}</b>`).join(", ");return `✏️ ${esc(chgName(p.t,p.old))}${ch?" — "+ch:""}`};
+  const main=plan.filter(p=>!p.dep);const body=`<div class="aic3" style="line-height:1.55">${main.slice(0,12).map(line).join("<br>")}${main.length>12?`<br>…and ${main.length-12} more`:""}${dep?`<br><small>Also removes ${dep} linked record${dep>1?"s":""} (hours, site links).</small>`:""}${errs.length?`<br><small>Skipped: ${esc(errs.join(", "))}</small>`:""}</div>`;
+  const go=`aiChgGo('${k}',this)`;if(!del&&AI.auto)setTimeout(()=>{const b=document.querySelector(`[data-chg="${k}"]`);b&&aiChgGo(k,b)},350);
+  return aiCard(esc(a.summary||"Change"),`${plan.length} change${plan.length>1?"s":""}`,body,`<button class="btn${del?" danger":""}" data-chg="${k}" onclick="${go}">${del?"Delete":"Save"}</button>`)}
+async function aiChgGo(k,btn){const plan=AI.chg&&AI.chg[k];if(!plan)return;delete AI.chg[k];const card=btn&&btn.closest(".aicard");btn&&btn.remove();const undo=await chgApply(plan);
+  const msg=`✓ Done · ${plan.length} change${plan.length>1?"s":""}`;const box=card||$("#askres");if(box){box.insertAdjacentHTML("beforeend",`<div class="aiok">${msg} <button class="link aiundo">Undo</button></div>`);const u=box.querySelector(".aiundo:last-of-type");AIUNDO.push({fn:undo,msg:msg.replace(/^✓\s*/,"")});if(u)u.onclick=async()=>{u.disabled=true;await undo();u.parentNode.innerHTML="↺ Undone"};haptic()}else toast(msg,undo)}
 function aiRoster(a){const what=a.what==="sites"?"sites":a.what==="clients"?"clients":"workers";const F=Array.isArray(a.fields)?a.fields:[];const td=todayD();
   if(what==="workers"){const ws=DB.workers.filter(w=>(a.include_left||w.active!==false)&&(!a.site_ids||!a.site_ids.length||DB.rates.some(r=>r.workerId===w.id&&a.site_ids.includes(r.siteId)))).sort((x,y)=>x.name.localeCompare(y.name));
     const owed=new Map(owedByWorker().map(o=>[o.workerId,o.amount])),last=new Map();DB.entries.forEach(e=>{if(e.date&&isWork(e)&&(!last.has(e.workerId)||e.date>last.get(e.workerId)))last.set(e.workerId,e.date)});
