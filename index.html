@@ -698,7 +698,7 @@ const JOIN=(()=>{const m=(location.hash||"").match(/join=(CW1\.[A-Za-z0-9_\-]+)/
 if(JOIN&&!IS_APP){const l=document.querySelector('link[rel="manifest"]');if(l)l.remove()}
 let deferredInstall=null;
 addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredInstall=e;setTimeout(showInstallGuide,50)});
-const APP_VERSION="6.5.2";
+const APP_VERSION="6.5.3";
 /* ============ data layer ============ */
 const TABLES=["clients","sites","workers","rates","entries","income"];
 const EMPTY=()=>({clients:[],sites:[],workers:[],rates:[],entries:[],income:[]});
@@ -1432,7 +1432,7 @@ function homePage(){
   const hr=new Date().getHours(),greet=hr<12?"Good morning":hr<17?"Good afternoon":"Good evening";
   if(!DB.workers.length){
     const steps=[["site","Add a site","Where the work happens, and who it's for",DB.sites.length],["worker","Add a worker","Name, site and pay rate",DB.workers.length]];
-    return `<div class="hero"><div class="lbl">Welcome to</div><div class="big">Hourza</div><div class="sub">Two quick steps and you're ready to add hours.</div></div>
+    return `<div style="display:flex;justify-content:flex-end;margin:-4px 0 10px"><button class="icon-btn gear" style="display:grid" onclick="go('more')" aria-label="Settings">${ICON.more.replace('width="24" height="24"','width="20" height="20"')}</button></div><div class="hero"><div class="lbl">Welcome to</div><div class="big">Hourza</div><div class="sub">Two quick steps and you're ready to add hours.</div></div>
     <div class="list" style="margin-top:14px">${steps.map(([k,t,d,done],i)=>`<div class="row tap" onclick="openAdd('${k}')"><div class="av" style="background:${done?"var(--ok-s)":"var(--acc-s)"};color:${done?"var(--ok)":"var(--acc)"}">${done?"✓":i+1}</div><div class="main"><div class="t1">${t}</div><div class="t2">${d}</div></div>${ICON.chev}</div>`).join("")}</div>
     ${online()?"":`<button class="joincard" onclick="openConnect()"><span class="ji">${ICON.sheet}</span><span><b>Got an invite?</b><small>Join your team's data — scan their QR or paste the code</small></span>${ICON.chev}</button>`}
     <button class="btn ghost" style="margin-top:14px" onclick="resetDemo(true,true)">Or try it with sample data</button>`;
