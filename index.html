@@ -730,7 +730,7 @@ const JOIN=(()=>{const m=(location.hash||"").match(/join=(CW1\.[A-Za-z0-9_\-]+)/
 if(JOIN&&!IS_APP){const l=document.querySelector('link[rel="manifest"]');if(l)l.remove()}
 let deferredInstall=null;
 addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredInstall=e;setTimeout(showInstallGuide,50)});
-const APP_VERSION="6.8";
+const APP_VERSION="6.8.1";
 /* ============ data layer ============ */
 const TABLES=["clients","sites","workers","rates","entries","income"];
 const EMPTY=()=>({clients:[],sites:[],workers:[],rates:[],entries:[],income:[]});
@@ -1242,7 +1242,7 @@ async function gaiModels(k){const r=await fetch("https://generativelanguage.goog
   const score=n=>(/flash-lite-latest$/.test(n)?100:0)+(/flash-latest$/.test(n)?90:0)+(/flash/.test(n)?50:0)+(/lite/.test(n)?5:0)+(/preview|exp|tts|image|live|audio|thinking|embedding/.test(n)?-80:0)+(parseFloat((n.match(/gemini-(\d+(\.\d+)?)/)||[])[1])||0);
   return ok.filter(n=>/^gemini/.test(n)).sort((a,b)=>score(b)-score(a))}
 async function aiSetKey(k,m){k=(k||"").trim();if(!k)return;let models=m?[m]:[];if(!m){models=await gaiModels(k)}GAI.set({k,m:models[0]||"gemini-flash-latest",alt:models.slice(1,3)})}
-function aiSetup(){const g=GAI.get();setTimeout(aiFillModels,300);showSheet(`<h3>Smart AI</h3><div class="lead">Hourza AI can use Google's Gemini to understand anything you say — any wording, even Bangla or Banglish. It's free with your own Google key.</div>
+function aiSetup(){const g=GAI.get();setTimeout(aiFillModels,300);showSheet(`<h3>Smart AI</h3><div class="lead">Hourza AI can use Google's Gemini to understand anything you say — any wording, even Bangla or Nepali. It's free with your own Google key.</div>
   ${g?`<div class="dupbox" style="background:var(--ok-s);color:var(--ok);margin-bottom:14px"><b>✓ Smart AI is on</b><div class="t2" style="white-space:normal;margin-top:3px;color:inherit">Model: ${esc(g.m)}</div></div>`:""}
   <div class="steps"><div><b>1</b><span>Open Google AI Studio and sign in with your Google account</span></div><div><b>2</b><span>Tap <b>Create API key</b>, then copy it</span></div><div><b>3</b><span>Paste it here and tap Turn on</span></div></div>
   <button class="btn ghost" style="margin:12px 0 14px" onclick="window.open('https://aistudio.google.com/apikey','_blank')">Open Google AI Studio</button>
@@ -1261,8 +1261,8 @@ function gaiCtx(){const td=todayD();
   const ws=DB.workers.filter(w=>w.active!==false).map(w=>{const rs=DB.rates.filter(r=>r.workerId===w.id&&r.siteId!==SUP).map(r=>r.siteId);return `${w.id}|${w.name}${w.role==="supervisor"?"|supervisor":""}|sites:${rs.join(",")}`}).join("\n");
   const ss=DB.sites.map(x=>`${x.id}|${x.name}|client:${x.clientId}`).join("\n"),cs=DB.clients.map(c=>`${c.id}|${c.name}`).join("\n");
   return `Today: ${td} (${DOW[parseD(td).getDay()]}). Weeks start Monday.\nWORKERS (id|name|sites):\n${ws}\nSITES (id|name|client):\n${ss}\nCLIENTS (id|name):\n${cs}`}
-const GAI_SYS=`You are Hourza AI inside a payroll app for a cleaning labour-hire business in Australia. The user (the business owner) speaks English, Bangla or Banglish, by voice or text. Reply ONLY with JSON:
-{"say": short friendly reply in the user's language (max 25 words; for actions describe what will happen), "action": null or one action object, "query": null or a search string}
+const GAI_SYS=`You are Hourza AI inside a payroll app for a cleaning labour-hire business in Australia. The user (the business owner or staff) speaks English, Bangla/Banglish or Nepali (Devanagari or romanised), by voice or text. Workers are often Nepali. Reply ONLY with JSON:
+{"say": short friendly reply in the same language and script the user used (max 25 words; for actions describe what will happen), "action": null or one action object, "query": null or a search string}
 Actions (use ids from the lists; dates are YYYY-MM-DD; never invent ids):
 - {"type":"add_hours","worker_id":"..","site_id":".." or null if unclear,"days":[{"date":"..","hours":8}]}  // "Mon to Fri" = weekdays of the meant week; "last month" = weekdays only up to today
 - {"type":"cover","cover_worker_id":"..","sick_worker_id":"..","site_id":".." or null,"dates":[".."],"hours":number or null}
@@ -1323,7 +1323,9 @@ async function aiSmart(q){const box=$("#askres");if(!box||!q.trim())return;const
   try{const o=await gaiCall(q);if(!box.isConnected)return;box.innerHTML=gaiRender(o,q);aiPolish(box);aiScroll(box.parentNode.previousElementSibling);aiTalk(AI.say||(box.querySelector(".ansb")?.textContent||""))}
   catch(e){const loc=aiCmd(q)||askAnswer(q),m=String(e&&e.message||e);box.innerHTML=`<div class="aierr"><b>Gemini didn't answer</b> — showing the quick answer instead.<br><small>${esc(/API key|API_KEY|key not valid|PERMISSION|unregistered/i.test(m)?"The Google key isn't accepted. Settings → Smart AI → Change key.":/quota|429|RESOURCE_EXHAUSTED/i.test(m)?"Free limit reached for now — try again in a minute.":/too long/i.test(m)?"Gemini took too long to answer — tap ➤ to try again.":/Failed to fetch|NetworkError|Load failed/i.test(m)?"Couldn't reach Google ("+m.slice(0,60)+"). Check the internet and try again.":m.slice(0,160))}</small></div></div>`+loc}
   finally{w&&w.classList.remove("thinking")}}
-function aiTalk(t){if(!AI.speak||!AI.voice||!window.speechSynthesis)return;try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t.replace(/<[^>]+>/g,"").replace(/·/g,",").replace(/\$/g,"$"));u.lang=/[\u0980-\u09FF]/.test(t)?"bn-BD":"en-AU";u.rate=1.04;speechSynthesis.speak(u)}catch(e){}}
+const AILANG={"en-AU":"EN","bn-BD":"বাং","ne-NP":"नेपा"},AILANGN={"en-AU":"English","bn-BD":"বাংলা","ne-NP":"नेपाली"};
+function aiLang(b){const k=Object.keys(AILANG),n=k[(k.indexOf(AI.lang)+1)%k.length];AI.lang=n;try{localStorage.setItem("cw_ailang",n)}catch(e){}b.textContent=AILANG[n];toast("Mic: "+AILANGN[n])}
+function aiTalk(t){if(!AI.speak||!AI.voice||!window.speechSynthesis)return;try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t.replace(/<[^>]+>/g,"").replace(/·/g,",").replace(/\$/g,"$"));u.lang=/[\u0980-\u09FF]/.test(t)?"bn-BD":/[\u0900-\u097F]/.test(t)?"ne-NP":"en-AU";u.rate=1.04;speechSynthesis.speak(u)}catch(e){}}
 function aiSpeakToggle(b){AI.speak=!AI.speak;try{localStorage.setItem("cw_aispeak",AI.speak?"1":"0")}catch(e){}b.classList.toggle("off",!AI.speak);if(!AI.speak&&window.speechSynthesis)speechSynthesis.cancel()}
 function aiMic(){const i=$("#askq");if(!i)return;
   if(AI.rec){try{AI.rec.stop()}catch(e){}return}
@@ -1337,7 +1339,7 @@ function aiMic(){const i=$("#askq");if(!i)return;
   try{r.start()}catch(e){AI.rec=null;w&&w.classList.remove("listening");i.focus()}}
 const AILOGO=`<svg viewBox="0 0 24 24" width="22" height="22" fill="#111214"><path d="M12 2.5c.4 4.6 2.9 7.1 7.5 7.5-4.6.4-7.1 2.9-7.5 7.5-.4-4.6-2.9-7.1-7.5-7.5 4.6-.4 7.1-2.9 7.5-7.5z"/><path d="M19 15c.2 2 1.2 3 3 3.2-1.8.2-2.8 1.2-3 3.2-.2-2-1.2-3-3-3.2 1.8-.2 2.8-1.2 3-3.2z" opacity=".55"/></svg>`;
 function openAsk(q=""){hideToast();AI.voice=false;AI.p=null;GAI.hist=[];
-  showSheet(`<div class="askw chat"><div class="aihead"><div class="ailogo">${AILOGO}</div><div style="flex:1;min-width:0"><h3 style="margin:0">Hourza AI${smartOn()?' <span class="aibadge">Smart</span>':""}</h3><div class="t2">${smartOn()?"Say anything — English or Bangla":"Ask anything, or tell me what to do"}</div></div>${smartOn()?`<button class="aispk" style="font-size:13px;font-weight:750;margin-right:6px" onclick="AI.lang=AI.lang==='en-AU'?'bn-BD':'en-AU';try{localStorage.setItem('cw_ailang',AI.lang)}catch(e){};this.textContent=AI.lang==='en-AU'?'EN':'বাং';toast(AI.lang==='en-AU'?'Mic: English':'Mic: বাংলা')" aria-label="Mic language">${AI.lang==="en-AU"?"EN":"বাং"}</button>`:""}<button class="aispk${AI.speak?"":" off"}" onclick="aiSpeakToggle(this)" aria-label="Speak answers">🔊</button></div>
+  showSheet(`<div class="askw chat"><div class="aihead"><div class="ailogo">${AILOGO}</div><div style="flex:1;min-width:0"><h3 style="margin:0">Hourza AI${smartOn()?' <span class="aibadge">Smart</span>':""}</h3><div class="t2">${smartOn()?"English · বাংলা · नेपाली":"Ask anything, or tell me what to do"}</div></div>${smartOn()?`<button class="aispk" style="font-size:12.5px;font-weight:750;margin-right:6px;width:auto;padding:0 10px" onclick="aiLang(this)" aria-label="Mic language">${AILANG[AI.lang]||"EN"}</button>`:""}<button class="aispk${AI.speak?"":" off"}" onclick="aiSpeakToggle(this)" aria-label="Speak answers">🔊</button></div>
     <div class="aimsgs" id="aimsgs"><div class="aiwel">${(()=>{const rec=askRecent();return `${rec.length?`<div class="asklbl">Recent</div>${chipsH(rec)}`:""}<div class="asklbl">Try</div>${chipsH(askIdeas())}`})()}</div></div>
     <div class="aiwave"><i></i><i></i><i></i><i></i><i></i><span>Listening… tap the mic to stop</span></div>
     <div class="askin aicomp"><input id="askq" class="inp" placeholder="${smartOn()?"Message Hourza AI":"Ask or tell me what to do"}" autocomplete="off" autocorrect="on" autocapitalize="sentences" spellcheck="false" enterkeyhint="send" value="" oninput="AI.voice=false" onkeydown="if(event.key==='Enter'){event.preventDefault();aiSendNow()}" ontouchend="if(document.activeElement!==this){this.focus()}"><button class="aisend" onmousedown="event.preventDefault()" ontouchend="event.preventDefault();aiSendNow()" onclick="aiSendNow()" aria-label="Send">${ICON.send||"➤"}</button><button class="aimic" onmousedown="event.preventDefault()" onclick="aiMic()" aria-label="Speak">${ICON.mic}</button></div></div>`);
