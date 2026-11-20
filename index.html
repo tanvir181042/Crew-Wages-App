@@ -745,7 +745,7 @@ const JOIN=(()=>{const m=(location.hash||"").match(/join=(CW1\.[A-Za-z0-9_\-]+)/
 if(JOIN&&!IS_APP){const l=document.querySelector('link[rel="manifest"]');if(l)l.remove()}
 let deferredInstall=null;
 addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredInstall=e;setTimeout(showInstallGuide,50)});
-const APP_VERSION="7.3.3";
+const APP_VERSION="7.3.4";
 /* ============ data layer ============ */
 const TABLES=["clients","sites","workers","rates","entries","income"];
 const EMPTY=()=>({clients:[],sites:[],workers:[],rates:[],entries:[],income:[]});
@@ -1508,7 +1508,7 @@ async function aiRecord(){const i=$("#askq");if(!i)return;
   const bars=[...document.querySelectorAll(".aiwave i")];
   proc.onaudioprocess=e=>{if(done)return;const d=e.inputBuffer.getChannelData(0);chunks.push(new Float32Array(d));let s=0;for(let k=0;k<d.length;k+=4)s+=d[k]*d[k];const rms=Math.sqrt(s/(d.length/4));
     const ms=d.length/ctx.sampleRate*1000;total+=ms;if(rms>0.02){spoke=true;quietMs=0}else quietMs+=ms;
-    if((spoke&&quietMs>1300)||total>20000||(!spoke&&total>8000))stop()};
+    if((spoke&&quietMs>2600)||total>120000||(!spoke&&total>8000))stop()};
   src.connect(proc);proc.connect(ctx.destination);
   function stop(){if(done)return;done=true;VREC.on=false;VREC.stop=null;try{proc.disconnect();src.disconnect()}catch(e){}VREC.idle=setTimeout(aiMicRelease,5*60e3);
     w&&w.classList.remove("listening","vlevel");bars.forEach(b=>b.style.transform="");i.placeholder="Message Hourza AI";const rate=ctx.sampleRate;
@@ -1603,22 +1603,29 @@ function aiSendLink(ch,to,text){to=String(to||"").replace(/[^\d+@.\w-]/g,"");con
   const url=ch==="whatsapp"?`https://wa.me/${to.replace(/^\+/,"").replace(/^0/,"61")}?text=${t}`:ch==="email"?`mailto:${to}?body=${t}`:`sms:${to}${/iPhone|iPad/.test(navigator.userAgent)?"&":"?"}body=${t}`;location.href=url}
 function aiTalk(t){if(!AI.speak||!AI.voice||!window.speechSynthesis)return;try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t.replace(/<[^>]+>/g,"").replace(/·/g,",").replace(/\$/g,"$"));u.lang=/[\u0980-\u09FF]/.test(t)?"bn-BD":/[\u0900-\u097F]/.test(t)?"ne-NP":"en-AU";u.rate=1.04;speechSynthesis.speak(u)}catch(e){}}
 function aiSpeakToggle(b){AI.speak=!AI.speak;try{localStorage.setItem("cw_aispeak",AI.speak?"1":"0")}catch(e){}b.classList.toggle("off",!AI.speak);if(!AI.speak&&window.speechSynthesis)speechSynthesis.cancel()}
-function aiMicStop(){const r=AI.rec,end=AI.recEnd;if(!r)return;try{r.stop()}catch(e){}const w=$(".askw");w&&w.classList.remove("listening");setTimeout(()=>{if(AI.rec===r){try{r.abort()}catch(e){}end&&end()}},900)}
+function aiMicStop(){const r=AI.rec,end=AI.recEnd;if(!r)return;AI.recUser&&AI.recUser();try{r.stop()}catch(e){}const w=$(".askw");w&&w.classList.remove("listening");setTimeout(()=>{if(AI.rec===r){try{r.abort()}catch(e){}end&&end()}},900)}
 function aiMic(noRec){const i=$("#askq");if(!i)return;
   if(AI.rec){aiMicStop();return}
   const canRec=!noRec&&smartOn()&&navigator.mediaDevices&&navigator.mediaDevices.getUserMedia;
   const fallback=msg=>{i.focus();aiNote(msg||"Voice isn't available here — tap the 🎤 on your keyboard and speak, then tap send.")};
   if(!SRx)return canRec?aiRecord():fallback();
-  let r;try{r=new SRx()}catch(e){AI.srBad=true;return canRec?aiRecord():fallback()}
-  AI.rec=r;r.lang=AI.lang;r.interimResults=true;r.continuous=false;r.maxAlternatives=1;let fin="",got=false,done=false,silT=null;
-  const w=$(".askw");w&&w.classList.add("listening");i.value="";i.placeholder="Listening… speak now";haptic();
-  const hard=setTimeout(aiMicStop,15000),none=setTimeout(()=>{if(!got){aiMicStop();setTimeout(()=>fallback("I couldn't hear anything. Try again, or tap the 🎤 on your keyboard to speak."),300)}},7000);
-  const finish=()=>{if(done)return;done=true;clearTimeout(hard);clearTimeout(none);clearTimeout(silT);AI.rec=null;AI.recEnd=null;w&&w.classList.remove("listening");i.placeholder=smartOn()?"Message Hourza AI":"Ask or tell me what to do";if(fin.trim()){AI.voice=true;i.value="";aiSend(fin)}};
-  AI.recEnd=finish;
-  r.onresult=e=>{got=true;let t="";for(const x of e.results)t+=x[0].transcript;fin=t;i.value=t;clearTimeout(silT);silT=setTimeout(aiMicStop,1600);if([...e.results].every(x=>x.isFinal))aiMicStop()};
-  r.onerror=e=>{if((e.error==="service-not-allowed"||e.error==="network"||e.error==="language-not-supported")&&canRec){AI.srBad=true;fin="";finish();setTimeout(aiRecord,200);return}if(e.error==="not-allowed"||e.error==="service-not-allowed"){fin="";finish();fallback("The microphone isn't allowed for Hourza. Tap the 🎤 on your keyboard to speak instead.")}else if(e.error==="no-speech"){fin="";finish();fallback("I couldn't hear anything. Try again, or tap the 🎤 on your keyboard.")}};
-  r.onend=finish;
-  try{r.start()}catch(e){finish();if(canRec){AI.srBad=true;aiRecord()}else fallback()}}
+  /* keeps listening while you talk; stops after ~2.5s of silence, a tap on the mic, or 2 minutes */
+  let base="",cur="",got=false,done=false,user=false,silT=null,r=null,restarts=0;const t0=Date.now();
+  const w=$(".askw");w&&w.classList.add("listening");i.value="";i.placeholder="Listening… talk as long as you like";haptic();
+  const text=()=>(base+" "+cur).replace(/\s+/g," ").trim();
+  const hard=setTimeout(()=>{user=true;aiMicStop()},120000),none=setTimeout(()=>{if(!got){user=true;aiMicStop();setTimeout(()=>fallback("I couldn't hear anything. Try again, or tap the 🎤 on your keyboard to speak."),300)}},8000);
+  const finish=()=>{if(done)return;done=true;clearTimeout(hard);clearTimeout(none);clearTimeout(silT);AI.rec=null;AI.recEnd=null;w&&w.classList.remove("listening");i.placeholder=smartOn()?"Message Hourza AI":"Ask or tell me what to do";const t=text();if(t){AI.voice=true;i.value="";aiSend(t)}};
+  const quiet=()=>{clearTimeout(silT);silT=setTimeout(()=>{user=true;aiMicStop()},2600)};
+  const start=()=>{try{r=new SRx()}catch(e){AI.srBad=true;finish();return canRec?aiRecord():fallback()}
+    AI.rec=r;r.lang=AI.lang;r.interimResults=true;r.continuous=true;r.maxAlternatives=1;
+    r.onresult=e=>{got=true;let t="";for(const x of e.results)t+=x[0].transcript+" ";cur=t;i.value=text();i.scrollLeft=i.scrollWidth;quiet()};
+    r.onerror=e=>{if((e.error==="service-not-allowed"||e.error==="network"||e.error==="language-not-supported")&&canRec&&!got){AI.srBad=true;base=cur="";done||(user=true);finish();setTimeout(aiRecord,200);return}
+      if(e.error==="not-allowed"||e.error==="service-not-allowed"){user=true;base=cur="";finish();fallback("The microphone isn't allowed for Hourza. Tap the 🎤 on your keyboard to speak instead.")}};
+    r.onend=()=>{if(done)return;base=text();cur="";
+      /* the phone stopped by itself mid-talk: carry on listening */
+      if(!user&&restarts<20&&Date.now()-t0<118000){restarts++;setTimeout(()=>{if(!done&&!user)start()},60);return}finish()};
+    try{r.start()}catch(e){finish();if(canRec&&!got){AI.srBad=true;aiRecord()}else fallback()}};
+  AI.recEnd=finish;AI.recUser=()=>{user=true};start()}
 function aiNote(msg){const m=$("#aimsgs");if(!m){toast(msg);return}m.querySelector(".aiwel")?.remove();m.insertAdjacentHTML("beforeend",`<div class="ainote">${esc(msg)}</div>`);aiScroll()}
 const AILOGO=`<svg viewBox="0 0 24 24" width="22" height="22" fill="#111214"><path d="M12 2.5c.4 4.6 2.9 7.1 7.5 7.5-4.6.4-7.1 2.9-7.5 7.5-.4-4.6-2.9-7.1-7.5-7.5 4.6-.4 7.1-2.9 7.5-7.5z"/><path d="M19 15c.2 2 1.2 3 3 3.2-1.8.2-2.8 1.2-3 3.2-.2-2-1.2-3-3-3.2 1.8-.2 2.8-1.2 3-3.2z" opacity=".55"/></svg>`;
 function openAsk(q=""){hideToast();AI.voice=false;AI.p=null;const keep=AI.saved&&Date.now()-AI.saved.t<20*60e3;if(!keep)GAI.hist=[];
