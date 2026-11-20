@@ -738,7 +738,7 @@ const JOIN=(()=>{const m=(location.hash||"").match(/join=(CW1\.[A-Za-z0-9_\-]+)/
 if(JOIN&&!IS_APP){const l=document.querySelector('link[rel="manifest"]');if(l)l.remove()}
 let deferredInstall=null;
 addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredInstall=e;setTimeout(showInstallGuide,50)});
-const APP_VERSION="7.0.3";
+const APP_VERSION="7.0.4";
 /* ============ data layer ============ */
 const TABLES=["clients","sites","workers","rates","entries","income"];
 const EMPTY=()=>({clients:[],sites:[],workers:[],rates:[],entries:[],income:[]});
@@ -1309,6 +1309,22 @@ Use show_* whenever the user wants to SEE something ("show", "dekhao", "दे�
 For QUESTIONS about numbers you may answer in "say" ONLY with numbers copied exactly from DATA below; if DATA doesn't have it, do NOT guess: set "query" to a short English search the app understands, using exact names, e.g. "sam lee last week", "who do i owe", "who worked today", "who worked at mascot last week", "bupa parramatta this month", "ken november", "anish 3 nov", "sites losing money", "top workers this month", "summary last month", "anish so far". Then "say" can be a short lead-in like "Here's Sam's last week".
 If the user asks to add/create/change something but leaves out details (e.g. "can you add a site for me"), still return that action with the missing fields null — the app opens a form for them. NEVER put a command into "query"; "query" is only for questions about existing data.
 If the request is unclear (e.g. two workers share a first name), ask a short question in "say" with action null.
+Understand the MEANING, not keywords. People talk casually, indirectly, with typos, mixed languages and incomplete sentences — work out what they want. If something is missing, choose the most sensible default (today, the person's only site) or ask ONE short question; never reply that you can't find it.
+Examples (worker/site ids come from the lists):
+"can u put a new place for me" → {"say":"Sure — what's the site called and which company is it for?","action":{"type":"new_site","name":null,"client_id":null,"client_name":null}}
+"we got a new job at kogarah for bupa" → new_site name "Kogarah", client Bupa
+"sam came today, did 8" / "sam aj 8 ghonta kaj korse" / "साम आज ८ घण्टा" → add_hours for Sam, today, 8
+"sam was off yesterday, remove it" → delete_hours Sam yesterday
+"actually akash did 6 not 8 on monday" → edit_hours Akash, that Monday, 6
+"ali is doing sam's shift today, he's sick" → cover cover=Ali sick=Sam today
+"how's money looking" / "are we making profit" → answer from DATA in "say" (or query "summary this month")
+"who haven't I paid" / "baki ke ke" → query "who do i owe"
+"done paying everyone" → mark_paid everyone
+"bupa sent the money, 4500" → money_in Bupa 4500 this month
+"let me see sam" / "sam ke dekhao" → show_person Sam
+"raise anish to 28" → set_rate Anish (his site) 28
+"kiran doesn't work here anymore" → worker_left Kiran
+"thanks" / "ok" → short friendly "say", action null
 For how-to questions about the app, answer in "say" (max 40 words). Never claim something is saved — the user taps Save.`;
 async function gaiCall(text){const g=GAI.get();if(!g)throw new Error("off");
   const contents=[...GAI.hist.slice(-6),{role:"user",parts:[{text}]}],t0=Date.now();
@@ -1370,7 +1386,7 @@ function gaiRender(o,q){const a=o.action,say=esc(o.say||"");AI.say=o.say||"";AI.
       return lead+aiCard(`${esc(x.name)}: client pays`,`<b>${money(+a.amount)}${bill==="fixed"?" per month":"/hr"}</b>`,"",`<button class="btn" onclick="aiDo()">Save</button>`)}
     if(t==="worker_left"){const w=DB.workers.find(x=>x.id===a.worker_id);if(!w)return lead||bad();AI.p={k:"left",wid:w.id};return lead+aiCard(`${esc(w.name)} has left?`,"Hidden from lists. Their history and anything owed stays.","",`<button class="btn" onclick="aiDo()">Mark as left</button>`)}
     if(t==="open"&&TITLES[a.page])return lead+aiCard(`Open ${TITLES[a.page]}`,"","",`<button class="btn" onclick="askGo('t','${a.page}')">Open</button>`)}
-  if(o.query){const h=askAnswer(o.query);if(!/Couldn't find that/.test(h))return lead+h;let c=null;try{c=aiCmd(q)}catch(e){}if(c)return lead+c;return lead||ansHead("I'm not sure what you mean","Try: “add a site”, “Sam 8 hours today”, “who do I owe”.")}
+  if(o.query){const h=askAnswer(o.query);if(!/Couldn't find that/.test(h))return lead+h;return lead||ansHead("Hmm, I didn't find that","Tell me a bit more — which person, site or dates?")}
   return say?ansHead(say,""):bad()}
 async function aiSmart(q){const box=$("#askres");if(!box||!q.trim())return;const w=$(".askw");
   box.innerHTML=aiDots();w&&w.classList.add("thinking");
