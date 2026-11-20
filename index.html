@@ -699,7 +699,7 @@ const JOIN=(()=>{const m=(location.hash||"").match(/join=(CW1\.[A-Za-z0-9_\-]+)/
 if(JOIN&&!IS_APP){const l=document.querySelector('link[rel="manifest"]');if(l)l.remove()}
 let deferredInstall=null;
 addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredInstall=e;setTimeout(showInstallGuide,50)});
-const APP_VERSION="6.6.3";
+const APP_VERSION="6.6.4";
 /* ============ data layer ============ */
 const TABLES=["clients","sites","workers","rates","entries","income"];
 const EMPTY=()=>({clients:[],sites:[],workers:[],rates:[],entries:[],income:[]});
@@ -2252,6 +2252,13 @@ async function tryConnect(text){
       <button class="btn" id="cy">Copy my data to the Sheet</button><button class="btn ghost" id="cn">Start with an empty Sheet</button>`);
       $("#cy").onclick=async()=>{closeSheet();await replaceAll(local);afterConnect()};
       $("#cn").onclick=()=>{DB=data;saveLocal();closeSheet();afterConnect()};
+    } else if(hasLocal){const T=["clients","sites","workers","rates","entries","income"],extra={};let n=0;
+      T.forEach(t=>{const ids=new Set((data[t]||[]).map(r=>r.id));extra[t]=(local[t]||[]).filter(r=>!ids.has(r.id));n+=extra[t].length});
+      if(!n){DB=data;saveLocal();closeSheet();afterConnect();return}
+      showSheet(`<h3>Connected ✓</h3><div class="lead">This phone has things the Sheet doesn't: <b>${plural(extra.workers.length,"worker")}</b>, <b>${plural(extra.sites.length,"site")}</b>, <b>${extra.entries.length} hours ${extra.entries.length===1?"entry":"entries"}</b>. Add them to the Sheet so nothing is lost?</div>
+      <button class="btn" id="cy">Add this phone's data to the Sheet</button><button class="btn ghost" id="cn">No, use only the Sheet</button><div class="hint" style="margin-top:10px">If the same person was added on both phones, you may see them twice — you can delete one later.</div>`);
+      $("#cy").onclick=async()=>{closeSheet();DB=data;saveLocal();for(const t of T)if(extra[t].length)await putMany(t,extra[t]);render();afterConnect()};
+      $("#cn").onclick=()=>{if(!confirmBox("Use only the Sheet? This phone's own data will be hidden (kept on the phone, not deleted)."))return;DB=data;saveLocal();closeSheet();afterConnect()};
     } else {DB=data;saveLocal();closeSheet();afterConnect()}
   });
 }
