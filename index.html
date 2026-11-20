@@ -684,6 +684,7 @@ html,body{overscroll-behavior-y:none}
 .aisrc{display:inline-block;margin:14px 2px -6px;font-size:12px;font-weight:750;color:#5B7A10;background:#EEF8D6;padding:4px 9px;border-radius:99px}
 @media (prefers-color-scheme:dark){.aisrc{background:#26330F;color:#C9F26B}}
 .aierr{margin:12px 2px 4px;padding:12px 14px;border-radius:14px;background:var(--warn-s);color:var(--warn);font-size:14px;line-height:1.4}.aierr small{display:block;margin-top:4px;opacity:.9}
+.joincard.aiw{background:var(--soft)!important;color:var(--ink)!important}.joincard.aiw small{color:var(--mut)!important}.joincard.aiw .ji{background:#111214!important;color:#C9F26B!important}.joincard.aiw .ji svg,.joincard.aiw .ji svg path{fill:#C9F26B!important;stroke:none!important;opacity:1}
 </style>
 </head>
 <body>
@@ -705,7 +706,7 @@ const JOIN=(()=>{const m=(location.hash||"").match(/join=(CW1\.[A-Za-z0-9_\-]+)/
 if(JOIN&&!IS_APP){const l=document.querySelector('link[rel="manifest"]');if(l)l.remove()}
 let deferredInstall=null;
 addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredInstall=e;setTimeout(showInstallGuide,50)});
-const APP_VERSION="6.7.2";
+const APP_VERSION="6.7.3";
 /* ============ data layer ============ */
 const TABLES=["clients","sites","workers","rates","entries","income"];
 const EMPTY=()=>({clients:[],sites:[],workers:[],rates:[],entries:[],income:[]});
@@ -1154,7 +1155,7 @@ function aiCmd(q0){const q=aiNorm(q0),E=askEnt(q),has=re=>re.test(q);AI.say="";
   if(m){let name=(m[6]||"").replace(/\b(for|from|with|client|company)\b.*$/,"").trim();if(C1)name=name.replace(C1.name.toLowerCase(),"").trim();
     name=name.split(" ").filter(Boolean).map(x=>x[0].toUpperCase()+x.slice(1)).join(" ");const cl=C1||null,nc=!cl&&(q.match(/\bfor\s+([a-z0-9 &]+)$/)||[])[1];
     AI.p={k:"site",name,cid:cl?cl.id:null,cq:cl?cl.name:(nc||"")};aiSay(`New site ${name}. Check and save.`);
-    return aiCard(`New site${name?": "+esc(name):""}`,cl?"for "+esc(cl.name):nc?"for "+esc(nc)+" (new company)":"",``,`<button class="btn" onclick="aiDo()">Open and check</button>`)}
+    return aiCard(`New site${name?": "+esc(name):""}`,cl?"for "+esc(cl.name):nc?"for "+esc(nc.replace(/\b\w/g,c=>c.toUpperCase()))+" (new company)":"",``,`<button class="btn" onclick="aiDo()">Open and check</button>`)}
   // money received
   if(has(/\b(received|recieved|got|payment from|deposit|paid us|paid me|transferred|sent us|sent me)\b/)&&(C1||S1)){const am=(q.match(/\$?\s*(\d+(?:\.\d+)?)\s*(k\b)?/)||[]);
     if(am[1]){const amt=+am[1]*(am[2]?1000:0||1),cl=C1||C(S1.clientId),{R}=askRange(q),mo=R&&!R.all?R.from.slice(0,7):td.slice(0,7);
@@ -1443,7 +1444,8 @@ function homePage(){
     return `<div style="display:flex;justify-content:flex-end;margin:-4px 0 10px"><button class="icon-btn gear" style="display:grid" onclick="go('more')" aria-label="Settings">${ICON.more.replace('width="24" height="24"','width="20" height="20"')}</button></div><div class="hero"><div class="lbl">Welcome to</div><div class="big">Hourza</div><div class="sub">Two quick steps and you're ready to add hours.</div></div>
     <div class="list" style="margin-top:14px">${steps.map(([k,t,d,done],i)=>`<div class="row tap" onclick="openAdd('${k}')"><div class="av" style="background:${done?"var(--ok-s)":"var(--acc-s)"};color:${done?"var(--ok)":"var(--acc)"}">${done?"✓":i+1}</div><div class="main"><div class="t1">${t}</div><div class="t2">${d}</div></div>${ICON.chev}</div>`).join("")}</div>
     ${online()?"":`<button class="joincard" onclick="openConnect()"><span class="ji">${ICON.sheet}</span><span><b>Got an invite?</b><small>Join your team's data — scan their QR or paste the code</small></span>${ICON.chev}</button>`}
-    <button class="btn ghost" style="margin-top:14px" onclick="resetDemo(true,true)">Or try it with sample data</button>`;
+    <button class="joincard aiw" onclick="openAsk()" style="margin-top:12px"><span class="ji">${ICON.spark}</span><span><b>Or just tell Hourza AI</b><small>“New site Kogarah for Bupa” · “New worker Sam at Kogarah $26”</small></span>${ICON.chev}</button>
+    ${online()?"":`<button class="btn ghost" style="margin-top:14px" onclick="resetDemo(true,true)">Or try it with sample data</button>`}`;
   }
   if(!state.hper||!["l7","fort","range"].includes(state.hper.mode))state.hper={mode:"l7",d:todayD()};const HP=state.hper;
   return `<div class="home simple">
@@ -2355,7 +2357,7 @@ function backup(){try{download(`Hourza_backup_${new Date().toISOString().slice(0
 function restore(file){if(!file)return;const r=new FileReader();r.onload=async()=>{try{const d=JSON.parse(r.result);if(!TABLES.every(t=>Array.isArray(d[t])))throw 0;
   if(!confirmBox("Replace everything with this backup?"))return; await replaceAll(d); render(); toast("✓ Backup restored")}catch(e){toast("That file isn't a Crew Wages backup")}};r.readAsText(file)}
 function confirmBox(m){try{return window.confirm(m)}catch(e){return true}}
-function resetDemo(sample,quiet){if(!quiet&&!confirmBox(sample?"Replace everything with sample data?":"Delete all data on this device?"))return;DB=sample?seed():{clients:[],sites:[],workers:[],rates:[],entries:[],income:[]};saveLocal();state.person=null;if(sample){state.month="2026-11";state.per={mode:"month",d:todayD().startsWith("2026-11")?todayD():"2026-11-01"}}go("home");toast(sample?"Sample data loaded":"All data cleared")}
+function resetDemo(sample,quiet){if(sample&&online()){toast("Sample data is off while connected to your Sheet");return}if(!quiet&&!confirmBox(sample?"Replace everything with sample data?":"Delete all data on this device?"))return;DB=sample?seed():{clients:[],sites:[],workers:[],rates:[],entries:[],income:[]};saveLocal();state.person=null;if(sample){state.month="2026-11";state.per={mode:"month",d:todayD().startsWith("2026-11")?todayD():"2026-11-01"}}go("home");toast(sample?"Sample data loaded":"All data cleared")}
 
 /* ============ start ============ */
 (async()=>{
