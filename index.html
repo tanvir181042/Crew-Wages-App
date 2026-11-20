@@ -457,9 +457,9 @@ html,body{letter-spacing:-.011em}
 @media (min-width:900px){.greet{display:none}.qa{display:none}}
 /* ===================== v3b: Dribbble-style ===================== */
 :root{
-  --bg:#F3F1EC; --card:#FFFFFF; --ink:#111214; --ink2:#2B2D33; --mut:#6E6F76; --line:#ECEAE4; --soft:#F3F1EC; --soft2:#F8F7F3;
+  --bg:#F3F1EC; --card:#FFFFFF; --ink:#111214; --ink2:#2B2D33; --mut:#5F6067; --line:#ECEAE4; --soft:#F3F1EC; --soft2:#F8F7F3;
   --acc:#111214; --acc-s:#E9E7E1; --lime:#C9F26B; --lav:#D9D2FF; --peach:#FFD9C7; --sky:#C8E6FF; --mint:#C9F0DD;
-  --pay:#E5484D; --pay-s:#FFE4E1; --ok:#1D7A46; --ok-s:#DDF5E6; --warn:#8A5A00; --warn-s:#FFF0CF;
+  --pay:#C8262D; --pay-s:#FFE4E1; --ok:#1D7A46; --ok-s:#DDF5E6; --warn:#8A5A00; --warn-s:#FFF0CF;
   --r:28px; --sh:none;
   --font:"SF Pro Display",-apple-system,BlinkMacSystemFont,Inter,"Segoe UI",Roboto,Arial,sans-serif;
 }
@@ -580,7 +580,7 @@ html,body{background:var(--bg)}
 .mstep2 button{width:38px;height:38px;border-radius:11px;background:var(--bg);display:grid;place-items:center;font-size:19px;font-weight:600;color:var(--ink);flex:none}
 .mstep2 button:active{opacity:.6}
 .nav .tabsg{height:68px!important;border-radius:24px!important;padding:6px!important;gap:4px;background:rgba(255,255,255,.9)!important;-webkit-backdrop-filter:blur(24px) saturate(180%)!important;backdrop-filter:blur(24px) saturate(180%)!important;border:1px solid var(--line)!important;box-shadow:0 12px 30px rgba(0,0,0,.10)!important;min-width:0}
-.nav .tabsg button{border-radius:18px!important;color:#7A7B80!important;min-width:0;font-size:10.5px!important}
+.nav .tabsg button{border-radius:18px!important;color:#5F6067!important;min-width:0;font-size:10.5px!important}
 .nav .tabsg button.on{background:#111214!important;color:#fff!important;flex:1.35}
 .nav .fabw{width:68px!important;height:68px!important;border-radius:24px!important}
 @media (prefers-color-scheme:dark){.nav .tabsg{background:rgba(28,28,32,.9)!important}.nav .tabsg button.on{background:#F5F5F2!important;color:#111214!important}}
@@ -669,7 +669,7 @@ html,body{overscroll-behavior-y:none}
 @keyframes mp{0%,100%{box-shadow:0 0 0 0 rgba(229,72,77,.45)}50%{box-shadow:0 0 0 9px rgba(229,72,77,0)}}
 .aicard{margin:16px 0 6px;padding:18px;border-radius:20px;background:var(--soft);animation:ansIn .32s cubic-bezier(.32,.72,0,1)}
 .aic1{font-size:21px;font-weight:780;letter-spacing:-.02em;line-height:1.2}.aic2{color:var(--mut);font-size:14.5px;margin-top:5px}.aic2 b{color:var(--ink)}.aic3{font-size:13.5px;margin-top:10px;color:var(--ink2)}
-.aibtns{display:flex;gap:10px;margin-top:14px}.aibtns:empty{display:none}.aibtns .btn{flex:1;margin:0}.btn.danger{background:#E5484D;color:#fff}
+.aibtns{display:flex;gap:10px;margin-top:14px}.aibtns:empty{display:none}.aibtns .btn{flex:1;margin:0}.btn.danger{background:#C8262D;color:#fff}
 .tiles3 .aitile i{background:#111214!important;color:#C9F26B!important}
 @media (prefers-reduced-motion:reduce){.aiorb,.aiwave i,.askw.listening .aimic{animation:none}}
 .aibadge{font-size:11px;font-weight:750;background:#C9F26B;color:#111214;padding:3px 7px;border-radius:99px;vertical-align:middle;margin-left:4px}
@@ -728,6 +728,7 @@ html,body{overscroll-behavior-y:none}
 .askbar .mic{width:42px;height:42px;border-radius:50%;background:var(--soft);color:var(--ink);display:grid;place-items:center;flex:none}.askbar .mic svg{width:20px;height:20px}
 .wkfold .wkhead{cursor:pointer}.wkchev{display:inline-grid;margin-left:6px;transition:transform .25s;opacity:.5}.wkfold.open .wkchev{transform:rotate(90deg)}.wkchev svg{width:18px;height:18px}
 .greet .me{width:40px!important;height:40px!important;border-radius:13px!important;align-self:flex-start;margin-top:-2px}
+@media (prefers-color-scheme:dark){.nav .tabsg button:not(.on){color:#A0A0A6!important}}
 .setgh{font-size:12.5px;font-weight:750;letter-spacing:.06em;text-transform:uppercase;color:var(--mut);margin:0 4px 8px}
 .teamseg{margin:0 0 14px}
 .sec .link,.row .link{padding:10px 6px;margin:-10px -6px;min-height:40px}
@@ -755,7 +756,7 @@ const JOIN=(()=>{const m=(location.hash||"").match(/join=(CW1\.[A-Za-z0-9_\-]+)/
 if(JOIN&&!IS_APP){const l=document.querySelector('link[rel="manifest"]');if(l)l.remove()}
 let deferredInstall=null;
 addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredInstall=e;setTimeout(showInstallGuide,50)});
-const APP_VERSION="7.5.1";
+const APP_VERSION="7.5.2";
 /* ============ data layer ============ */
 const TABLES=["clients","sites","workers","rates","entries","income"];
 const EMPTY=()=>({clients:[],sites:[],workers:[],rates:[],entries:[],income:[]});
