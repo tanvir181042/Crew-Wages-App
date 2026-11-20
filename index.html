@@ -541,7 +541,7 @@ html,body{background:var(--bg)}
 .opt.on small{color:var(--bg);opacity:.7}
 .toast{border-radius:999px;background:#111214}
 .toast button{color:var(--lime)}
-.box.on{background:var(--ink);border-color:var(--ink)}
+.box.on{background:var(--ink);border-color:var(--ink);color:var(--bg)}
 .preview{border-radius:22px;background:var(--lime)}
 .preview .pl,.preview .pv{color:#111214}
 
@@ -677,6 +677,7 @@ html,body{overscroll-behavior-y:none}
 .aithink{display:flex;align-items:center;gap:12px;margin:18px 2px;color:var(--mut);font-weight:600}.aiorb.sm{width:26px;height:26px;animation-duration:1s}
 .askw.thinking .aiorb{animation-duration:1s}
 .steps{display:grid;gap:10px;margin:4px 0}.steps>div{display:flex;gap:12px;align-items:center;font-size:15px}.steps>div>b{width:28px;height:28px;flex:none;border-radius:50%;background:var(--soft);display:grid;place-items:center;font-size:14px}.steps span b{font-weight:750}
+@media (prefers-color-scheme:dark){.tip{background:#1F2A10!important;color:#E6F5C8!important}.tip b{color:#fff}.tip button{background:#2C3A17!important;color:#E6F5C8!important}.checkrow{background:#2A2210!important;color:#F5C76B!important}}
 </style>
 </head>
 <body>
@@ -698,7 +699,7 @@ const JOIN=(()=>{const m=(location.hash||"").match(/join=(CW1\.[A-Za-z0-9_\-]+)/
 if(JOIN&&!IS_APP){const l=document.querySelector('link[rel="manifest"]');if(l)l.remove()}
 let deferredInstall=null;
 addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredInstall=e;setTimeout(showInstallGuide,50)});
-const APP_VERSION="6.5.3";
+const APP_VERSION="6.6";
 /* ============ data layer ============ */
 const TABLES=["clients","sites","workers","rates","entries","income"];
 const EMPTY=()=>({clients:[],sites:[],workers:[],rates:[],entries:[],income:[]});
@@ -1548,7 +1549,7 @@ function sitesPage(){
   const row=r=>{const x=r.x,ws=new Set(DB.rates.filter(q=>q.siteId===x.id).map(q=>q.workerId)).size;
     return `<div class="row tap" onclick="openSite('${x.id}')"><span class="sdot ${r.act?"on":""}"></span><div class="main"><div class="t1">${esc(x.name)}</div><div class="t2">${esc(C(x.clientId).name)}${x.address?" · "+esc(x.address):""} · ${plural(ws,"worker")}</div></div>
       <div class="amt num" style="color:${r.p==null?"var(--mut)":r.p<0?"var(--pay)":r.p>0?"var(--ok)":"var(--mut)"}">${r.h||r.w?(r.p==null?"–":money(r.p)):"–"}<small>${r.h||r.w?(r.p==null?(r.note?"monthly fee":"charge rate not set"):(r.p<0?"you lose":"you keep")):"no hours"}</small></div>${ICON.chev}</div>`};
-  if(!DB.sites.length)return `<div class="card empty" style="padding:36px 20px"><div class="e" style="color:var(--mut)">${ICON.sites}</div><div style="font-size:17px;font-weight:700;color:var(--ink)">No sites yet</div>Add a client, then the places where your crew works.<br><br><button class="btn" style="max-width:260px;margin:0 auto" onclick="openAdd(DB.clients.length?'site':'client')">${DB.clients.length?"+ Add a site":"+ Add a client first"}</button></div>`;
+  if(!DB.sites.length)return `<div class="card empty" style="padding:36px 20px"><div class="e" style="color:var(--mut)">${ICON.sites}</div><div style="font-size:17px;font-weight:700;color:var(--ink)">No sites yet</div>Add the places where your crew works, and which company each is for.<br><br><button class="btn" style="max-width:260px;margin:0 auto" onclick="openAdd('site')">+ Add a site</button></div>`;
   return `
   <div class="card scount">
     <div class="sc-big"><b class="num">${DB.sites.length}</b><div><span>${DB.sites.length===1?"site":"sites"} in total</span><small>${nAct} active · ${DB.sites.length-nAct} not active · ${plural(DB.clients.length,"client")}</small></div></div>
@@ -1794,7 +1795,7 @@ function morePage(){
     <div class="row" onclick="showConnectQR()"><div class="main"><div class="t1">Add a person or device</div><div class="t2">Show a QR or send an invite</div></div>${ICON.chev}</div>
     <div class="row" onclick="setPin(()=>toast('✓ PIN changed'))"><div class="main"><div class="t1">Change PIN</div></div>${ICON.chev}</div>
     <div class="row" onclick="disconnect()"><div class="main"><div class="t1" style="color:var(--pay)">Disconnect this device</div><div class="t2">Your data stays in the Sheet</div></div>${ICON.chev}</div>
-  </div>`:`<div class="list settings" style="margin-bottom:22px"><div class="row" onclick="openConnect()"><div class="av" style="background:var(--acc-s);color:var(--acc)">${ICON.sheet}</div><div class="main"><div class="t1">Connect to Google Sheet</div><div class="t2">Use on phone and laptop</div></div>${ICON.chev}</div><div class="row" onclick="needSheetForInvite()"><div class="av" style="background:var(--card2,#ECECE8)">${ICON.people||ICON.sheet}</div><div class="main"><div class="t1">Add a person or device</div><div class="t2">Share the same data with another owner</div></div>${ICON.chev}</div></div>`}
+  </div>`:`<div class="list settings" style="margin-bottom:22px"><div class="row" onclick="openConnect()"><div class="av" style="background:var(--acc-s);color:var(--acc)">${ICON.sheet}</div><div class="main"><div class="t1">Connect to Google Sheet</div><div class="t2">Use on phone and laptop</div></div>${ICON.chev}</div><div class="row" onclick="needSheetForInvite()"><div class="av" style="background:var(--soft);color:var(--ink)">${ICON.people||ICON.sheet}</div><div class="main"><div class="t1">Add a person or device</div><div class="t2">Share the same data with another owner</div></div>${ICON.chev}</div></div>`}
   <div class="list settings" style="margin-bottom:22px">
     <div class="row" onclick="aiSetup()"><div class="av" style="background:#111214;color:#C9F26B">${ICON.spark}</div><div class="main"><div class="t1">Smart AI</div><div class="t2">${GAI.get()?"On · understands any wording":"Off · free with a Google key"}</div></div>${ICON.chev}</div>
     <div class="row" onclick="go('pay')"><div class="main"><div class="t1">Pay people</div><div class="t2">Pay everyone for a fortnight, or everything owed</div></div>${ICON.chev}</div>
@@ -1872,7 +1873,7 @@ function openAdd(kind="hours",ref=null){hideToast();FBACK=[];
   if(kind==="worker"&&ref){F.workerId=ref;F.name=W(ref).name}
   if(kind==="money"&&ref)F.clientId=ref;
   drawAdd(); $("#sheet").classList.add("on");$("#scrim").classList.add("on");sheetClose=null;$("#sheet").scrollTop=0;
-  setTimeout(()=>{const f=$("#sheet input");if(f&&kind==="hours"&&!F.workerId)f.focus()},280);
+  setTimeout(()=>{const f=$("#wq");if(f&&kind==="hours"&&!F.workerId&&DB.workers.length)f.focus()},280);
 }
 function drawAdd(){
   const segs=[["hours","Hours"],["worker","Worker"],["site","Site"],["client","Client"],["money","Money in"]];
