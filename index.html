@@ -638,10 +638,20 @@ textarea.inp{height:96px!important;padding:14px 16px!important}
 .opts[style*="margin:-4px"] .opt,.opts[style*="margin-top:8px"] .opt{flex:1;justify-content:center;padding:0 8px!important;white-space:nowrap}
 .two .opt{padding:0 14px!important;white-space:nowrap}
 .pstep{height:52px!important}.pstep span{font-size:16.5px!important;font-weight:720!important}.pstep button{background:var(--bg)!important}
+.sk{background:linear-gradient(100deg,#ECECEA 30%,#F7F7F5 50%,#ECECEA 70%);background-size:300% 100%;animation:skw 1.3s ease-in-out infinite;border-radius:10px}
+@keyframes skw{0%{background-position:100% 0}100%{background-position:0 0}}
+.skw{padding:max(env(safe-area-inset-top),18px) 18px 120px;max-width:620px;margin:0 auto}.skw .row1{display:flex;align-items:center;gap:12px;margin:8px 0 22px}
+.skhero{height:150px;border-radius:24px;margin-bottom:14px;background:linear-gradient(100deg,#1d1d1b 30%,#2c2c29 50%,#1d1d1b 70%);background-size:300% 100%;animation:skw 1.3s ease-in-out infinite}
+.sk3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:22px}.sk3 .sk{height:84px;border-radius:18px}
+.skcard{display:flex;align-items:center;gap:12px;padding:14px;border-radius:18px;background:#fff;border:1px solid #EDEDEA;margin-bottom:10px}.skcard .c{flex:1;display:grid;gap:8px}
+.skmsg{text-align:center;color:var(--mut);font-size:13.5px;font-weight:600;margin-top:16px}
+@media (prefers-color-scheme:dark){.sk{background:linear-gradient(100deg,#232322 30%,#2e2e2c 50%,#232322 70%);background-size:300% 100%}.skcard{background:#151514;border-color:#262624}}
+.app.fadein>*{animation:fin .35s ease both}@keyframes fin{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.sk,.skhero{animation:none}.app.fadein>*{animation:none}}
 </style>
 </head>
 <body>
-<div class="app" id="app"></div>
+<div class="app" id="app"><div class="skw"><div class="row1"><div class="sk" style="width:44px;height:44px;border-radius:14px"></div><div style="flex:1;display:grid;gap:8px"><div class="sk" style="width:46%;height:20px"></div><div class="sk" style="width:30%;height:13px"></div></div></div><div class="skhero"></div><div class="sk3"><div class="sk"></div><div class="sk"></div><div class="sk"></div></div><div class="sk" style="width:38%;height:18px;margin:0 0 14px"></div><div class="skcard"><div class="sk" style="width:42px;height:42px;border-radius:50%"></div><div class="c"><div class="sk" style="width:55%;height:15px"></div><div class="sk" style="width:35%;height:12px"></div></div><div class="sk" style="width:56px;height:26px;border-radius:99px"></div></div><div class="skcard"><div class="sk" style="width:42px;height:42px;border-radius:50%"></div><div class="c"><div class="sk" style="width:48%;height:15px"></div><div class="sk" style="width:40%;height:12px"></div></div><div class="sk" style="width:56px;height:26px;border-radius:99px"></div></div><div class="skcard"><div class="sk" style="width:42px;height:42px;border-radius:50%"></div><div class="c"><div class="sk" style="width:60%;height:15px"></div><div class="sk" style="width:28%;height:12px"></div></div><div class="sk" style="width:56px;height:26px;border-radius:99px"></div></div></div></div>
 <nav class="nav" id="nav"></nav>
 <div id="mini" class="glass"></div>
 <div class="scrim" id="scrim"></div>
@@ -658,7 +668,7 @@ const JOIN=(()=>{const m=(location.hash||"").match(/join=(CW1\.[A-Za-z0-9_\-]+)/
 if(JOIN&&!IS_APP){const l=document.querySelector('link[rel="manifest"]');if(l)l.remove()}
 let deferredInstall=null;
 addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredInstall=e;setTimeout(showInstallGuide,50)});
-const APP_VERSION="5.9";
+const APP_VERSION="6.0";
 /* ============ data layer ============ */
 const TABLES=["clients","sites","workers","rates","entries","income"];
 const EMPTY=()=>({clients:[],sites:[],workers:[],rates:[],entries:[],income:[]});
@@ -701,10 +711,10 @@ async function flush(){
 async function pull(){
   if(!online())return;
   await flush(); if(OUT.length)return;
-  setSync("syncing");
+  setSync("syncing");if(!DB.workers.length&&!DB.entries.length)render();
   try{const d=await api("getAll"); if(d.sheetUrl){CONN.s=d.sheetUrl;ls.set(K_CONN,CONN)} delete d.sheetUrl;
       if(!OUT.length){DB=d;saveLocal();render()} setSync("idle");}
-  catch(e){setSync(e.server?"error":"offline")}
+  catch(e){setSync(e.server?"error":"offline");if($("#app .skw"))render()}
 }
 function setSync(s){SYNC.state=s;if(s==="idle")SYNC.at=new Date();const el=document.getElementById("sync");if(el)el.outerHTML=syncBadge()}
 function syncBadge(){
@@ -924,8 +934,11 @@ let state={tab:"home",month:null,person:null,pstack:[],q:"",filter:"all",siteFoc
 const scrolls=[];let navAnim=false;
 function go(tab,extra={}){hideToast();state={...state,tab,person:null,pstack:[],...extra};scrolls.length=0;render();window.scrollTo({top:0,behavior:"instant"})}
 
+const SKEL=`<div class="skw"><div class="row1"><div class="sk" style="width:44px;height:44px;border-radius:14px"></div><div style="flex:1;display:grid;gap:8px"><div class="sk" style="width:46%;height:20px"></div><div class="sk" style="width:30%;height:13px"></div></div></div><div class="skhero"></div><div class="sk3"><div class="sk"></div><div class="sk"></div><div class="sk"></div></div><div class="sk" style="width:38%;height:18px;margin:0 0 14px"></div><div class="skcard"><div class="sk" style="width:42px;height:42px;border-radius:50%"></div><div class="c"><div class="sk" style="width:55%;height:15px"></div><div class="sk" style="width:35%;height:12px"></div></div><div class="sk" style="width:56px;height:26px;border-radius:99px"></div></div><div class="skcard"><div class="sk" style="width:42px;height:42px;border-radius:50%"></div><div class="c"><div class="sk" style="width:48%;height:15px"></div><div class="sk" style="width:40%;height:12px"></div></div><div class="sk" style="width:56px;height:26px;border-radius:99px"></div></div><div class="skcard"><div class="sk" style="width:42px;height:42px;border-radius:50%"></div><div class="c"><div class="sk" style="width:60%;height:15px"></div><div class="sk" style="width:28%;height:12px"></div></div><div class="sk" style="width:56px;height:26px;border-radius:99px"></div></div><div class="skmsg">Getting your data…</div></div>`;
+let booted=false;
 function render(){
-  $("#app").innerHTML=buildApp();
+  const a=$("#app");const sk=SYNC.state==="syncing"&&!DB.workers.length&&!DB.entries.length;
+  const first=!sk&&(!booted||a.querySelector(".skw"));if(!sk)booted=true;a.innerHTML=sk?SKEL:buildApp();if(first){a.classList.remove("fadein");void a.offsetWidth;a.classList.add("fadein");setTimeout(()=>a.classList.remove("fadein"),450)}
   $("#nav").innerHTML=`<div class="tabsg glass">${[["home","Home",ICON.home],["today","Hours",ICON.today],["people","People",ICON.people],["sites","Sites",ICON.sites]].map(navBtn).join("")}</div><button class="fabw" onclick="addMenu()" aria-label="Add">${ICON.plus}</button>`;
   const si=$("#q"); if(si&&state.focusSearch){si.focus();si.setSelectionRange(si.value.length,si.value.length)}
   miniUpdate(true);
