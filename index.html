@@ -722,6 +722,7 @@ html,body{overscroll-behavior-y:none}
 .airep td{padding:9px 6px;border-bottom:1px solid var(--line);vertical-align:top}.airep td.num,.airep th:not(:first-child){text-align:right;white-space:nowrap}.airep td small{color:var(--mut)}
 .airep th.l{text-align:left!important}.airep tfoot td{font-weight:780;border-bottom:0;border-top:1.5px solid var(--ink)}.airep tr.tap:active{background:var(--soft)}
 .aib .aicard{padding:16px}
+.aich{margin:8px 0 10px;padding:12px;border-radius:14px;background:var(--soft)}.aichh{font-size:12.5px;font-weight:750;opacity:.7;margin-bottom:8px}.aichr{display:grid;grid-template-columns:minmax(60px,34%) 1fr auto;gap:8px;align-items:center;font-size:13px;margin:5px 0}.aichl{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.aichb{height:12px;border-radius:6px;background:rgba(127,127,127,.15);overflow:hidden}.aichb i{display:block;height:100%;border-radius:6px;background:#9BCB3C;animation:aichg .6s cubic-bezier(.32,.72,0,1) both;transform-origin:left}.aichv{font-variant-numeric:tabular-nums;font-weight:700;font-size:12.5px}@keyframes aichg{from{transform:scaleX(0)}}
 .aiu-voice .adots i{background:#fff;opacity:.6}.adots.light i{background:#fff}
 .askw.vlevel .aiwave i{animation:none;transition:transform .08s}
 </style>
@@ -745,7 +746,7 @@ const JOIN=(()=>{const m=(location.hash||"").match(/join=(CW1\.[A-Za-z0-9_\-]+)/
 if(JOIN&&!IS_APP){const l=document.querySelector('link[rel="manifest"]');if(l)l.remove()}
 let deferredInstall=null;
 addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredInstall=e;setTimeout(showInstallGuide,50)});
-const APP_VERSION="7.3.5";
+const APP_VERSION="7.3.6";
 /* ============ data layer ============ */
 const TABLES=["clients","sites","workers","rates","entries","income"];
 const EMPTY=()=>({clients:[],sites:[],workers:[],rates:[],entries:[],income:[]});
@@ -1316,7 +1317,9 @@ Actions (use ids from the lists; dates are YYYY-MM-DD; never invent ids):
 - {"type":"set_rate","worker_id":"..","site_id":"..","rate":number}   // worker's pay per hour at a site
 - {"type":"set_charge","site_id":"..","bill":"hourly|fixed","amount":number}   // what the client pays for a site
 - {"type":"worker_left","worker_id":".."}  // someone stopped working
-- {"type":"report","title":"short title","from":"YYYY-MM-DD" or null,"to":"YYYY-MM-DD" or null,"worker_ids":[],"site_ids":[],"client_ids":[],"paid":"all|paid|unpaid","group_by":["worker"|"site"|"client"|"date"|"week"|"month"|"status"] (0-2),"metrics":["hours","wages","charged","profit","days","people","received"],"sort_by":"metric or null","sort_dir":"desc|asc","limit":number or null,"offer_pay":true/false}
+- {"type":"report","title":"short title","from":"YYYY-MM-DD" or null,"to":"YYYY-MM-DD" or null,"worker_ids":[],"site_ids":[],"client_ids":[],"paid":"all|paid|unpaid","group_by":["worker"|"site"|"client"|"date"|"week"|"month"|"status"] (0-2),"metrics":["hours","wages","charged","profit","days","people","received"],"sort_by":"metric or null","sort_dir":"desc|asc","limit":number or null,"offer_pay":true/false,"chart":null|"bar"|"column","chart_metric":"metric or null"}
+   // chart: set "bar" whenever the user asks for a chart, graph, diagram or to "see it visually" (also "column" for over time). A table is always shown too.
+   // "employees list with their site and what they earned in the last 15 days, as a chart" → from today-14, group_by ["worker","site"], metrics ["hours","wages"], chart "bar", chart_metric "wages"
    // ANY question about numbers or history → report. The app computes it exactly and shows a table. Examples:
    // "where did Ayush work the last 10 days" → worker_ids [Ayush], from today-9, group_by ["date","site"], metrics ["hours"]
    // "Sam's hours last 7 days" → worker_ids [Sam], from today-6, group_by [], metrics ["hours","wages"]
@@ -1481,11 +1484,21 @@ function aiReport(a){const td=todayD();const from=okD(a.from)?a.from:null,to=okD
   if(!es.length&&!M.includes("received")){const lw=[...wids].map(id=>{let l=null;DB.entries.forEach(e=>{if(e.workerId===id&&e.date&&isWork(e)&&(!l||e.date>l))l=e.date});return l?`${esc(W(id).name)} last worked ${dayLabel(l)}.`:""}).filter(Boolean).join(" ");return aiCard(title,`${esc(per)}${filt?" · "+esc(filt):""}`,`<div class="aic3">No hours in this period${paid===false?" that are still unpaid":""}. ${lw}</div>`,"")}
   const cols=M.length;
   const tap=(r)=>{const gi=G.indexOf("worker"),si=G.indexOf("site");return gi>=0?`onclick="aiNav(()=>openPerson('${r.ks[gi]}'),1)"`:si>=0?`onclick="aiNav(()=>openSite('${r.ks[si]}'),1)"`:""};
-  const body=`<div class="airep"><table><thead><tr>${G.length?`<th>${G.map(g=>({worker:"Person",site:"Site",client:"Company",date:"Day",week:"Week",month:"Month",status:"Status"}[g])).join(" · ")}</th>`:""}${M.map(m=>`<th>${head[m]}</th>`).join("")}</tr></thead><tbody>
+  const chart=a.chart&&G.length?aiChart(rows,G,M.includes(a.chart_metric)?a.chart_metric:sk&&M.includes(sk)?sk:M.find(m=>m!=="hours"&&m!=="days"&&m!=="people")||M[0],head,fmt,a.chart):"";
+  const body=chart+`<div class="airep"><table><thead><tr>${G.length?`<th>${G.map(g=>({worker:"Person",site:"Site",client:"Company",date:"Day",week:"Week",month:"Month",status:"Status"}[g])).join(" · ")}</th>`:""}${M.map(m=>`<th>${head[m]}</th>`).join("")}</tr></thead><tbody>
     ${G.length?shown.map(r=>`<tr ${tap(r)} class="${tap(r)?"tap":""}"><td>${r.labels.map(esc).join(" · ")}</td>${M.map(m=>`<td class="num">${fmt(m,r.v[m])}</td>`).join("")}</tr>`).join(""):""}
     </tbody>${G.length&&rows.length>1||!G.length?`<tfoot><tr>${G.length?"<td>Total</td>":""}${M.map(m=>`<td class="num">${fmt(m,tot[m])}</td>`).join("")}</tr></tfoot>`:""}</table></div>${rows.length>lim?`<div class="aic3">Showing ${lim} of ${rows.length}.</div>`:""}`;
   const unpaid=es.filter(e=>!e.paid&&e.rate>0);AI.rep={from,to,wids:[...wids],sids:[...sids],cids:[...cids],ids:unpaid.map(e=>e.id)};
   return aiCard(title,`${esc(per)}${filt?" · "+esc(filt):""}${paid===false?" · not paid":paid?" · paid":""}`,body,unpaid.length&&a.offer_pay?`<button class="btn" onclick="AI.p={k:'paid',ids:AI.rep.ids};aiDo()">Mark ${money(unpaid.reduce((t,e)=>t+wage(e),0))} as paid</button>`:"")}
+function aiChart(rows,G,met,head,fmt,kind){const time=["date","week","month"].includes(G[0]);const agg=new Map();
+  rows.forEach(r=>{const k=r.ks[0],o=agg.get(k)||{l:r.labels[0],v:0};o.v+=r.v[met]||0;agg.set(k,o)});
+  let d=[...agg.values()];if(time)d.sort((x,y)=>0);else d.sort((x,y)=>y.v-x.v);d=d.slice(0,time?31:15);if(!d.length)return"";
+  const mx=Math.max(...d.map(x=>Math.abs(x.v)),1),ttl=`<div class="aichh">${head[met]||met}${time?"":" by "+({worker:"person",site:"site",client:"company",status:"status"}[G[0]]||G[0])}</div>`;
+  if(time||kind==="line"||kind==="column"){const W=320,H=150,bw=Math.max(4,Math.min(28,(W-10)/d.length-4)),gap=(W-10-bw*d.length)/Math.max(1,d.length);
+    const bars=d.map((x,n)=>{const h=Math.max(2,Math.abs(x.v)/mx*(H-34)),X=6+n*(bw+gap)+gap/2;return `<rect x="${X.toFixed(1)}" y="${(H-20-h).toFixed(1)}" width="${bw.toFixed(1)}" height="${h.toFixed(1)}" rx="3" fill="${x.v<0?"#E5484D":"#9BCB3C"}"><title>${esc(x.l)}: ${fmt(met,x.v)}</title></rect>`}).join("");
+    const lab=d.map((x,n)=>n===0||n===d.length-1||d.length<=8||n%Math.ceil(d.length/6)===0?`<text x="${(6+n*(bw+gap)+gap/2+bw/2).toFixed(1)}" y="${H-6}" text-anchor="middle" font-size="9" fill="currentColor" opacity=".6">${esc(String(x.l).slice(0,10))}</text>`:"").join("");
+    return `<div class="aich">${ttl}<svg viewBox="0 0 ${W} ${H}" width="100%" role="img">${bars}${lab}<text x="6" y="10" font-size="9" fill="currentColor" opacity=".6">${fmt(met,mx)}</text></svg></div>`}
+  return `<div class="aich">${ttl}${d.map(x=>`<div class="aichr"><span class="aichl">${esc(x.l)}</span><span class="aichb"><i style="width:${Math.max(2,Math.abs(x.v)/mx*100).toFixed(1)}%;${x.v<0?"background:#E5484D":""}"></i></span><span class="aichv">${fmt(met,x.v)}</span></div>`).join("")}</div>`}
 function aiRoster(a){const what=a.what==="sites"?"sites":a.what==="clients"?"clients":"workers";const F=Array.isArray(a.fields)?a.fields:[];const td=todayD();
   if(what==="workers"){const ws=DB.workers.filter(w=>(a.include_left||w.active!==false)&&(!a.site_ids||!a.site_ids.length||DB.rates.some(r=>r.workerId===w.id&&a.site_ids.includes(r.siteId)))).sort((x,y)=>x.name.localeCompare(y.name));
     const owed=new Map(owedByWorker().map(o=>[o.workerId,o.amount])),last=new Map();DB.entries.forEach(e=>{if(e.date&&isWork(e)&&(!last.has(e.workerId)||e.date>last.get(e.workerId)))last.set(e.workerId,e.date)});
