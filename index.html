@@ -694,9 +694,9 @@ html,body{overscroll-behavior-y:none}
 .aib{align-self:stretch;margin:4px 0}.aib .ans{margin-top:8px}.aib .aisay{margin-top:8px}.aib.old .aibtns,.aib.old .opts{opacity:.4;pointer-events:none}
 @keyframes aiIn{from{opacity:0;transform:translateY(8px) scale(.98)}to{opacity:1;transform:none}}
 .aicomp{flex:none;margin-top:6px}.aicomp #askq{padding-left:16px!important;border-radius:24px!important;height:52px}
-.askw.chat .aisend{right:52px;border-radius:50%;width:38px;height:38px;margin-top:-19px;background:#111214;color:#C9F26B}
+.askw.chat .aisend{right:52px;border-radius:50%;width:40px;height:40px;margin-top:-20px;background:#C9F26B;color:#111214;box-shadow:0 4px 12px rgba(155,209,47,.45)}.askw.chat .aisend svg{margin-left:2px}
 .askw.chat .aimic{border-radius:50%;width:38px;height:38px;margin-top:-19px;background:var(--soft);color:var(--ink)}
-@media (prefers-color-scheme:dark){.askw.chat .aisend{background:#C9F26B;color:#111214}}
+
 .ailogo{width:44px;height:44px;border-radius:14px;flex:none;background:#C9F26B;display:grid;place-items:center;box-shadow:0 6px 18px rgba(155,209,47,.35);position:relative}
 .ailogo svg{transition:transform .3s}
 .askw.thinking .ailogo svg{animation:aispin 1.4s cubic-bezier(.5,0,.5,1) infinite}.askw.listening .ailogo{animation:aipulse 1.1s ease-in-out infinite}
@@ -735,7 +735,7 @@ const JOIN=(()=>{const m=(location.hash||"").match(/join=(CW1\.[A-Za-z0-9_\-]+)/
 if(JOIN&&!IS_APP){const l=document.querySelector('link[rel="manifest"]');if(l)l.remove()}
 let deferredInstall=null;
 addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredInstall=e;setTimeout(showInstallGuide,50)});
-const APP_VERSION="6.9.1";
+const APP_VERSION="6.9.2";
 /* ============ data layer ============ */
 const TABLES=["clients","sites","workers","rates","entries","income"];
 const EMPTY=()=>({clients:[],sites:[],workers:[],rates:[],entries:[],income:[]});
@@ -891,7 +891,7 @@ const avc=n=>{let h=0;for(const c of n)h=(h*31+c.charCodeAt(0))>>>0;return PAL[h
 const av=(n,extra="")=>{const[b,f]=avc(n);return `<div class="av" style="background:${b};color:${f};${extra}">${esc(initials(n))}</div>`};
 const plural=(n,w)=>n+" "+(n===1?w:(w==="person"?"people":w==="entry"?"entries":w+"s"));
 const ICON={
-  send:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>',
+  send:'<svg width="21" height="21" viewBox="0 0 24 24" fill="currentColor"><path d="M3.4 20.4 21.9 12.9a1 1 0 0 0 0-1.8L3.4 3.6a.8.8 0 0 0-1.1.9l2 6.3c.1.4.5.7.9.7l7.6.5-7.6.5c-.4 0-.8.3-.9.7l-2 6.3a.8.8 0 0 0 1.1 1z"/></svg>',
   mic:'<svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>',
   spark:'<svg width="24" height="24" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2.5c.4 4.6 2.9 7.1 7.5 7.5-4.6.4-7.1 2.9-7.5 7.5-.4-4.6-2.9-7.1-7.5-7.5 4.6-.4 7.1-2.9 7.5-7.5z"/><path d="M19 15c.2 2 1.2 3 3 3.2-1.8.2-2.8 1.2-3 3.2-.2-2-1.2-3-3-3.2 1.8-.2 2.8-1.2 3-3.2z" opacity=".7"/></svg>',
   home:'<svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></svg>',
@@ -1960,7 +1960,8 @@ let lastOut=0;const isField=el=>el&&el.matches&&el.matches("input:not([type=chec
     if(sh.classList.contains("on")&&sh.contains(el)){const sr=sh.getBoundingClientRect(),bot=Math.min(sr.bottom,vv.offsetTop+vv.height)-24,top=sr.top+70;
       if(r.bottom>bot)sh.scrollTop+=r.bottom-bot;else if(r.top<top)sh.scrollTop-=top-r.top}
     else{const bot=vv.offsetTop+vv.height-(document.querySelector(".tdbar")?150:40),top=vv.offsetTop+90;if(r.bottom>bot)window.scrollBy(0,r.bottom-bot);else if(r.top<top)window.scrollBy(0,r.top-top)}};
-  document.addEventListener("focusin",e=>{if(!isField(e.target))return;[60,320,600].forEach(t=>setTimeout(()=>{fit2();reveal()},t))});
+  document.addEventListener("focusin",e=>{if(!isField(e.target))return;[60,160,320,600,900].forEach(t=>setTimeout(()=>{fit();fit2();reveal()},t))});
+  document.addEventListener("focusout",()=>[100,350,700].forEach(t=>setTimeout(fit,t)));
   document.addEventListener("focusout",()=>{lastOut=Date.now()});
   document.addEventListener("focusout",()=>setTimeout(()=>{if(!isField(document.activeElement)){fit2();if(vv&&vv.offsetTop>1)window.scrollTo(window.scrollX,window.scrollY)}},250));
   if(vv){vv.addEventListener("resize",()=>{fit();fit2();reveal()});vv.addEventListener("scroll",()=>{fit();fit2()});fit();fit2()}
