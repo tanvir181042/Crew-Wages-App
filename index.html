@@ -651,6 +651,11 @@ textarea.inp{height:96px!important;padding:14px 16px!important}
 #ptr{position:fixed;top:calc(env(safe-area-inset-top) + 6px);left:50%;width:40px;height:40px;margin-left:-20px;border-radius:50%;background:var(--card);color:var(--ink);box-shadow:0 4px 16px rgba(0,0,0,.14);display:grid;place-items:center;z-index:60;opacity:0;transform:translateY(-50px);pointer-events:none}
 #ptr.go svg{animation:ptrspin .7s linear infinite}@keyframes ptrspin{to{transform:rotate(360deg)}}
 html,body{overscroll-behavior-y:none}
+.nav .tabsg{position:relative}.nav .tabsg .pill{position:absolute;top:6px;bottom:6px;left:6px;width:0;border-radius:18px;background:#111214;transition:left .45s cubic-bezier(.32,.72,0,1),width .45s cubic-bezier(.32,.72,0,1),opacity .2s;z-index:0;pointer-events:none}
+.nav .tabsg button{position:relative;z-index:1;transition:color .3s!important}.nav .tabsg button.on{background:transparent!important}
+@media (prefers-color-scheme:dark){.nav .tabsg .pill{background:#F5F5F2}}
+.toast{transition:opacity .25s,transform .45s cubic-bezier(.34,1.4,.64,1)!important}
+.row.tap,.wcard,.list>.row{-webkit-tap-highlight-color:transparent}.wcard:active,.row.tap:active{background:var(--soft)}
 </style>
 </head>
 <body>
@@ -672,7 +677,7 @@ const JOIN=(()=>{const m=(location.hash||"").match(/join=(CW1\.[A-Za-z0-9_\-]+)/
 if(JOIN&&!IS_APP){const l=document.querySelector('link[rel="manifest"]');if(l)l.remove()}
 let deferredInstall=null;
 addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredInstall=e;setTimeout(showInstallGuide,50)});
-const APP_VERSION="6.2";
+const APP_VERSION="6.3";
 /* ============ data layer ============ */
 const TABLES=["clients","sites","workers","rates","entries","income"];
 const EMPTY=()=>({clients:[],sites:[],workers:[],rates:[],entries:[],income:[]});
@@ -936,17 +941,23 @@ function problems(){
 /* ============ state & router ============ */
 let state={tab:"home",month:null,person:null,pstack:[],q:"",filter:"all",siteFocus:null,per:{mode:"month",d:todayD()},pper:{mode:"all",d:todayD()},sper:{mode:"month",d:todayD()},slper:{mode:"month",d:todayD()}};
 const scrolls=[];let navAnim=false;
-function go(tab,extra={}){hideToast();state={...state,tab,person:null,pstack:[],...extra};scrolls.length=0;render();window.scrollTo({top:0,behavior:"instant"})}
+function go(tab,extra={}){hideToast();const ch=tab!==state.tab||state.person;state={...state,tab,person:null,pstack:[],...extra};scrolls.length=0;render();window.scrollTo({top:0,behavior:"instant"});
+  const a=$("#app");if(ch&&!RM&&a.animate)a.animate([{opacity:0,transform:"translateY(8px)"},{opacity:1,transform:"none"}],{duration:260,easing:"cubic-bezier(.32,.72,0,1)"})}
 
 const SKEL=`<div class="skw"><div class="row1"><div class="sk" style="width:44px;height:44px;border-radius:14px"></div><div style="flex:1;display:grid;gap:8px"><div class="sk" style="width:46%;height:20px"></div><div class="sk" style="width:30%;height:13px"></div></div></div><div class="sk skhero"></div><div class="sk3"><div class="sk"></div><div class="sk"></div><div class="sk"></div></div><div class="sk" style="width:38%;height:18px;margin:0 0 14px"></div><div class="skcard"><div class="sk" style="width:42px;height:42px;border-radius:50%"></div><div class="c"><div class="sk" style="width:55%;height:15px"></div><div class="sk" style="width:35%;height:12px"></div></div><div class="sk" style="width:56px;height:26px;border-radius:99px"></div></div><div class="skcard"><div class="sk" style="width:42px;height:42px;border-radius:50%"></div><div class="c"><div class="sk" style="width:48%;height:15px"></div><div class="sk" style="width:40%;height:12px"></div></div><div class="sk" style="width:56px;height:26px;border-radius:99px"></div></div><div class="skcard"><div class="sk" style="width:42px;height:42px;border-radius:50%"></div><div class="c"><div class="sk" style="width:60%;height:15px"></div><div class="sk" style="width:28%;height:12px"></div></div><div class="sk" style="width:56px;height:26px;border-radius:99px"></div></div><div class="skmsg">Getting your data…</div></div>`;
 let booted=false;
 function render(){
   const a=$("#app");const sk=SYNC.state==="syncing"&&!DB.workers.length&&!DB.entries.length;
   const first=!sk&&(!booted||a.querySelector(".skw"));if(!sk)booted=true;a.innerHTML=sk?SKEL:buildApp();if(first){a.classList.remove("fadein");void a.offsetWidth;a.classList.add("fadein");setTimeout(()=>a.classList.remove("fadein"),450)}
-  $("#nav").innerHTML=`<div class="tabsg glass">${[["home","Home",ICON.home],["today","Hours",ICON.today],["people","People",ICON.people],["sites","Sites",ICON.sites]].map(navBtn).join("")}</div><button class="fabw" onclick="addMenu()" aria-label="Add">${ICON.plus}</button>`;
+  const nv=$("#nav");if(!nv.querySelector(".tabsg"))nv.innerHTML=`<div class="tabsg glass"><i class="pill"></i>${[["home","Home",ICON.home],["today","Hours",ICON.today],["people","People",ICON.people],["sites","Sites",ICON.sites]].map(navBtn).join("")}</div><button class="fabw" onclick="addMenu()" aria-label="Add">${ICON.plus}</button>`;
+  else nv.querySelectorAll(".tabsg button").forEach(b=>b.classList.toggle("on",b.dataset.k===state.tab));
+  movePill();
   const si=$("#q"); if(si&&state.focusSearch){si.focus();si.setSelectionRange(si.value.length,si.value.length)}
-  miniUpdate(true);
+  miniUpdate(true);countUp();
 }
+let lastHero=null;
+function countUp(){const el=$("#app .hero .big[data-count]");if(!el)return;const to=+el.dataset.count,from=lastHero===null?0:lastHero;lastHero=to;if(RM||from===to)return;
+  const t0=performance.now(),d=lastHero!==null&&from?520:800;el.textContent=money(from);const st=t=>{const k=Math.min(1,(t-t0)/d),e=1-Math.pow(1-k,4);el.textContent=money(Math.round(from+(to-from)*e));if(k<1&&el.isConnected)requestAnimationFrame(st)};requestAnimationFrame(st)}
 const TITLES={home:"Home",today:"Hours",people:"People",sites:"Sites",more:"Settings",pay:"Pay people",reports:"Reports"};
 function buildApp(){
   const titles=TITLES;
@@ -1012,7 +1023,14 @@ function goBack(){if(navAnim||!state.person)return;const y=scrolls.pop()||0;slid
       if(done){scrolls.pop();state.pstack.pop();state.person=state.pstack[state.pstack.length-1]||null;render();window.scrollTo(0,py)}
       u.remove();u=null;navAnim=false},280)});
 })();
-const navBtn=([k,l,i])=>`<button class="${state.tab===k?"on":""}" onclick="go('${k}')">${i}<span>${l}</span></button>`;
+const navBtn=([k,l,i])=>`<button data-k="${k}" class="${state.tab===k?"on":""}" onclick="tapTab(this,'${k}')">${i}<span>${l}</span></button>`;
+let pillInit=false;
+function movePill(){const g=$("#nav .tabsg"),p=g&&g.querySelector(".pill");if(!p)return;const b=g.querySelector("button.on");if(!b){p.style.opacity=0;return}
+  const gr=g.getBoundingClientRect(),br=b.getBoundingClientRect();if(!pillInit||!gr.width){p.style.transition="none"}
+  p.style.opacity=1;p.style.left=(br.left-gr.left-g.clientLeft)+"px";p.style.width=br.width+"px";if(!pillInit&&gr.width){void p.offsetWidth;p.style.transition="";pillInit=true}else if(!gr.width)requestAnimationFrame(movePill)}
+function tapTab(b,k){haptic();const ic=b.querySelector("svg");if(ic&&!RM&&ic.animate)ic.animate([{transform:"scale(.82)"},{transform:"scale(1.08)"},{transform:"scale(1)"}],{duration:380,easing:"cubic-bezier(.34,1.56,.64,1)"});
+  if(state.tab===k&&!state.person){window.scrollTo({top:0,behavior:"smooth"});return}go(k)}
+function haptic(){try{if(navigator.vibrate){navigator.vibrate(8);return}let l=document.getElementById("hpt");if(!l){l=document.createElement("label");l.id="hpt";l.style.cssText="position:fixed;left:-99px;top:0;opacity:0;pointer-events:none";l.innerHTML='<input type="checkbox" switch>';document.body.appendChild(l)}l.click()}catch(e){}}
 function monthSwitch(){return `<div class="month"><button onclick="state.month=addM(state.month,-1);render()" aria-label="Previous month">‹</button><span>${mLabel(state.month)}</span><button onclick="state.month=addM(state.month,1);render()" aria-label="Next month">›</button></div>`}
 
 /* ---------- Ask: offline smart search (no AI service, nothing leaves the phone) ---------- */
@@ -1218,7 +1236,7 @@ function homePage(){
     ${tipHtml("home","This is your summary. Tap <b>Pay people</b> to settle up, or <b>Add hours</b> to log work.")}
     <div class="hero">
       <div class="lbl" style="display:flex;justify-content:space-between;position:relative;z-index:1">You owe your crew ${online()?syncBadge():""}</div>
-      <div class="big num">${money(total)}</div>
+      <div class="big num" data-count="${total}">${money(total)}</div>
       <div class="sub">${owed.length?`${plural(owed.length,"person")} waiting to be paid`:"Everyone is paid up 🎉"}</div>
       ${owed.length?`<button class="limebtn" onclick="go('pay')">Pay people</button>`:""}
     </div>
@@ -1631,7 +1649,7 @@ let lastOut=0;const isField=el=>el&&el.matches&&el.matches("input:not([type=chec
 document.addEventListener("keydown",e=>{if(e.key==="Escape")closeSheet()});
 
 let toastT;
-function toast(msg,undo){const t=$("#toast");t.innerHTML=`<span>${msg}</span>`+(undo?`<button id="undo">Undo</button>`:"");t.classList.add("on");if(undo)$("#undo").onclick=()=>{undo();t.classList.remove("on")};clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove("on"),undo?4500:2400)}
+function toast(msg,undo){if(/^✓/.test(msg))haptic();const t=$("#toast");t.innerHTML=`<span>${msg}</span>`+(undo?`<button id="undo">Undo</button>`:"");t.classList.add("on");if(undo)$("#undo").onclick=()=>{undo();t.classList.remove("on")};clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove("on"),undo?4500:2400)}
 
 /* ---- Add ---- */
 let F={};
