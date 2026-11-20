@@ -745,7 +745,7 @@ const JOIN=(()=>{const m=(location.hash||"").match(/join=(CW1\.[A-Za-z0-9_\-]+)/
 if(JOIN&&!IS_APP){const l=document.querySelector('link[rel="manifest"]');if(l)l.remove()}
 let deferredInstall=null;
 addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredInstall=e;setTimeout(showInstallGuide,50)});
-const APP_VERSION="7.3.4";
+const APP_VERSION="7.3.5";
 /* ============ data layer ============ */
 const TABLES=["clients","sites","workers","rates","entries","income"];
 const EMPTY=()=>({clients:[],sites:[],workers:[],rates:[],entries:[],income:[]});
@@ -1603,22 +1603,25 @@ function aiSendLink(ch,to,text){to=String(to||"").replace(/[^\d+@.\w-]/g,"");con
   const url=ch==="whatsapp"?`https://wa.me/${to.replace(/^\+/,"").replace(/^0/,"61")}?text=${t}`:ch==="email"?`mailto:${to}?body=${t}`:`sms:${to}${/iPhone|iPad/.test(navigator.userAgent)?"&":"?"}body=${t}`;location.href=url}
 function aiTalk(t){if(!AI.speak||!AI.voice||!window.speechSynthesis)return;try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t.replace(/<[^>]+>/g,"").replace(/·/g,",").replace(/\$/g,"$"));u.lang=/[\u0980-\u09FF]/.test(t)?"bn-BD":/[\u0900-\u097F]/.test(t)?"ne-NP":"en-AU";u.rate=1.04;speechSynthesis.speak(u)}catch(e){}}
 function aiSpeakToggle(b){AI.speak=!AI.speak;try{localStorage.setItem("cw_aispeak",AI.speak?"1":"0")}catch(e){}b.classList.toggle("off",!AI.speak);if(!AI.speak&&window.speechSynthesis)speechSynthesis.cancel()}
-function aiMicStop(){const r=AI.rec,end=AI.recEnd;if(!r)return;AI.recUser&&AI.recUser();try{r.stop()}catch(e){}const w=$(".askw");w&&w.classList.remove("listening");setTimeout(()=>{if(AI.rec===r){try{r.abort()}catch(e){}end&&end()}},900)}
+function aiMicStop(){const r=AI.rec,end=AI.recEnd;if(!r){if(end){AI.recUser&&AI.recUser();end()}return}AI.recUser&&AI.recUser();try{r.stop()}catch(e){}const w=$(".askw");w&&w.classList.remove("listening");setTimeout(()=>{if(AI.rec===r){try{r.abort()}catch(e){}end&&end()}},900)}
+function vMerge(a,b){a=(a||"").replace(/\s+/g," ").trim();b=(b||"").replace(/\s+/g," ").trim();if(!a)return b;if(!b)return a;const A=a.toLowerCase(),B=b.toLowerCase();
+  if(B.startsWith(A))return b;if(A.startsWith(B)||A.includes(B))return a;const aw=a.split(" "),bw=b.split(" "),al=A.split(" "),bl=B.split(" ");
+  for(let k=Math.min(aw.length,bw.length);k>0;k--){if(al.slice(-k).join(" ")===bl.slice(0,k).join(" "))return aw.concat(bw.slice(k)).join(" ")}return a+" "+b}
 function aiMic(noRec){const i=$("#askq");if(!i)return;
-  if(AI.rec){aiMicStop();return}
+  if(AI.rec||AI.recEnd){aiMicStop();return}
   const canRec=!noRec&&smartOn()&&navigator.mediaDevices&&navigator.mediaDevices.getUserMedia;
   const fallback=msg=>{i.focus();aiNote(msg||"Voice isn't available here — tap the 🎤 on your keyboard and speak, then tap send.")};
   if(!SRx)return canRec?aiRecord():fallback();
   /* keeps listening while you talk; stops after ~2.5s of silence, a tap on the mic, or 2 minutes */
   let base="",cur="",got=false,done=false,user=false,silT=null,r=null,restarts=0;const t0=Date.now();
   const w=$(".askw");w&&w.classList.add("listening");i.value="";i.placeholder="Listening… talk as long as you like";haptic();
-  const text=()=>(base+" "+cur).replace(/\s+/g," ").trim();
+  const text=()=>vMerge(base,cur);
   const hard=setTimeout(()=>{user=true;aiMicStop()},120000),none=setTimeout(()=>{if(!got){user=true;aiMicStop();setTimeout(()=>fallback("I couldn't hear anything. Try again, or tap the 🎤 on your keyboard to speak."),300)}},8000);
   const finish=()=>{if(done)return;done=true;clearTimeout(hard);clearTimeout(none);clearTimeout(silT);AI.rec=null;AI.recEnd=null;w&&w.classList.remove("listening");i.placeholder=smartOn()?"Message Hourza AI":"Ask or tell me what to do";const t=text();if(t){AI.voice=true;i.value="";aiSend(t)}};
   const quiet=()=>{clearTimeout(silT);silT=setTimeout(()=>{user=true;aiMicStop()},2600)};
   const start=()=>{try{r=new SRx()}catch(e){AI.srBad=true;finish();return canRec?aiRecord():fallback()}
     AI.rec=r;r.lang=AI.lang;r.interimResults=true;r.continuous=true;r.maxAlternatives=1;
-    r.onresult=e=>{got=true;let t="";for(const x of e.results)t+=x[0].transcript+" ";cur=t;i.value=text();i.scrollLeft=i.scrollWidth;quiet()};
+    r.onresult=e=>{got=true;let t="";for(const x of e.results)t=vMerge(t,x[0].transcript);cur=t;i.value=text();i.scrollLeft=i.scrollWidth;quiet()};
     r.onerror=e=>{if((e.error==="service-not-allowed"||e.error==="network"||e.error==="language-not-supported")&&canRec&&!got){AI.srBad=true;base=cur="";done||(user=true);finish();setTimeout(aiRecord,200);return}
       if(e.error==="not-allowed"||e.error==="service-not-allowed"){user=true;base=cur="";finish();fallback("The microphone isn't allowed for Hourza. Tap the 🎤 on your keyboard to speak instead.")}};
     r.onend=()=>{if(done)return;base=text();cur="";
@@ -1636,7 +1639,7 @@ function openAsk(q=""){hideToast();AI.voice=false;AI.p=null;const keep=AI.saved&
   $("#sheet").classList.add("chatmode");if(keep){const m=$("#aimsgs");m.innerHTML=AI.saved.html;m.querySelectorAll("#askres").forEach(x=>x.removeAttribute("id"));m.querySelectorAll(".aib").forEach(b=>b.classList.add("old"));setTimeout(()=>m.scrollTop=m.scrollHeight,50)}
   if(q)setTimeout(()=>aiSend(q),200);else setTimeout(()=>{const i=$("#askq");if(i)i.focus()},300)}
 function aiScroll(el){const m=$("#aimsgs");if(!m)return;requestAnimationFrame(()=>{if(el){const t=el.offsetTop-12;m.scrollTo({top:Math.max(t,m.scrollHeight-m.clientHeight>t?t:m.scrollHeight),behavior:"smooth"})}else m.scrollTo({top:m.scrollHeight,behavior:"smooth"})})}
-function aiSend(text){text=(text||"").trim();const m=$("#aimsgs");if(!text||!m)return;askRemember(text);
+function aiSend(text){text=(text||"").trim();const m=$("#aimsgs");if(!text||!m)return;if(AI.lastSent&&AI.lastSent.t===text&&Date.now()-AI.lastSent.at<4000)return;AI.lastSent={t:text,at:Date.now()};askRemember(text);
   m.querySelector(".aiwel")?.remove();m.querySelectorAll(".aib").forEach(b=>{b.classList.add("old");b.querySelector("#askres")?.removeAttribute("id")});
   const u=document.createElement("div");u.className="aiu";u.textContent=text;m.appendChild(u);
   const b=document.createElement("div");b.className="aib";b.innerHTML=`<div id="askres"></div>`;m.appendChild(b);
