@@ -762,7 +762,7 @@ const JOIN=(()=>{const m=(location.hash||"").match(/join=(CW1\.[A-Za-z0-9_\-]+)/
 if(JOIN&&!IS_APP){const l=document.querySelector('link[rel="manifest"]');if(l)l.remove()}
 let deferredInstall=null;
 addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredInstall=e;setTimeout(showInstallGuide,50)});
-const APP_VERSION="7.6.2";
+const APP_VERSION="7.6.3";
 /* ============ data layer ============ */
 const TABLES=["clients","sites","workers","rates","entries","income"];
 const EMPTY=()=>({clients:[],sites:[],workers:[],rates:[],entries:[],income:[]});
@@ -1307,7 +1307,7 @@ async function aiFillModels(){const g=GAI.get(),sel=$("#gmsel");if(!g||!sel)retu
 async function aiSaveKey(){const k=$("#gk").value.trim(),b=$("#gkb");if(!/^[\w.\-]{20,}$/.test(k)){$("#gkerr").innerHTML='<div class="err">That doesn\'t look like a full key. Copy it again with the Copy button.</div>';return}
   b.disabled=true;b.textContent="Checking…";try{await aiSetKey(k);closeSheet();render();toast("✓ Smart AI is on")}catch(e){b.disabled=false;b.textContent="Turn on";$("#gkerr").innerHTML=`<div class="err">${esc(e.message||"Couldn't check the key")}</div>`}}
 function gaiCtx(){const td=todayD();
-  const ws=DB.workers.filter(w=>w.active!==false).map(w=>{const rs=DB.rates.filter(r=>r.workerId===w.id&&r.siteId!==SUP).map(r=>r.siteId);return `${w.id}|${w.name}${w.role==="supervisor"?"|supervisor":""}|sites:${rs.join(",")}`}).join("\n");
+  const ws=DB.workers.filter(w=>w.active!==false).map(w=>{const rs=DB.rates.filter(r=>r.workerId===w.id&&r.siteId!==SUP).map(r=>r.siteId+"="+Sx(r.siteId).name);return `${w.id}|${w.name}${w.role==="supervisor"?"|supervisor":""}|sites:${rs.join(", ")||"none"}`}).join("\n");
   const ss=DB.sites.map(x=>`${x.id}|${x.name}|client:${x.clientId}`).join("\n"),cs=DB.clients.map(c=>`${c.id}|${c.name}`).join("\n");
   return `Today: ${td} (${DOW[parseD(td).getDay()]}). Weeks start Monday.\nWORKERS (id|name|sites):\n${ws}\nSITES (id|name|client):\n${ss}\nCLIENTS (id|name):\n${cs}\n${gaiData()}`}
 function gaiData(){try{const td=todayD(),cm=td.slice(0,7),lm=addM(cm,-1),ws=weekStart(td),lw=addD(ws,-7);
@@ -1315,7 +1315,7 @@ function gaiData(){try{const td=todayD(),cm=td.slice(0,7),lm=addM(cm,-1),ws=week
   const owed=owedByWorker().map(o=>`${W(o.workerId).name} $${Math.round(o.amount)}`).join("; ")||"nobody";
   const sites=DB.sites.map(x=>{const r=siteR(x,RR(cm+"-01",mEnd(cm),""));return `${x.name}: ${Math.round(r.h)}h wages $${Math.round(r.w)}${r.b!=null?` charged $${Math.round(r.b)} kept $${Math.round(r.p)}`:" (no charge rate)"}`}).join("; ");
   return `DATA (exact, computed by the app):\nOwed now: ${owed}\nThis week (from ${ws}): ${sum(e=>e.date>=ws)}\nLast week (${lw} to ${addD(ws,-1)}): ${sum(e=>e.date>=lw&&e.date<ws)}\nThis month ${cm}: ${sum(e=>e.month===cm)}\nLast month ${lm}: ${sum(e=>e.month===lm)}\nSites this month: ${sites}`.slice(0,6000)}catch(e){return ""}}
-const GAI_SYS=`You are Hourza AI inside a payroll app for a cleaning labour-hire business in Australia. The user (the business owner or staff) speaks English, Bangla/Banglish or Nepali (Devanagari or romanised), by voice or text. Workers are often Nepali. You are a real assistant: understand meaning, not keywords. Spelling mistakes, voice-to-text errors, mixed languages, slang, half sentences and wrong grammar are normal — work out what they most likely mean, and match names to the lists by sound (e.g. "sem"/"shyam" → Sam). Greetings, small talk, thanks and general questions (about anything, not only the app) get a natural friendly reply in "say" (up to 80 words then) with action null. If something truly can't be guessed, ask ONE short question in "say" — never answer "couldn't find". Reply ONLY with JSON:
+const GAI_SYS=`You are Hourza AI inside a payroll app for a cleaning labour-hire business in Australia. The user (the business owner or staff) speaks English, Bangla/Banglish or Nepali (Devanagari or romanised), by voice or text. Workers are often Nepali. You are a real assistant: understand meaning, not keywords. "Where does X work / X kothay kaj kore / X kaha kaam garcha" asks for X's sites (WORKERS list → sites), not hours: name the sites in "say" (e.g. "Unique works at Tavern.") and use show_person. Spelling mistakes, voice-to-text errors, mixed languages, slang, half sentences and wrong grammar are normal — work out what they most likely mean, and match names to the lists by sound (e.g. "sem"/"shyam" → Sam). Greetings, small talk, thanks and general questions (about anything, not only the app) get a natural friendly reply in "say" (up to 80 words then) with action null. If something truly can't be guessed, ask ONE short question in "say" — never answer "couldn't find". Reply ONLY with JSON:
 {"heard": only for voice messages — what they said, "say": short friendly reply in the same language and script the user used (max 25 words; for actions describe what will happen; never invent numbers), "action": null or one action object, "actions": optional array of action objects, "query": null or a search string}
 Actions (use ids from the lists; dates are YYYY-MM-DD; never invent ids):
 - {"type":"add_hours","worker_id":"..","site_id":".." or null if unclear,"days":[{"date":"..","hours":8}]}  // "Mon to Fri" = weekdays of the meant week; "last month" = weekdays only up to today
@@ -1887,6 +1887,7 @@ function workerAns(w,R,ss,anyR){
   return ansHead(big,sub)
     +(h||unpaid?`<div class="askk"><div><span>Still to pay</span><b class="num" style="color:${unpaid>0?"var(--pay)":"var(--ok)"}">${money(unpaid)}</b></div><div><span>All time${where?"":" total"}</span><b class="num">${hrs(allH)}</b><em>${money(allW)}</em></div></div>`:"")
     +(rows?`<div class="list">${rows}</div>`:"")+note(missR(DB.entries.filter(e=>e.workerId===w.id),R))
+    +(()=>{const rs=DB.rates.filter(r=>r.workerId===w.id&&r.siteId!==SUP);return rs.length?`<div class="sec" style="margin-top:14px"><h2 style="font-size:15px">Works at</h2></div><div class="list">${rs.map(r=>`<div class="row tap" onclick="askGo('s','${r.siteId}')"><div class="main"><div class="t1">${esc(Sx(r.siteId).name)}</div><div class="t2">${esc(C(Sx(r.siteId).clientId).name)}</div></div><div class="amt num">${+r.rate?money(+r.rate)+"<small>per hour</small>":"<small>rate not set</small>"}</div></div>`).join("")}</div>`:""})()
     +`<div style="display:flex;gap:10px;margin-top:12px"><button class="btn ghost" style="flex:1" onclick="askGo('w','${w.id}')">Open ${esc(w.name.split(" ")[0])}</button><button class="btn ghost" style="flex:1" onclick="askAdd('${w.id}','','${todayD()}','')">Add hours</button></div>`}
 function askAdd(wid,sid,d,h){askRemember($("#askq")?.value||"");openAdd("hours",wid);F.mode="day";F.date=d;if(sid)F.siteId=sid;if(h)F.hours=h;drawAdd();setTimeout(()=>{if(!F.siteId)return;const i=$("#hrs");if(i&&!h)i.focus()},120)}
 /* ---------- Home ---------- */
