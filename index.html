@@ -764,7 +764,7 @@ const JOIN=(()=>{const m=(location.hash||"").match(/join=(CW1\.[A-Za-z0-9_\-]+)/
 if(JOIN&&!IS_APP){const l=document.querySelector('link[rel="manifest"]');if(l)l.remove()}
 let deferredInstall=null;
 addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredInstall=e;setTimeout(showInstallGuide,50)});
-const APP_VERSION="7.8.8";
+const APP_VERSION="7.8.9";
 /* ============ data layer ============ */
 const TABLES=["clients","sites","workers","rates","entries","income"];
 const EMPTY=()=>({clients:[],sites:[],workers:[],rates:[],entries:[],income:[]});
@@ -1328,7 +1328,7 @@ async function aiSelfTest(){if(!GAI.get())return toast("Turn on Smart AI first")
     ["kati jana kaamdar chan?",o=>inc(o,act.length)],
     top?[`${top.x.name} ma ko ko kaam garchha?`,o=>o._rows>=top.n||incAll(o,siteW(top.x).slice(0,3))]:null,
     c1?[`${c1.c.name} ko kati wata site chan?`,o=>inc(o,c1.ss.length)]:null,
-    norate?[`${norate.name} ko rate kati ho?`,o=>/(not set|no (pay )?rate|hasn'?t|isn'?t set|\$0|0|chaina|chhaina|xaina|set gareko)/i.test(say(o))]:null,
+    norate?[`${norate.name} ko rate kati ho?`,o=>/(not set|no (pay )?rate|n'?o?t have a (pay )?rate|without a (pay )?rate|hasn'?t|isn'?t set|\$0|\b0\b|not been set|chaina|chhaina|xaina)/i.test(say(o))]:null,
     byN("Anish")?["অনিশ কোথায় কাজ করে?",o=>incAny(o,SN(byN("Anish")))||o._rows>0]:null,
     /* follow-up that needs the previous question */
     [`Where does ${two.w.name} work?`,o=>incAny(o,SN(two.w)),"start"],
@@ -1344,7 +1344,7 @@ async function aiSelfTest(){if(!GAI.get())return toast("Turn on Smart AI first")
     /* must not make things up */
     ["Does anyone work at Bondi Junction?",o=>NO.test(say(o))&&!act.slice(0,40).some(w=>inc(o,w.name)&&w.name.length>3)],
     ["How much did Zoltan earn last month?",o=>NO.test(say(o))||/zoltan/i.test(say(o))&&/(find|exist|no |not)/i.test(say(o))],
-    norate?[`What is ${norate.name}'s pay rate?`,o=>/(not set|no (pay )?rate|hasn'?t|isn'?t set|\$0|0)/i.test(say(o))]:null,
+    norate?[`What is ${norate.name}'s pay rate?`,o=>/(not set|no (pay )?rate|n'?o?t have a (pay )?rate|without a (pay )?rate|hasn'?t|isn'?t set|\$0|\b0\b|not been set)/i.test(say(o))]:null,
     /* time questions */
     ["How many hours did everyone work this week?",o=>!!say(o).trim()&&!PROMISE.test(say(o).trim())],
     [`Did ${one.w.name} work yesterday?`,o=>!!say(o).trim()],
@@ -1396,7 +1396,7 @@ function gaiCtx(){const td=todayD();
 function gaiFacts(){try{const act=DB.workers.filter(w=>w.active!==false),rs=w=>DB.rates.filter(r=>r.workerId===w.id&&r.siteId!==SUP);
   const multi=act.filter(w=>rs(w).length>1).map(w=>`${w.name} (${rs(w).length})`),norate=act.filter(w=>!rs(w).length||rs(w).every(r=>!+r.rate)).map(w=>w.name),nocl=DB.sites.filter(x=>!x.clientId||!DB.clients.some(c=>c.id===x.clientId)).map(x=>x.name);
   const byc=DB.clients.map(c=>`${c.name}: ${DB.sites.filter(x=>x.clientId===c.id).length}`).join("; ")||"none";
-  return `EXACT FACTS (computed by the app — use these numbers, never count the lists yourself):\nActive workers: ${act.length}${DB.workers.length>act.length?` (+${DB.workers.length-act.length} who left)`:""}. Sites: ${DB.sites.length}. Clients: ${DB.clients.length}.\nSites per client: ${byc}.\nWorkers at more than one site (${multi.length}): ${multi.join(", ")||"none"}.\nWorkers with no pay rate set (${norate.length}): ${norate.join(", ")||"none"}.\nSites with no client (${nocl.length}): ${nocl.join(", ")||"none"}.\nAll site names: ${DB.sites.map(x=>x.name).join(", ")}.`}catch(e){return ""}}
+  return `EXACT FACTS (computed by the app — use these numbers, never count the lists yourself):\nActive workers: ${act.length}${DB.workers.length>act.length?` (+${DB.workers.length-act.length} who left)`:""}. Sites: ${DB.sites.length}. Clients: ${DB.clients.length}.\nSites per client: ${byc}.\nWorkers at more than one site (${multi.length}): ${multi.join(", ")||"none"}.\nWorkers with no pay rate set (${norate.length}): ${norate.join(", ")||"none"}.\nSites with no client (${nocl.length}): ${nocl.join(", ")||"none"}.\nWorker–site assignments in total: ${DB.rates.filter(r=>r.siteId!==SUP&&act.some(w=>w.id===r.workerId)).length}.\nWorkers per site, most first: ${DB.sites.map(x=>[x.name,new Set(DB.rates.filter(r=>r.siteId===x.id&&act.some(w=>w.id===r.workerId)).map(r=>r.workerId)).size]).sort((a,b)=>b[1]-a[1]).map(([n,c])=>n+" "+c).join("; ")}.\nA pay rate of 0 or empty means NOT SET.`}catch(e){return ""}}
 function gaiNorm(o){if(!o||typeof o!=="object")return {say:String(o||"")};
   if(!o.action&&!o.actions){if(o.type&&o.type!=="text")o={say:o.say||"",action:o};else if(o.compute&&typeof o.compute==="object")o.action={type:"compute",...o.compute};else if(o.code)o.action={type:"compute",title:o.title||"",code:o.code,chart:o.chart}}
   if(o.action&&!o.action.type&&o.action.code)o.action.type="compute";return o}
@@ -1440,7 +1440,7 @@ Actions (use ids from the lists; dates are YYYY-MM-DD; never invent ids):
    // THE GENERAL VIEWER. Use it for ANY request to see, list, filter, combine, compare, rank, count or calculate anything in the data that the other actions don't fit exactly — any mix of columns, periods, people, sites, companies, money. When unsure, use compute. The app runs your code on the real data (no internet, no DOM) and shows a table (+ chart if asked for a chart/graph/visual).
    // Your code gets D and H and must return {columns:[{name:"Person"},{name:"Wages",type:"money"}...], rows:[["Sam",728]...], note:"optional one line"}. Column types: money|hours|date|month|percent|text|number. Keep numbers as numbers (not formatted). Sort rows sensibly. Put the label column first.
    // D.today "YYYY-MM-DD"
-   // D.workers [{id,name,active,role("worker"|"supervisor"),payType,salary,salaryPer,createdAt,sites:[site names]}]
+   // D.workers [{id,name,active,role("worker"|"supervisor"),payType,salary,salaryPer,createdAt,sites:[site names],rates:[{site,rate}],noRate(bool: no pay rate set anywhere)}]  — a rate of null means NOT SET
    // D.sites [{id,name,clientId,client(company name),address,billType("hourly"|"fixed"|""),charge(client pays per hour),fixed(client pays per month)}]
    // D.clients [{id,name}]   D.rates [{id,workerId,worker,siteId,site,rate(worker pay per hour),cover(temporary cover link),addedAt}]
    // D.entries [{id,workerId,worker,siteId,site,clientId,client,date,month,hours,rate,wage(=hours*rate),paid(bool),paidAt,notes,kind("work"|other),work(bool: real work hours)}]  ← one row = one person, one site, one day
@@ -1650,10 +1650,10 @@ onmessage=e=>{const {D,code}=e.data;SITES=Object.fromEntries(D.sites.map(s=>[s.i
 function cmpData(){const wn=new Map(DB.workers.map(w=>[w.id,w])),sn=new Map(DB.sites.map(x=>[x.id,x])),cn=new Map(DB.clients.map(c=>[c.id,c]));
   const site=id=>sn.get(id)||{name:id===SUP?"Supervisor":"?"};
   return {today:todayD(),
-    workers:DB.workers.map(w=>({...w,active:w.active!==false,sites:DB.rates.filter(r=>r.workerId===w.id&&r.siteId!==SUP).map(r=>site(r.siteId).name)})),
+    workers:DB.workers.map(w=>{const rs=DB.rates.filter(r=>r.workerId===w.id&&r.siteId!==SUP);return {...w,active:w.active!==false,sites:rs.map(r=>site(r.siteId).name),rates:rs.map(r=>({site:site(r.siteId).name,rate:+r.rate||null})),noRate:!rs.some(r=>+r.rate>0)}}),
     sites:DB.sites.map(x=>({...x,client:(cn.get(x.clientId)||{}).name||"",charge:+x.charge||0,fixed:+x.fixed||0,billType:x.billType||""})),
     clients:DB.clients.map(c=>({...c})),
-    rates:DB.rates.map(r=>({...r,rate:+r.rate||0,worker:(wn.get(r.workerId)||{}).name||"?",site:site(r.siteId).name})),
+    rates:DB.rates.map(r=>({...r,rate:+r.rate||null,worker:(wn.get(r.workerId)||{}).name||"?",site:site(r.siteId).name})),
     entries:DB.entries.map(e=>{const x=site(e.siteId);return {...e,hours:+e.hours||0,rate:+e.rate||0,date:e.date||e.month+"-01",paid:!!e.paid,work:isWork(e),wage:wage(e),worker:(wn.get(e.workerId)||{}).name||"?",site:x.name,clientId:x.clientId||"",client:(cn.get(x.clientId)||{}).name||""}}),
     income:DB.income.map(i=>({...i,amount:+i.amount||0,client:(cn.get(i.clientId)||{}).name||""}))}}
 let CMPW=null;function cmpRun(code){return new Promise((res,rej)=>{let w;try{if(!CMPW)CMPW=URL.createObjectURL(new Blob([CMP_W],{type:"text/javascript"}));w=new Worker(CMPW)}catch(e){try{const f=new Function("D","H",code);return res(f(cmpData(),{}))}catch(e2){return rej(e2)}}
