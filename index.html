@@ -762,7 +762,7 @@ const JOIN=(()=>{const m=(location.hash||"").match(/join=(CW1\.[A-Za-z0-9_\-]+)/
 if(JOIN&&!IS_APP){const l=document.querySelector('link[rel="manifest"]');if(l)l.remove()}
 let deferredInstall=null;
 addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredInstall=e;setTimeout(showInstallGuide,50)});
-const APP_VERSION="7.6";
+const APP_VERSION="7.6.1";
 /* ============ data layer ============ */
 const TABLES=["clients","sites","workers","rates","entries","income"];
 const EMPTY=()=>({clients:[],sites:[],workers:[],rates:[],entries:[],income:[]});
@@ -2303,7 +2303,7 @@ function morePage(){
   <div class="list settings">
     <div class="row" onclick="exportCSV()"><div class="main"><div class="t1">Download for Excel</div><div class="t2">All hours as a spreadsheet</div></div>${ICON.chev}</div>
     <div class="row" onclick="backup()"><div class="main"><div class="t1">Download a backup</div><div class="t2">One file with everything</div></div>${ICON.chev}</div>
-    <div class="row" onclick="$('#impf').click()"><div class="main"><div class="t1">Import workers & sites</div><div class="t2">From an Excel list (CSV): name, site, rate</div></div>${ICON.chev}</div>
+    <div class="row" onclick="impStart()"><div class="main"><div class="t1">Import workers & sites</div><div class="t2">Paste a list, or pick an Excel (CSV) file</div></div>${ICON.chev}</div>
     <div class="row" onclick="$('#restore').click()"><div class="main"><div class="t1">Restore a backup</div><div class="t2">Replace everything with a backup</div></div>${ICON.chev}</div>
     ${online()?"":`<div class="row" onclick="resetDemo(true)"><div class="main"><div class="t1">Load sample data</div><div class="t2">Try the app with examples</div></div>${ICON.chev}</div>`}
     ${online()?"":`<div class="row" onclick="wipeAll()"><div class="main"><div class="t1" style="color:var(--pay)">Clear all data</div><div class="t2">Start empty</div></div>${ICON.chev}</div>`}
@@ -2851,6 +2851,10 @@ function impPlan(list){const lc=x=>x.toLowerCase(),plan=[],cl={},st={},wk={};con
     let wid=wk[lc(x.name)];if(!wid){wid=uid();wk[lc(x.name)]=wid;plan.push({op:"create",t:"workers",row:{id:wid,name:x.name,active:true,role:"crew",payType:"hourly",salary:0,salaryPer:"",createdAt:now}});nw++}else if(old.has(wid)&&!counted.has(wid)){counted.add(wid);same++}
     if(sid&&!links.has(wid+"|"+sid)){links.add(wid+"|"+sid);plan.push({op:"create",t:"rates",row:{id:uid(),workerId:wid,siteId:sid,rate:x.rate||0,addedAt:now}});nl++}});
   return {plan,nw,ns,nc,nl,same,rows:list.length,norate:list.filter(x=>!x.rate).length}}
+function impStart(){showSheet(`<h3>Import workers & sites</h3><div class="lead">Paste a list: one line each — <b>name, site</b> (client and rate are optional: name, site, client, rate).</div>
+  <textarea class="inp" id="impt" rows="7" style="height:auto;min-height:150px;padding:12px 14px;line-height:1.45;font-size:15px" placeholder="Name,Site,Client,Rate&#10;Sumana,Burwood,,28&#10;Anish,T Zone Chatswood,T Zone,30"></textarea>
+  <button class="btn" style="margin-top:12px" onclick="const t=$('#impt').value;if(!t.trim()){toast('Paste the list first');return}closeSheet();setTimeout(()=>impShow(impParse(t)),250)">Continue</button>
+  <button class="btn ghost" onclick="closeSheet();setTimeout(()=>$('#impf').click(),250)">Pick a file instead</button>`)}
 function impFile(file){if(!file)return;const r=new FileReader();r.onload=()=>impShow(impParse(r.result));r.onerror=()=>toast("Couldn't read that file");r.readAsText(file)}
 function impShow(list){if(!list.length){showSheet(`<h3>Nothing to import</h3><div class="lead">The file needs a column of names and a column of sites. In Excel: File → Save As → CSV.</div><button class="btn" onclick="closeSheet()">OK</button>`);return}
   const P=impPlan(list);IMP=P;
