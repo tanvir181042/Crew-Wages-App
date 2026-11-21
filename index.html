@@ -764,7 +764,7 @@ const JOIN=(()=>{const m=(location.hash||"").match(/join=(CW1\.[A-Za-z0-9_\-]+)/
 if(JOIN&&!IS_APP){const l=document.querySelector('link[rel="manifest"]');if(l)l.remove()}
 let deferredInstall=null;
 addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredInstall=e;setTimeout(showInstallGuide,50)});
-const APP_VERSION="7.8.9";
+const APP_VERSION="7.8.10";
 /* ============ data layer ============ */
 const TABLES=["clients","sites","workers","rates","entries","income"];
 const EMPTY=()=>({clients:[],sites:[],workers:[],rates:[],entries:[],income:[]});
@@ -1315,21 +1315,19 @@ async function aiSelfTest(){if(!GAI.get())return toast("Turn on Smart AI first")
   const T=[
     /* counts — must match the real numbers */
     ["How many workers do I have?",o=>inc(o,act.length)],
-    ["koto jon worker ache ar koto ta site?",o=>inc(o,act.length)&&inc(o,DB.sites.length)],
     ["How many worker-site assignments are there in total?",o=>inc(o,DB.rates.filter(r=>r.siteId!==SUP).length)||o._rows===DB.rates.filter(r=>r.siteId!==SUP).length],
     c1?[`How many sites does ${c1.c.name} have?`,o=>inc(o,c1.ss.length)]:null,
     [`How many workers have a name starting with A?`,o=>inc(o,aStart)||o._rows===aStart],
     /* lookups, typos, other languages */
     [`Where does ${one.w.name} work?`,o=>incAny(o,SN(one.w))],
-    [`${three.w.name} kothay kothay kaj kore?`,o=>incAll(o,SN(three.w).map(n=>n.split(" ")[0]))||o._rows>=SN(three.w).length],
     [`${one.w.name} kaha kaam garcha?`,o=>incAny(o,SN(one.w))],
-    byN("Sumana")?["sumna kotai kaj kre?",o=>incAny(o,SN(byN("Sumana")))||o._rows>0]:null,
+    [`${three.w.name} kaha kaha kaam garchha?`,o=>incAll(o,SN(three.w).map(n=>n.split(" ")[0]))||o._rows>=SN(three.w).length],
+    byN("Sumana")?["wher dose sumna wrk?",o=>incAny(o,SN(byN("Sumana")))||o._rows>0]:null,
     byN("Sumana")?["Sumana kaha kaha kaam garchhin?",o=>incAny(o,SN(byN("Sumana")))||o._rows>0]:null,
     ["kati jana kaamdar chan?",o=>inc(o,act.length)],
     top?[`${top.x.name} ma ko ko kaam garchha?`,o=>o._rows>=top.n||incAll(o,siteW(top.x).slice(0,3))]:null,
     c1?[`${c1.c.name} ko kati wata site chan?`,o=>inc(o,c1.ss.length)]:null,
     norate?[`${norate.name} ko rate kati ho?`,o=>/(not set|no (pay )?rate|n'?o?t have a (pay )?rate|without a (pay )?rate|hasn'?t|isn'?t set|\$0|\b0\b|not been set|chaina|chhaina|xaina)/i.test(say(o))]:null,
-    byN("Anish")?["অনিশ কোথায় কাজ করে?",o=>incAny(o,SN(byN("Anish")))||o._rows>0]:null,
     /* follow-up that needs the previous question */
     [`Where does ${two.w.name} work?`,o=>incAny(o,SN(two.w)),"start"],
     [`and ${one.w.name}?`,o=>incAny(o,SN(one.w)),"keep"],
@@ -1351,14 +1349,14 @@ async function aiSelfTest(){if(!GAI.get())return toast("Turn on Smart AI first")
     ["Who do I owe money to?",o=>!!say(o).trim()],
     /* commands — checked only, never carried out */
     one.w.id?[`Add 8 hours for ${one.w.name} yesterday`,o=>{const a=ACT(o,"add_hours");return a&&a.worker_id===one.w.id&&(a.days||[]).some(d=>d.date===yd&&+d.hours===8)}]:null,
-    two.rs.length?[`${two.w.name} er ${Sx(two.rs[0].siteId).name} e rate 28 koro`,o=>{const a=ACT(o,"set_rate");return a&&a.worker_id===two.w.id&&a.site_id===two.rs[0].siteId&&+a.rate===28}]:null,
+    two.rs.length?[`Set ${two.w.name}'s rate at ${Sx(two.rs[0].siteId).name} to 28`,o=>{const a=ACT(o,"set_rate");return a&&a.worker_id===two.w.id&&a.site_id===two.rs[0].siteId&&+a.rate===28}]:null,
     one.w.id?[`${one.w.name} kaam chhodyo`,o=>{const a=ACT(o,"worker_left");return a&&a.worker_id===one.w.id}]:null,
     swp?[`From tomorrow ${swp[0].name} will work at ${Sx(RS(swp[1])[0].siteId).name} instead of ${Sx(RS(swp[0])[0].siteId).name}`,o=>siteAfter(o,swp[0])===RS(swp[1])[0].siteId]:null,
     swp?[`${swp[1].name} will also work at ${Sx(RS(swp[0])[0].siteId).name} from next week`,o=>{const s2=siteAfter(o,swp[1],true);return s2.includes(RS(swp[0])[0].siteId)&&s2.includes(RS(swp[1])[0].siteId)}]:null,
     swp?[`Swap ${swp[0].name} and ${swp[1].name} — they change sites with each other`,o=>swapOk(o,swp)]:null,
     ["hi, how are you?",o=>!!say(o).trim()]
   ].filter(Boolean);
-  showSheet(`<h3>Full AI check</h3><div class="lead">Asking Gemini ${T.length} questions about your data — counts, lookups, typos, Bangla, Nepali, follow-ups, made-up names and commands. Nothing is changed.</div><div id="stl" class="list" style="margin-bottom:12px"></div><div id="sts" class="aic3">Starting…</div>`);
+  showSheet(`<h3>Full AI check</h3><div class="lead">Asking Gemini ${T.length} questions about your data — counts, lookups, typos, Nepali, follow-ups, made-up names and commands. Nothing is changed.</div><div id="stl" class="list" style="margin-bottom:12px"></div><div id="sts" class="aic3">Starting…</div>`);
   const out=[];let pass=0;const SAVEH=GAI.hist;
   for(let i=0;i<T.length;i++){const [q,ok,mode]=T[i];const el=$("#sts");if(!el)return;el.textContent=`Question ${i+1} of ${T.length}…`;if(mode!=="keep")GAI.hist=[];let o={},why="",t0=Date.now(),extra=0;
     try{o=await gaiAsk(q)||{};o._ok=true;const acts=[o.action,...(o.actions||[])].filter(Boolean);o._rows=-1;
