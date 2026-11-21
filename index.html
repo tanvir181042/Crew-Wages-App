@@ -764,7 +764,7 @@ const JOIN=(()=>{const m=(location.hash||"").match(/join=(CW1\.[A-Za-z0-9_\-]+)/
 if(JOIN&&!IS_APP){const l=document.querySelector('link[rel="manifest"]');if(l)l.remove()}
 let deferredInstall=null;
 addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredInstall=e;setTimeout(showInstallGuide,50)});
-const APP_VERSION="7.7.2";
+const APP_VERSION="7.8";
 /* ============ data layer ============ */
 const TABLES=["clients","sites","workers","rates","entries","income"];
 const EMPTY=()=>({clients:[],sites:[],workers:[],rates:[],entries:[],income:[]});
@@ -1292,12 +1292,51 @@ async function gaiModels(k){const r=await fetch("https://generativelanguage.goog
   const score=n=>(/flash-lite-latest$/.test(n)?100:0)+(/flash-latest$/.test(n)?90:0)+(/flash/.test(n)?50:0)+(/lite/.test(n)?5:0)+(/preview|exp|tts|image|live|audio|thinking|embedding/.test(n)?-80:0)+(parseFloat((n.match(/gemini-(\d+(\.\d+)?)/)||[])[1])||0);
   return ok.filter(n=>/^gemini/.test(n)).sort((a,b)=>score(b)-score(a))}
 async function aiSetKey(k,m){k=(k||"").trim();if(!k)return;let models=m?[m]:[];if(!m){models=await gaiModels(k)}GAI.set({k,m:models[0]||"gemini-flash-latest",alt:models.slice(1,3)})}
+/* ---- full AI check: asks Gemini many different questions about the real data, checks the answers, nothing is changed ---- */
+async function aiSelfTest(){if(!GAI.get())return toast("Turn on Smart AI first");
+  const act=DB.workers.filter(w=>w.active!==false),wk=act.map(w=>({w,rs:DB.rates.filter(r=>r.workerId===w.id&&r.siteId!==SUP)}));
+  const multi=wk.filter(x=>x.rs.length>1),one=wk.find(x=>x.rs.length===1)||wk.find(x=>x.rs.length)||{w:{name:"Sam"},rs:[]},two=multi[0]||one;
+  const sn=x=>x.rs.map(r=>Sx(r.siteId).name),cl=DB.clients.map(c=>({c,n:DB.sites.filter(x=>x.clientId===c.id).length})).sort((a,b)=>b.n-a.n),c0=cl[0];
+  const busy=DB.sites.map(x=>({x,n:DB.rates.filter(r=>r.siteId===x.id).length})).sort((a,b)=>b.n-a.n)[0];
+  const has=(say,list)=>list.some(t=>String(say||"").toLowerCase().includes(String(t).toLowerCase().split(" ")[0]));
+  const T=[
+    ["How many workers do I have?",o=>/\d/.test(o.say||"")||o._rows>0],
+    [`Where does ${one.w.name} work?`,o=>has(o.say,sn(one))||o._rows>0],
+    [`${two.w.name} kothay kothay kaj kore?`,o=>has(o.say,sn(two))||o._rows>0],
+    [`${one.w.name} kaha kaam garcha?`,o=>has(o.say,sn(one))||o._rows>0],
+    ["Who works at more than one site?",o=>o._rows>0||multi.slice(0,2).some(x=>has(o.say,[x.w.name]))],
+    ["List all my sites",o=>o._rows>=Math.min(5,DB.sites.length)||/\d/.test(o.say||"")],
+    c0?[`Which sites belong to ${c0.c.name}?`,o=>o._rows>0||has(o.say,DB.sites.filter(x=>x.clientId===c0.c.id).map(x=>x.name))]:null,
+    c0?["Which client has the most sites?",o=>has(o.say,[c0.c.name])||o._rows>0]:null,
+    busy?[`Who works at ${busy.x.name}?`,o=>o._rows>0||DB.rates.filter(r=>r.siteId===busy.x.id).some(r=>has(o.say,[W(r.workerId).name]))]:null,
+    ["Sites that don't have a client yet",o=>o._rows>0||/\d|no |none|all/i.test(o.say||"")],
+    ["Who doesn't have a pay rate yet?",o=>o._rows>0||/\d|no |none|every/i.test(o.say||"")],
+    ["koto jon worker ache ar koto ta site?",o=>/\d/.test(o.say||"")||o._rows>0],
+    ["How many hours did everyone work this week?",o=>!!(o.say||"").trim()||o._rows>=0&&o._ok],
+    [`Did ${one.w.name} work yesterday?`,o=>!!(o.say||"").trim()],
+    ["Who do I owe money to?",o=>!!(o.say||"").trim()||o._rows>=0&&o._ok],
+    ["hi, how are you?",o=>!!(o.say||"").trim()],
+    [`Do you know anyone who works at 2 sites?`,o=>o._rows>0||multi.slice(0,3).some(x=>has(o.say,[x.w.name]))]
+  ].filter(Boolean);
+  showSheet(`<h3>Full AI check</h3><div class="lead">Asking Gemini ${T.length} different questions about your data. Nothing is changed.</div><div id="stl" class="list" style="margin-bottom:12px"></div><div id="sts" class="aic3">Starting…</div>`);
+  const out=[];let pass=0;const SAVEH=GAI.hist;
+  for(let i=0;i<T.length;i++){const [q,ok]=T[i];const el=$("#sts");if(!el)return;el.textContent=`Question ${i+1} of ${T.length}…`;GAI.hist=[];let o={},why="",t0=Date.now();
+    try{o=await gaiCall(q)||{};o._ok=true;const acts=[o.action,...(o.actions||[])].filter(Boolean);o._rows=-1;
+      for(const a of acts){if(a.type==="compute"){try{const r=await cmpRun(String(a.code||""));const Tt=cmpTable(r&&r.table||r);o._rows=Tt.rows.length}catch(e){why="calc error: "+String(e.message||e).slice(0,80);o._ok=false}}else if(["report","list","show_person","show_site","show_hours","show_pay","show_reports"].includes(a.type))o._rows=Math.max(o._rows,1)}
+      if(o._ok&&!ok(o))why=why||"answer didn't match the data"}
+    catch(e){why=String(e.message||e).slice(0,90)}
+    const good=!why;if(good)pass++;const secs=((Date.now()-t0)/1000).toFixed(1);
+    out.push(`${good?"OK":"FAIL"} | ${q} | ${secs}s | ${why||""} | say: ${String(o.say||"").slice(0,90)} | action: ${[o.action,...(o.actions||[])].filter(Boolean).map(a=>a.type).join(",")||"none"}`);
+    const l=$("#stl");if(l)l.insertAdjacentHTML("beforeend",`<div class="row" style="cursor:default"><div class="main"><div class="t1">${good?"✅":"❌"} ${esc(q)}</div><div class="t2" style="white-space:normal">${esc(why?why+" · ":"")}${esc(String(o.say||"").slice(0,110))} · ${secs}s</div></div></div>`);
+    await new Promise(r=>setTimeout(r,4200))}
+  GAI.hist=SAVEH;const rep=`Hourza AI check v${APP_VERSION} · ${GAI.get().m} · ${pass}/${T.length} OK\n`+out.join("\n");AI.selfRep=rep;
+  const el=$("#sts");if(el)el.outerHTML=`<div class="dupbox" style="margin-bottom:12px;background:${pass===T.length?"var(--ok-s)":"var(--warn-s)"};color:${pass===T.length?"var(--ok)":"var(--warn)"}"><b>${pass} of ${T.length} answered correctly</b></div><button class="btn" onclick="navigator.clipboard&&navigator.clipboard.writeText(AI.selfRep).then(()=>toast('✓ Report copied — paste it to Claude'),()=>toast('Copy failed'))">Copy report</button><button class="btn ghost" onclick="closeSheet()">Close</button>`}
 function aiSetup(){const g=GAI.get();setTimeout(aiFillModels,300);showSheet(`<h3>Smart AI</h3><div class="lead">Hourza AI can use Google's Gemini to understand anything you say — any wording, even Bangla or Nepali. It's free with your own Google key.</div>
   ${g?`<div class="dupbox" style="background:var(--ok-s);color:var(--ok);margin-bottom:14px"><b>✓ Smart AI is on</b><div class="t2" style="white-space:normal;margin-top:3px;color:inherit">Model: ${esc(g.m)}</div></div>`:""}
   <div class="steps"><div><b>1</b><span>Open Google AI Studio and sign in with your Google account</span></div><div><b>2</b><span>Tap <b>Create API key</b>, then copy it</span></div><div><b>3</b><span>Paste it here and tap Turn on</span></div></div>
   <button class="btn ghost" style="margin:12px 0 14px" onclick="window.open('https://aistudio.google.com/apikey','_blank')">Open Google AI Studio</button>
   <div class="f"><input class="inp" id="gk" placeholder="Paste your key here" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" value=""></div><div id="gkerr"></div>
-  ${g?`<div class="f" style="margin-top:4px"><label>Model</label><select class="inp" id="gmsel" onchange="const x=GAI.get();GAI.set({...x,m:this.value,alt:[]});toast('Model: '+this.value)"><option>${esc(g.m)}</option></select></div><button class="btn ghost" style="margin-bottom:10px" onclick="aiTest()">Test Smart AI now</button><div id="gtest"></div>`:""}<button class="btn" id="gkb" onclick="aiSaveKey()">${g?"Change key":"Turn on"}</button>${g?`<button class="btn ghost" style="margin-top:10px" onclick="GAI.set(null);closeSheet();render();toast('Smart AI turned off')">Turn off</button>`:""}
+  ${g?`<div class="f" style="margin-top:4px"><label>Model</label><select class="inp" id="gmsel" onchange="const x=GAI.get();GAI.set({...x,m:this.value,alt:[]});toast('Model: '+this.value)"><option>${esc(g.m)}</option></select></div><button class="btn ghost" style="margin-bottom:10px" onclick="aiTest()">Test Smart AI now</button><div id="gtest"></div><button class="btn ghost" style="margin-bottom:10px" onclick="closeSheet();setTimeout(aiSelfTest,250)">Full AI check (≈2 min)</button>`:""}<button class="btn" id="gkb" onclick="aiSaveKey()">${g?"Change key":"Turn on"}</button>${g?`<button class="btn ghost" style="margin-top:10px" onclick="GAI.set(null);closeSheet();render();toast('Smart AI turned off')">Turn off</button>`:""}
   <div class="row" style="margin:14px 0 4px;padding:0;background:none;border:0"><div class="main"><div class="t1">Do things right away</div><div class="t2">AI saves changes immediately — say “undo” to reverse</div></div><span class="sw${AI.auto?" on":""}" role="switch" onclick="AI.auto=!AI.auto;try{localStorage.setItem('cw_aiauto',AI.auto?'1':'0')}catch(e){};this.classList.toggle('on',AI.auto)" aria-label="Do things right away"></span></div>
   <div class="hint" style="margin-top:14px;line-height:1.5">What is sent to Google: what you say, plus the names of your workers, sites and companies (no money amounts). Google's free plan may use it to improve their products. The key is kept on this phone${online()?" and shared with people you invite":""}.</div>`)}
 async function aiTest(){const g=GAI.get(),box=$("#gtest");if(!g||!box)return;box.innerHTML='<div class="hint">Testing…</div>';const t0=Date.now();
@@ -1481,11 +1520,18 @@ function gaiRender(o,q){if(Array.isArray(o.actions)&&o.actions.length>1){const s
     if(t==="open"&&TITLES[a.page])return lead+aiCard(`Open ${TITLES[a.page]}`,"","",`<button class="btn" onclick="askGo('t','${a.page}')">Open</button>`)}
   if(o.query){const h=askAnswer(o.query);if(!/Couldn't find that/.test(h))return lead+h;return lead||ansHead("Hmm, I didn't find that","Tell me a bit more — which person, site or dates?")}
   return say?ansHead(say,""):bad()}
+function aiShowRaw(){const r=AI.lastRaw;aiNote(r?`Last AI reply (${r.at}${r.retry?", after a retry":""}): `+JSON.stringify(r.o).slice(0,700):"No AI reply yet")}
 async function aiSmart(q){const box=$("#askres");if(!box||!q.trim())return;const w=$(".askw");
   box.innerHTML=aiDots();w&&w.classList.add("thinking");
   const slowT=setTimeout(()=>{if(box.isConnected&&!streamed)box.innerHTML=aiDots()+`<div class="aic3" style="margin-top:6px">Still working — the connection to Google is slow…</div>`},7000);
   let live=null,streamed=false;const onPart=t=>{clearTimeout(slowT);if(!box.isConnected)return;if(!live){box.innerHTML=`<div class="aisay">${esc(t)}</div>`;live=box.firstChild;streamed=true;aiScroll(box.parentNode.previousElementSibling)}else live.textContent=t};
-  try{const o=await gaiCall(q,onPart);clearTimeout(slowT);if(!box.isConnected)return;AI.ps=null;box.innerHTML=gaiRender(o,q);setTimeout(aiAutoRun,350);if(streamed){box.querySelectorAll(".aicard,.list,.askchips,.btn,.aierr").forEach((e,n)=>{e.style.animation=`ansIn .3s ${n*.04}s cubic-bezier(.32,.72,0,1) both`})}else aiPolish(box);aiScroll(box.parentNode.previousElementSibling);aiTalk(AI.say||(box.querySelector(".ansb")?.textContent||""))}
+  try{let o=await gaiCall(q,onPart);clearTimeout(slowT);if(!box.isConnected)return;AI.lastRaw={q,o,at:new Date().toLocaleTimeString()};
+    /* the reply promised to show something but brought nothing to show: ask Gemini once more for the calculation */
+    const KNOWN=/^(add_hours|cover|pay|money_in|new_worker|new_site|delete_hours|open|show_person|show_site|show_reports|show_pay|show_hours|mark_paid|edit_hours|set_rate|set_charge|worker_left|report|list|export|undo|rename|assign|delete|payslip|invoice|send|compute|change)$/;
+    const acts=[o.action,...(o.actions||[])].filter(Boolean),noShow=!acts.some(x=>x&&KNOWN.test(x.type||""));
+    if(noShow&&(acts.length||/^(here (are|is)|these are|this is the list|below|showing|following|নিচে|এখানে|यहाँ)|:\s*$/i.test(String(o.say||"").trim()))){
+      try{const o2=await gaiCall(`(My question was: "${q}". Your reply "${String(o.say||"").slice(0,160)}" did not include a valid action, so nothing was shown. Reply again with "say" = the direct answer and a "compute" action that produces the table.)`);if(o2&&(o2.action||o2.actions)){o=o2;AI.lastRaw={q,o,at:new Date().toLocaleTimeString(),retry:true}}}catch(_){}}
+    if(!box.isConnected)return;AI.ps=null;box.innerHTML=gaiRender(o,q);setTimeout(aiAutoRun,350);if(streamed){box.querySelectorAll(".aicard,.list,.askchips,.btn,.aierr").forEach((e,n)=>{e.style.animation=`ansIn .3s ${n*.04}s cubic-bezier(.32,.72,0,1) both`})}else aiPolish(box);aiScroll(box.parentNode.previousElementSibling);aiTalk(AI.say||(box.querySelector(".ansb")?.textContent||""))}
   catch(e){clearTimeout(slowT);const em=String(e&&e.message||e);if(q!=="(voice message)"&&!/Failed to fetch|NetworkError|Load failed/i.test(em)&&!/API key|API_KEY|key not valid|PERMISSION|unregistered|quota|429|RESOURCE_EXHAUSTED/i.test(em)){box.innerHTML=`<div class="aisay">Sorry, Google's AI didn't answer this time — usually a slow or weak internet connection. Please tap ➤ to send it again.</div><div class="aierr"><small>${esc(em.slice(0,160))}</small></div>`;AI.lastQ=q;return}if(q==="(voice message)"){if(AI.audU){AI.audU.textContent="🎤 (voice)";AI.audU=null}box.innerHTML=`<div class="aisay">Sorry, I couldn't catch that voice message. Please tap the mic and say it again, or type it.</div>`;return}const loc=aiCmd(q)||askAnswer(q),m=String(e&&e.message||e);box.innerHTML=`<div class="aierr"><b>Gemini didn't answer</b> — showing the quick answer instead.<br><small>${esc(/API key|API_KEY|key not valid|PERMISSION|unregistered/i.test(m)?"The Google key isn't accepted. Settings → Smart AI → Change key.":/quota|429|RESOURCE_EXHAUSTED/i.test(m)?"Free limit reached for now — try again in a minute.":/too long/i.test(m)?"Gemini took too long to answer — tap ➤ to try again.":/Failed to fetch|NetworkError|Load failed/i.test(m)?"Couldn't reach Google ("+m.slice(0,60)+"). Check the internet and try again.":m.slice(0,160))}</small></div></div>`+loc}
   finally{w&&w.classList.remove("thinking")}}
 const AILANG={"en-AU":"EN","bn-BD":"বাং","ne-NP":"नेपा"},AILANGN={"en-AU":"English","bn-BD":"বাংলা","ne-NP":"नेपाली"};
@@ -1768,7 +1814,7 @@ function aiMic(noRec){const i=$("#askq");if(!i)return;
 function aiNote(msg){const m=$("#aimsgs");if(!m){toast(msg);return}m.querySelector(".aiwel")?.remove();m.insertAdjacentHTML("beforeend",`<div class="ainote">${esc(msg)}</div>`);aiScroll()}
 const AILOGO=`<svg viewBox="0 0 24 24" width="22" height="22" fill="#111214"><path d="M12 2.5c.4 4.6 2.9 7.1 7.5 7.5-4.6.4-7.1 2.9-7.5 7.5-.4-4.6-2.9-7.1-7.5-7.5 4.6-.4 7.1-2.9 7.5-7.5z"/><path d="M19 15c.2 2 1.2 3 3 3.2-1.8.2-2.8 1.2-3 3.2-.2-2-1.2-3-3-3.2 1.8-.2 2.8-1.2 3-3.2z" opacity=".55"/></svg>`;
 function openAsk(q=""){hideToast();AI.voice=false;AI.p=null;const keep=AI.saved&&Date.now()-AI.saved.t<20*60e3;if(!keep)GAI.hist=[];
-  showSheet(`<div class="askw chat"><div class="aihead"><div class="ailogo">${AILOGO}</div><div style="flex:1;min-width:0"><h3 style="margin:0">Hourza AI${smartOn()?' <span class="aibadge">Smart</span>':""}</h3><div class="t2">${smartOn()?"English · বাংলা · नेपाली":"Ask anything, or tell me what to do"} · v${APP_VERSION}</div></div>${smartOn()?`<button class="aispk" style="font-size:12.5px;font-weight:750;margin-right:6px;width:auto;padding:0 10px" onclick="aiLang(this)" aria-label="Mic language">${AILANG[AI.lang]||"EN"}</button>`:""}<button class="aispk${AI.speak?"":" off"}" onclick="aiSpeakToggle(this)" aria-label="Speak answers">🔊</button></div>
+  showSheet(`<div class="askw chat"><div class="aihead"><div class="ailogo">${AILOGO}</div><div style="flex:1;min-width:0"><h3 style="margin:0">Hourza AI${smartOn()?' <span class="aibadge">Smart</span>':""}</h3><div class="t2">${smartOn()?"English · বাংলা · नेपाली":"Ask anything, or tell me what to do"} · <span onclick="event.stopPropagation();aiShowRaw()" style="cursor:pointer">v${APP_VERSION}</span></div></div>${smartOn()?`<button class="aispk" style="font-size:12.5px;font-weight:750;margin-right:6px;width:auto;padding:0 10px" onclick="aiLang(this)" aria-label="Mic language">${AILANG[AI.lang]||"EN"}</button>`:""}<button class="aispk${AI.speak?"":" off"}" onclick="aiSpeakToggle(this)" aria-label="Speak answers">🔊</button></div>
     <div class="aimsgs" id="aimsgs"><div class="aiwel">${(()=>{const rec=askRecent();return `${rec.length?`<div class="asklbl">Recent</div>${chipsH(rec)}`:""}<div class="asklbl">Try</div>${chipsH(askIdeas())}`})()}</div></div>
     <div class="aiwave"><i></i><i></i><i></i><i></i><i></i><span>Listening… tap the mic again when you finish</span></div>
     <div class="askin aicomp"><input id="askq" class="inp" placeholder="${smartOn()?"Message Hourza AI":"Ask or tell me what to do"}" autocomplete="off" autocorrect="on" autocapitalize="sentences" spellcheck="false" enterkeyhint="send" value="" oninput="AI.voice=false" onkeydown="if(event.key==='Enter'){event.preventDefault();aiSendNow()}" ontouchend="if(document.activeElement!==this){this.focus()}"><button class="aisend" onmousedown="event.preventDefault()" ontouchend="event.preventDefault();aiSendNow()" onclick="aiSendNow()" aria-label="Send">${ICON.send||"➤"}</button><button class="aimic" onmousedown="event.preventDefault()" onclick="aiVoice()" aria-label="Speak">${ICON.mic}</button></div></div>`);
