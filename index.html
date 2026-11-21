@@ -761,7 +761,7 @@ const JOIN=(()=>{const m=(location.hash||"").match(/join=(CW1\.[A-Za-z0-9_\-]+)/
 if(JOIN&&!IS_APP){const l=document.querySelector('link[rel="manifest"]');if(l)l.remove()}
 let deferredInstall=null;
 addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredInstall=e;setTimeout(showInstallGuide,50)});
-const APP_VERSION="7.5.4";
+const APP_VERSION="7.5.5";
 /* ============ data layer ============ */
 const TABLES=["clients","sites","workers","rates","entries","income"];
 const EMPTY=()=>({clients:[],sites:[],workers:[],rates:[],entries:[],income:[]});
@@ -1948,8 +1948,9 @@ function groupPaid(es){
 }
 
 /* ---------- People ---------- */
+function teamEmpty(icon,title,text,btn,js){return `${teamSeg()}<div class="card empty" style="padding:36px 20px"><div class="e" style="color:var(--mut)">${icon}</div><div style="font-size:17px;font-weight:700;color:var(--ink)">${title}</div>${text}<br><br><button class="btn" style="max-width:260px;margin:0 auto" onclick="${js}">${btn}</button></div>`}
 function teamSeg(){state.teamSeg=state.tab;return `<div class="pseg teamseg">${[["people","Workers"],["sites","Sites"],["clients","Clients"]].map(([k,l])=>`<button class="${state.tab===k?"on":""}" onclick="go('${k}')">${l}</button>`).join("")}</div>`}
-function clientsPage(){const m=state.cmon||(state.cmon=todayD().slice(0,7));
+function clientsPage(){if(!DB.clients.length)return teamEmpty(ICON.wallet.replace("<svg",`<svg width="26" height="26"`),"No clients yet","Add the companies you clean for. Their sites go under them.","+ Add a client","openAdd('client')");const m=state.cmon||(state.cmon=todayD().slice(0,7));
   const rows=DB.clients.map(c=>{const ss=DB.sites.filter(x=>x.clientId===c.id),billed=ss.map(x=>siteStats(x,{mode:"month",d:m+"-15"})).reduce((a,r)=>a+(r.b||0),0),rec=DB.income.filter(i=>i.clientId===c.id&&i.month===m).reduce((a,i)=>a+ +i.amount,0);return {c,ss,billed,rec}}).sort((a,b)=>b.billed-a.billed||a.c.name.localeCompare(b.c.name));
   return `${teamSeg()}
   <div class="mstep2" style="margin:4px 0 12px"><button onclick="state.cmon=addM(state.cmon,-1);render()" aria-label="Previous month">‹</button><b>${mLabel(m)}</b><button onclick="state.cmon=addM(state.cmon,1);render()" aria-label="Next month">›</button></div>
@@ -1971,6 +1972,7 @@ function peoplePage(){
   if(state.filter==="paid") ws=ws.filter(w=>!owed[w.id]);
   ws.sort((a,b)=>(owed[b.id]||0)-(owed[a.id]||0)||a.name.localeCompare(b.name));
   const nOwed=DB.workers.filter(w=>owed[w.id]).length;
+  if(!DB.workers.length)return teamEmpty(ICON.people,"No workers yet","Add the people who work for you, and what you pay them.","+ Add a worker","openAdd('worker')");
   return `${teamSeg()}
     <div class="search">${ICON.search}<input id="q" type="search" enterkeyhint="search" placeholder="Search name, site or client" value="${esc(state.q)}" oninput="state.q=this.value;state.focusSearch=true;render()" autocomplete="off"></div>
     <div class="chips">${[["all","Everyone"],["owed",`To pay · ${nOwed}`],["paid","Paid"]].map(([k,l])=>`<button class="chip ${state.filter===k?"on":""}" onclick="state.filter='${k}';render()">${l}</button>`).join("")}</div>
@@ -2043,7 +2045,7 @@ function sitesPage(){
   const row=r=>{const x=r.x,ws=new Set(DB.rates.filter(q=>q.siteId===x.id).map(q=>q.workerId)).size;
     return `<div class="row tap" onclick="openSite('${x.id}')"><span class="sdot ${r.act?"on":""}"></span><div class="main"><div class="t1">${esc(x.name)}</div><div class="t2">${esc(C(x.clientId).name)}${x.address?" · "+esc(x.address):""} · ${plural(ws,"worker")}</div></div>
       <div class="amt num" style="color:${r.p==null?"var(--mut)":r.p<0?"var(--pay)":r.p>0?"var(--ok)":"var(--mut)"}">${r.h||r.w?(r.p==null?"–":money(r.p)):"–"}<small>${r.h||r.w?(r.p==null?(r.note?"monthly fee":"charge rate not set"):(r.p<0?"you lose":"you keep")):"no hours"}</small></div>${ICON.chev}</div>`};
-  if(!DB.sites.length)return `<div class="card empty" style="padding:36px 20px"><div class="e" style="color:var(--mut)">${ICON.sites}</div><div style="font-size:17px;font-weight:700;color:var(--ink)">No sites yet</div>Add the places where your crew works, and which client each is for.<br><br><button class="btn" style="max-width:260px;margin:0 auto" onclick="openAdd('site')">+ Add a site</button></div>`;
+  if(!DB.sites.length)return teamEmpty(ICON.sites,"No sites yet","Add the places where your team works, and which client each is for.","+ Add a site","openAdd('site')");
   const cl=cf!=="all"?C(cf):null;
   return `${teamSeg()}
   <div class="search" style="margin:0 0 10px">${ICON.search}<input type="search" placeholder="Search site, client or address" value="${esc(state.sq||"")}" oninput="state.sq=this.value;clearTimeout(window._sqt);window._sqt=setTimeout(()=>{render();const i=document.querySelector('.search input');if(i){i.focus();i.setSelectionRange(i.value.length,i.value.length)}},250)"></div>
