@@ -764,7 +764,7 @@ const JOIN=(()=>{const m=(location.hash||"").match(/join=(CW1\.[A-Za-z0-9_\-]+)/
 if(JOIN&&!IS_APP){const l=document.querySelector('link[rel="manifest"]');if(l)l.remove()}
 let deferredInstall=null;
 addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredInstall=e;setTimeout(showInstallGuide,50)});
-const APP_VERSION="7.8.2";
+const APP_VERSION="7.8.3";
 /* ============ data layer ============ */
 const TABLES=["clients","sites","workers","rates","entries","income"];
 const EMPTY=()=>({clients:[],sites:[],workers:[],rates:[],entries:[],income:[]});
@@ -1322,8 +1322,8 @@ async function aiSelfTest(){if(!GAI.get())return toast("Turn on Smart AI first")
   const out=[];let pass=0;const SAVEH=GAI.hist;
   for(let i=0;i<T.length;i++){const [q,ok]=T[i];const el=$("#sts");if(!el)return;el.textContent=`Question ${i+1} of ${T.length}…`;GAI.hist=[];let o={},why="",t0=Date.now();
     try{o=await gaiAsk(q)||{};o._ok=true;const acts=[o.action,...(o.actions||[])].filter(Boolean);o._rows=-1;
-      for(const a of acts){if(a.type==="compute"){try{const r=await cmpRun(String(a.code||""));const Tt=cmpTable(r&&r.table||r);o._rows=Tt.rows.length}catch(e){why="calc error: "+String(e.message||e).slice(0,80);o._ok=false}}else if(["report","list","show_person","show_site","show_hours","show_pay","show_reports"].includes(a.type))o._rows=Math.max(o._rows,1)}
-      if(o._ok&&o._rows<1&&/^(here (are|is)|these are|let'?s see|let me|showing)/i.test(String(o.say||"").trim()))why=why||"promised a list but showed nothing";
+      for(const a of acts){if(a.type==="compute"){try{const r=await cmpRun(String(a.code||""));const Tt=cmpTable(r&&r.table||r);o._rows=Tt.rows.length;const ans=await gaiAnswer(q,Tt.cols.map(c=>c.n),Tt.rows);if(ans){o._said=o.say;o.say=ans}}catch(e){why="calc error: "+String(e.message||e).slice(0,80);o._ok=false}}else if(["report","list","show_person","show_site","show_hours","show_pay","show_reports"].includes(a.type))o._rows=Math.max(o._rows,1)}
+      if(o._ok&&o._rows<1&&PROMISE.test(String(o.say||"").trim()))why=why||"promised a list but showed nothing";
       if(o._ok&&!ok(o))why=why||"answer didn't match the data"}
     catch(e){why=String(e.message||e).slice(0,90)}
     const good=!why;if(good)pass++;const secs=((Date.now()-t0)/1000).toFixed(1);
@@ -1452,7 +1452,7 @@ Examples (worker/site ids come from the lists):
 "kiran doesn't work here anymore" → worker_left Kiran
 "thanks" / "ok" → short friendly "say", action null
 For how-to questions about the app, answer in "say" (max 40 words). Never claim something is saved — the user taps Save.`;
-async function gaiCall(text,onPart,opt){opt=opt||{};const g=GAI.get();if(!g)throw new Error("off");
+async function gaiCall(text,onPart,opt){opt=opt||{};let ext=false;const g=GAI.get();if(!g)throw new Error("off");
   const aud=AI.audio;AI.audio=null;let clean=false;const hist=()=>clean?[]:GAI.hist.slice(-6).filter(h=>h&&h.parts&&h.parts.every(x=>x.text&&String(x.text).trim()));const contents=()=>[...hist(),{role:"user",parts:aud?[{text:"The user sent this voice message. First write exactly what they said in \"heard\" (fix names to match the lists; keep their language), then act on it."},{inlineData:{mimeType:"audio/wav",data:aud.b64}}]:[{text}]}],t0=Date.now();if(aud)AI.audU=aud.u;void 0;
   const mk=th=>({systemInstruction:{parts:[{text:GAI_SYS+"\n\n"+gaiCtx()}]},contents:contents(),generationConfig:{responseMimeType:"application/json",temperature:.2,maxOutputTokens:4096,...(th===1?{thinkingConfig:{thinkingLevel:"low"}}:th===2?{thinkingConfig:{thinkingBudget:0}}:th===3?{thinkingConfig:{thinkingLevel:"minimal"}}:{})}});
   const models=(opt.model?[opt.model,"gemini-flash-latest",g.m]:aud?[g.m,"gemini-flash-latest","gemini-2.5-flash"]:[g.m,...(g.alt||[]),"gemini-flash-lite-latest","gemini-flash-latest"]).filter((x,i,a)=>x&&a.indexOf(x)===i).slice(0,3);let last;
@@ -1468,7 +1468,7 @@ async function gaiCall(text,onPart,opt){opt=opt||{};const g=GAI.get();if(!g)thro
             const mm=acc.match(/"say"\s*:\s*"((?:[^"\\]|\\.)*)/);if(mm){try{onPart(JSON.parse('"'+mm[1].replace(/\\$/,"")+'"'))}catch(_){}}}catch(_){}}}
         clearTimeout(to);j={candidates:[{content:{parts:[{text:acc}]},finishReason:fin}]}}
       else{clearTimeout(to);j=await r.json().catch(()=>({}))}
-      if(!r.ok){const msg=(j.error&&j.error.message)||"AI error "+r.status;last=new Error(msg);if(r.status===400&&/thinking/i.test(msg))continue;if(r.status===400&&!clean){clean=true;try{const ng=GAI.get()||g;const t2={...(ng.thm||{})};delete t2[m];GAI.set({...ng,thm:t2})}catch(_){}GAI.hist=[];if(th!==0){thc.push(0);continue}}if(r.status===400)break;if(r.status===404||r.status===429||r.status>=500)break;throw last}
+      if(!r.ok){const msg=(j.error&&j.error.message)||"AI error "+r.status;last=new Error(msg);if(r.status===400&&/thinking/i.test(msg))continue;if(r.status===400&&!clean){clean=true;try{const ng=GAI.get()||g;const t2={...(ng.thm||{})};delete t2[m];GAI.set({...ng,thm:t2})}catch(_){}GAI.hist=[];if(th!==0){thc.push(0);continue}}if(r.status===400)break;if(r.status===429||r.status>=500){/* Google busy: try more models after a short pause */if(!ext){ext=true;["gemini-2.5-flash-lite","gemini-2.5-flash","gemini-flash-latest"].forEach(x=>models.includes(x)||models.push(x))}await new Promise(z=>setTimeout(z,900));break}if(r.status===404)break;throw last}
       const c=(j.candidates||[])[0]||{},t=((c.content||{}).parts||[]).filter(p=>!p.thought).map(p=>p.text||"").join("");
       if(!t.trim()){last=new Error(c.finishReason==="SAFETY"?"Gemini wouldn't answer that":"Gemini sent an empty reply ("+(c.finishReason||"?")+")");break}
       const o=gaiNorm(parse(t));if(aud){if(AI.audU){AI.audU.textContent="🎤 "+(o.heard||"(voice)");AI.audU=null}text=o.heard||"(voice message)"}if(!aud&&!opt.model){const ng=GAI.get()||g;GAI.set({...ng,m,thm:{...(ng.thm||{}),[m]:th}})}GAI.hist.push({role:"user",parts:[{text}]},{role:"model",parts:[{text:t}]});GAI.hist=GAI.hist.slice(-8);return o}
@@ -1632,8 +1632,9 @@ function cmpChart(T,ch){if(!ch||!T.rows.length)return"";const idx=v=>typeof v===
   const fake=rows.map(r=>({ks:[String(r[li])],labels:[cmpFmt(T.cols[li].t,r[li])],v:{v:+r[vi]}}));
   const time=ch.type==="column"||ch.type==="line"||["date","month"].includes(T.cols[li].t);
   return aiChart(fake,[time?"date":"x"],"v",head,fmt,time?"column":"bar").replace(/ by x<\/div>/," </div>")}
-async function gaiAnswer(q,cols,rows){const g=GAI.get();if(!g||!rows.length)return"";const csv=[cols.join(","),...rows.slice(0,40).map(r=>r.map(v=>String(v??"").replace(/,/g," ")).join(","))].join("\n");
-  const body={contents:[{role:"user",parts:[{text:`The user asked: "${q}"\nThe app calculated this from their real data (CSV, ${rows.length} rows${rows.length>40?", first 40 shown":""}):\n${csv}\n\nAnswer the user's question directly in 1-2 short sentences, in the same language and script the user wrote in. Use the numbers exactly as given (money in $). Reply as JSON {"say":"..."}.`}]}],generationConfig:{responseMimeType:"application/json",temperature:.1,maxOutputTokens:300}};
+const PROMISE=/^(here (are|is)|these are|this is|let'?s see|let me|below|showing|following|i('| wi)ll (show|list|check)|নিচে|এখানে|यहाँ)/i;
+async function gaiAnswer(q,cols,rows){const g=GAI.get();if(!g)return"";const csv=[cols.join(","),...rows.slice(0,40).map(r=>r.map(v=>String(v??"").replace(/,/g," ")).join(","))].join("\n");
+  const body={contents:[{role:"user",parts:[{text:`The user asked: "${q}"\nThe app calculated this from their real data (CSV, ${rows.length} rows${rows.length>40?", first 40 shown":""}):\n${rows.length?csv:"(no rows — nothing matched)"}\n\nAnswer the user's question directly in 1-2 short sentences, in the same language and script the user wrote in. Use the numbers exactly as given (money in $). Reply as JSON {"say":"..."}.`}]}],generationConfig:{responseMimeType:"application/json",temperature:.1,maxOutputTokens:300}};
   for(const m of [g.m,"gemini-flash-lite-latest","gemini-flash-latest"].filter((x,i,a)=>x&&a.indexOf(x)===i)){try{const ctl=new AbortController(),t=setTimeout(()=>ctl.abort(),12000);const r=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent`,{method:"POST",headers:{"Content-Type":"application/json","x-goog-api-key":g.k},body:JSON.stringify(body),signal:ctl.signal});clearTimeout(t);if(!r.ok)continue;const j=await r.json();const tx=(j.candidates?.[0]?.content?.parts||[]).map(p=>p.text||"").join("");try{return (JSON.parse(tx).say||"").trim()}catch(_){return tx.replace(/^[{"\s]*say"?\s*:\s*"?|"?\s*}?\s*$/g,"").trim()}}catch(e){}}return""}
 async function aiCompute(a,box,q,again){const id=box.id;
   try{const r=await cmpRun(String(a.code||""));const T=cmpTable(r&&r.table||r);const el=document.getElementById(id);if(!el)return;
@@ -1641,8 +1642,8 @@ async function aiCompute(a,box,q,again){const id=box.id;
     AI.cmp=AI.cmp||{};AI.cmp[id]={name:(a.title||"Hourza").replace(/[^\w\- ]+/g,"").trim()||"Hourza",rows:[T.cols.map(c=>c.n),...T.rows.map(r=>r.map(v=>v==null?"":v))]};
     const note=r&&typeof r==="object"&&!Array.isArray(r)&&r.note?`<div class="aic3">${esc(r.note)}</div>`:"";
     const body=(T.rows.length?cmpChart(T,a.chart||r&&r.chart)+`<div class="airep"><table><thead><tr>${T.cols.map((c,i)=>`<th${i?"":` class="l"`}>${esc(c.n)}</th>`).join("")}</tr></thead><tbody>${T.rows.slice(0,300).map(x=>`<tr>${x.map((v,i)=>`<td${typeof v==="number"||["money","hours"].includes(T.cols[i].t)?` class="num"`:""}>${esc(cmpFmt(T.cols[i].t,v))}</td>`).join("")}</tr>`).join("")}</tbody>${tot?`<tfoot><tr>${tot.map((v,i)=>`<td${i?` class="num"`:""}>${v===""?"":i?esc(cmpFmt(T.cols[i].t,v)):"Total"}</td>`).join("")}</tr></tfoot>`:""}</table></div>${T.rows.length>300?`<div class="aic3">Showing 300 of ${T.rows.length}.</div>`:""}`:`<div class="aic3">Nothing matches that.</div>`)+note;
-    el.outerHTML=`<div id="${id}">`+aiCard(esc(a.title||"Here it is"),esc(a.subtitle||""),`<div class="aians aic3" style="font-size:16px;font-weight:600;color:var(--ink);margin:0 0 10px">${smartOn()&&T.rows.length?`<span class="ashim">Reading the result…</span>`:""}</div>`+body,T.rows.length?`<button class="btn ghost" onclick="AI.exp=AI.cmp['${id}'];aiShareExport()">Excel / Share</button>`:"")+`</div>`;aiScroll();
-    if(smartOn()&&T.rows.length){const ans=await gaiAnswer(q,T.cols.map(c=>c.n),T.rows);const w=document.querySelector(`#${id} .aians`);if(w){if(ans){w.textContent=ans;if(AI.voice||AI.speak)try{aiTalk&&aiTalk(ans)}catch(_){}}else w.remove()}aiScroll()}}
+    el.outerHTML=`<div id="${id}">`+aiCard(esc(a.title||"Here it is"),esc(a.subtitle||""),`<div class="aians aic3" style="font-size:16px;font-weight:600;color:var(--ink);margin:0 0 10px">${smartOn()?`<span class="ashim">Reading the result…</span>`:""}</div>`+body,T.rows.length?`<button class="btn ghost" onclick="AI.exp=AI.cmp['${id}'];aiShareExport()">Excel / Share</button>`:"")+`</div>`;aiScroll();
+    if(smartOn()){const ans=await gaiAnswer(q,T.cols.map(c=>c.n),T.rows);const w=document.querySelector(`#${id} .aians`);if(w){if(ans){w.textContent=ans;const card=document.getElementById(id),lead=card&&card.parentNode&&card.parentNode.querySelector(".aisay");if(lead&&(PROMISE.test(String(AI.say||"").trim())||PROMISE.test(lead.textContent.trim())))lead.remove();if(AI.voice||AI.speak)try{aiTalk&&aiTalk(ans)}catch(_){}}else w.remove()}aiScroll()}}
   catch(e){const el=document.getElementById(id);if(!el)return;
     if(!again&&smartOn()){try{const o=await gaiCall(`(The app ran your "compute" code for my last message "${q}" and it failed with: ${String(e.message||e).slice(0,200)}. Reply with a corrected compute action only.)`);const b=o.action||(o.actions||[])[0];if(b&&b.type==="compute"){return aiCompute(b,el,q,true)}}catch(_){}}
     el.outerHTML=`<div class="aisay">Sorry, I couldn't work that out. Try asking it a little differently.</div><div class="aierr"><small>${esc(String(e.message||e).slice(0,140))}</small></div>`}}
