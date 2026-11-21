@@ -762,7 +762,7 @@ const JOIN=(()=>{const m=(location.hash||"").match(/join=(CW1\.[A-Za-z0-9_\-]+)/
 if(JOIN&&!IS_APP){const l=document.querySelector('link[rel="manifest"]');if(l)l.remove()}
 let deferredInstall=null;
 addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredInstall=e;setTimeout(showInstallGuide,50)});
-const APP_VERSION="7.6.1";
+const APP_VERSION="7.6.2";
 /* ============ data layer ============ */
 const TABLES=["clients","sites","workers","rates","entries","income"];
 const EMPTY=()=>({clients:[],sites:[],workers:[],rates:[],entries:[],income:[]});
@@ -2821,18 +2821,20 @@ function setPin(done){closeSheet();
       if(second!==first){toast("PINs didn't match — try again");setTimeout(()=>setPin(done),50);return true}
       const salt=uid();ls.set(K_PIN,{salt,h:await hashPin(first,salt),bad:0});done();return true}),10);return true});
 }
-let unlocked=false;
-function lockIfNeeded(){
+let unlocked=false;const K_SEEN="cw_seen";const markSeen=()=>{if(unlocked)try{localStorage.setItem(K_SEEN,String(Date.now()))}catch(e){}};
+setInterval(markSeen,20000);addEventListener("pagehide",markSeen);
+function lockIfNeeded(fresh){
   const p=ls.get(K_PIN,null); if(!online()||!p){unlocked=true;return}
+  if(fresh){const t=+(localStorage.getItem(K_SEEN)||0);if(t&&Date.now()-t<5*60*1000){unlocked=true;markSeen();return}}
   unlocked=false;
   pinPad("Enter PIN","Hourza is locked",async v=>{
-    const p2=ls.get(K_PIN,null); if(await hashPin(v,p2.salt)===p2.h){p2.bad=0;ls.set(K_PIN,p2);unlocked=true;pull();return true}
+    const p2=ls.get(K_PIN,null); if(await hashPin(v,p2.salt)===p2.h){p2.bad=0;ls.set(K_PIN,p2);unlocked=true;markSeen();pull();return true}
     p2.bad=(p2.bad||0)+1;ls.set(K_PIN,p2);
     if(p2.bad>=5){CONN=null;[K_CONN,K_CACHE,K_OUT,K_PIN].forEach(k=>ls.del(k));OUT=[];DB=ls.get(KEY,null)||EMPTY();render();toast("Too many wrong PINs — this device was disconnected");return true}
     toast(`Wrong PIN · ${5-p2.bad} ${5-p2.bad===1?"try":"tries"} left`);return false});
 }
 let hiddenAt=0;
-document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="hidden")hiddenAt=Date.now();else if(online()&&unlocked&&hiddenAt&&Date.now()-hiddenAt>5*60*1000&&!document.querySelector(".lock"))lockIfNeeded()});
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="hidden"){hiddenAt=Date.now();markSeen()}else if(online()&&unlocked&&hiddenAt&&Date.now()-hiddenAt>5*60*1000&&!document.querySelector(".lock"))lockIfNeeded()});
 
 /* ---- export / backup ---- */
 function download(name,text,type){if(location.hostname.includes("claude")){toast("Downloads work in the real app");throw 0}const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([text],{type}));a.download=name;document.body.appendChild(a);a.click();a.remove()}
@@ -2888,7 +2890,7 @@ function resetDemo(sample,quiet){if(sample&&online()){toast("Sample data is off 
   $("#app").innerHTML=`<div class="empty" style="padding-top:40vh">Loading…</div>`;
   try{await load()}catch(e){$("#app").innerHTML=`<div class="empty" style="padding-top:35vh">Couldn't load your data.<br>Check the internet and refresh.</div>`;return}
   const ms=DB.entries.map(e=>e.month).sort(); state.month=online()?nowM():(ms[ms.length-1]||nowM());state.per.d=state.month===todayD().slice(0,7)?todayD():state.month+"-01";
-  render(); if(!autoJoin()){lockIfNeeded(); if(online()&&!ls.get(K_PIN,null))unlocked=true; if(unlocked)pull();}
+  render(); if(!autoJoin()){lockIfNeeded(true); if(online()&&!ls.get(K_PIN,null))unlocked=true; if(unlocked)pull();}
   setTimeout(showInstallGuide,900);
 })();
 if("serviceWorker" in navigator&&location.protocol==="https:")navigator.serviceWorker.register("sw.js").catch(()=>{});
