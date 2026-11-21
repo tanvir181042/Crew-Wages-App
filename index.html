@@ -764,7 +764,7 @@ const JOIN=(()=>{const m=(location.hash||"").match(/join=(CW1\.[A-Za-z0-9_\-]+)/
 if(JOIN&&!IS_APP){const l=document.querySelector('link[rel="manifest"]');if(l)l.remove()}
 let deferredInstall=null;
 addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredInstall=e;setTimeout(showInstallGuide,50)});
-const APP_VERSION="7.8.10";
+const APP_VERSION="7.8.11";
 /* ============ data layer ============ */
 const TABLES=["clients","sites","workers","rates","entries","income"];
 const EMPTY=()=>({clients:[],sites:[],workers:[],rates:[],entries:[],income:[]});
@@ -1307,7 +1307,8 @@ async function aiSelfTest(){if(!GAI.get())return toast("Turn on Smart AI first")
   const swapOk=(o,[a,b])=>{const ch=[o.action,...(o.actions||[])].filter(Boolean).filter(x=>x.type==="change");if(!ch.length)return false;const rates=new Map(DB.rates.map(r=>[r.id,{...r}]));
     for(const x of ch){const {plan}=chgPlan(x.ops);plan.filter(p=>p.t==="rates").forEach(p=>{if(p.op==="delete")rates.delete(p.old.id);else rates.set(p.row.id,{...p.row})})}
     const sitesOf=w=>[...rates.values()].filter(r=>r.workerId===w.id&&r.siteId!==SUP).map(r=>r.siteId).sort().join();return sitesOf(a)===RS(b).map(r=>r.siteId).sort().join()&&sitesOf(b)===RS(a).map(r=>r.siteId).sort().join()};
-  const siteAfter=(o,w,all)=>{const ch=[o.action,...(o.actions||[])].filter(Boolean).filter(x=>x.type==="change");const rates=new Map(DB.rates.map(r=>[r.id,{...r}]));for(const x of ch){const {plan}=chgPlan(x.ops);plan.filter(p=>p.t==="rates").forEach(p=>{if(p.op==="delete")rates.delete(p.old.id);else rates.set(p.row.id,{...p.row})})}
+  const siteAfter=(o,w,all)=>{const AA=[o.action,...(o.actions||[])].filter(Boolean),ch=AA.filter(x=>x.type==="change");const rates=new Map(DB.rates.map(r=>[r.id,{...r}]));for(const x of ch){const {plan}=chgPlan(x.ops);plan.filter(p=>p.t==="rates").forEach(p=>{if(p.op==="delete")rates.delete(p.old.id);else rates.set(p.row.id,{...p.row})})}
+    AA.filter(x=>x.type==="assign"&&x.worker_id&&x.site_id).forEach(x=>rates.set("as"+x.site_id+x.worker_id,{id:"as",workerId:x.worker_id,siteId:x.site_id}));
     const ss=[...rates.values()].filter(r=>r.workerId===w.id&&r.siteId!==SUP).map(r=>r.siteId);return all?ss:(ss.length===1?ss[0]:ss.join())};
   const say=o=>String(o.say||""),low=o=>say(o).toLowerCase(),inc=(o,t)=>low(o).includes(String(t).toLowerCase()),incAny=(o,l)=>l.some(t=>inc(o,t)),incAll=(o,l)=>l.every(t=>inc(o,t));
   const NO=/\b(no|not|none|nobody|no one|doesn'?t|isn'?t|aren'?t|never)\b|কেউ না|নেই|নাই|छैन|कोही/i,ACT=(o,t)=>[o.action,...(o.actions||[])].filter(Boolean).find(a=>a.type===t);
@@ -1327,7 +1328,7 @@ async function aiSelfTest(){if(!GAI.get())return toast("Turn on Smart AI first")
     ["kati jana kaamdar chan?",o=>inc(o,act.length)],
     top?[`${top.x.name} ma ko ko kaam garchha?`,o=>o._rows>=top.n||incAll(o,siteW(top.x).slice(0,3))]:null,
     c1?[`${c1.c.name} ko kati wata site chan?`,o=>inc(o,c1.ss.length)]:null,
-    norate?[`${norate.name} ko rate kati ho?`,o=>/(not set|no (pay )?rate|n'?o?t have a (pay )?rate|without a (pay )?rate|hasn'?t|isn'?t set|\$0|\b0\b|not been set|chaina|chhaina|xaina)/i.test(say(o))]:null,
+    norate?[`${norate.name} ko rate kati ho?`,o=>/(not (currently |yet |been )?set|no (pay )?rate|n'?o?t have a (pay )?rate|without a (pay )?rate|hasn'?t|isn'?t set|\$0|\b0\b|chaina|chhaina|xaina)/i.test(say(o))]:null,
     /* follow-up that needs the previous question */
     [`Where does ${two.w.name} work?`,o=>incAny(o,SN(two.w)),"start"],
     [`and ${one.w.name}?`,o=>incAny(o,SN(one.w)),"keep"],
@@ -1342,7 +1343,7 @@ async function aiSelfTest(){if(!GAI.get())return toast("Turn on Smart AI first")
     /* must not make things up */
     ["Does anyone work at Bondi Junction?",o=>NO.test(say(o))&&!act.slice(0,40).some(w=>inc(o,w.name)&&w.name.length>3)],
     ["How much did Zoltan earn last month?",o=>NO.test(say(o))||/zoltan/i.test(say(o))&&/(find|exist|no |not)/i.test(say(o))],
-    norate?[`What is ${norate.name}'s pay rate?`,o=>/(not set|no (pay )?rate|n'?o?t have a (pay )?rate|without a (pay )?rate|hasn'?t|isn'?t set|\$0|\b0\b|not been set)/i.test(say(o))]:null,
+    norate?[`What is ${norate.name}'s pay rate?`,o=>/(not (currently |yet |been )?set|no (pay )?rate|n'?o?t have a (pay )?rate|without a (pay )?rate|hasn'?t|isn'?t set|\$0|\b0\b)/i.test(say(o))]:null,
     /* time questions */
     ["How many hours did everyone work this week?",o=>!!say(o).trim()&&!PROMISE.test(say(o).trim())],
     [`Did ${one.w.name} work yesterday?`,o=>!!say(o).trim()],
@@ -1569,7 +1570,7 @@ function gaiRender(o,q){if(Array.isArray(o.actions)&&o.actions.length>1){const s
     if(t==="send"){const ch=["whatsapp","sms","email"].includes(a.channel)?a.channel:"whatsapp";AI.send={ch,to:a.to||"",text:a.text||""};return lead+aiCard(`Send by ${ch==="sms"?"message":ch==="email"?"email":"WhatsApp"}`,a.to?esc(a.to):"Pick the person in "+(ch==="email"?"Mail":ch==="sms"?"Messages":"WhatsApp"),`<div class="aic3" style="white-space:pre-wrap">${esc(a.text||"")}</div>`,`<button class="btn" onclick="aiSendLink(AI.send.ch,AI.send.to,AI.send.text)">Open ${ch==="sms"?"Messages":ch==="email"?"Mail":"WhatsApp"}</button>`)}
     if(t==="undo"){AI.p={k:"undo"};const u=AIUNDO[AIUNDO.length-1];return lead+(u?aiCard("Undo the last change?",esc(u.msg),"",`<button class="btn" onclick="aiDo()">Undo</button>`):aiCard("Nothing to undo","I can only undo changes made here in this chat.","",""))}
     if(t==="rename"){const kind=["worker","site","client"].includes(a.kind)?a.kind:"worker",tbl=kind==="worker"?"workers":kind==="site"?"sites":"clients",x=DB[tbl].find(y=>y.id===a.id);if(!x||!a.name)return lead||bad();AI.p={k:"rename",tbl,id:x.id,name:String(a.name).trim()};return lead+aiCard(`Rename ${esc(x.name)}`,`→ <b>${esc(a.name)}</b>`,"",`<button class="btn" onclick="aiDo()">Rename</button>`)}
-    if(t==="assign"){const w=DB.workers.find(x=>x.id===a.worker_id),x=DB.sites.find(y=>y.id===a.site_id);if(!w||!x)return lead||bad();if(!(+a.rate>0))return lead+aiCard(`${esc(w.name)} at ${esc(x.name)}`,"What's the pay per hour there?","","");AI.p={k:"rate",wid:w.id,sid:x.id,rate:+a.rate};return lead+aiCard(`Add ${esc(w.name)} to ${esc(x.name)}`,`<b>${money(+a.rate)}/hr</b>`,"",`<button class="btn" onclick="aiDo()">Save</button>`)}
+    if(t==="assign"){const w=DB.workers.find(x=>x.id===a.worker_id),x=DB.sites.find(y=>y.id===a.site_id);if(!w||!x)return lead||bad();const usual=(DB.rates.find(r=>r.workerId===w.id&&+r.rate>0)||{}).rate,rt=+a.rate>0?+a.rate:+usual||0;AI.p={k:"rate",wid:w.id,sid:x.id,rate:rt};return lead+aiCard(`Add ${esc(w.name)} to ${esc(x.name)}`,rt?`<b>${money(rt)}/hr</b>${+a.rate>0?"":" · their usual rate"}`:"Pay rate not set yet — you can add it later","",`<button class="btn" onclick="aiDo()">Save</button>`)}
     if(t==="delete"){const kind=["worker","site","client"].includes(a.kind)?a.kind:"worker",x=(kind==="worker"?DB.workers:kind==="site"?DB.sites:DB.clients).find(y=>y.id===a.id);if(!x)return lead||bad();AI.p={k:"delete",kind,id:x.id};return lead+aiCard(`Delete ${esc(x.name)}?`,kind==="worker"?"Removes the person and all their hours. To keep history, say they left instead.":kind==="site"?"Removes the site and its hours.":"Removes the client, its sites and hours.","",`<button class="btn danger" onclick="aiDo()">Delete…</button>`)}
     if(t==="list")return lead+aiRoster(a);
     if(t==="open"&&TITLES[a.page])return lead+aiCard(`Open ${TITLES[a.page]}`,"","",`<button class="btn" onclick="askGo('t','${a.page}')">Open</button>`)}
@@ -1673,7 +1674,7 @@ function cmpChart(T,ch){if(!ch||!T.rows.length)return"";const idx=v=>typeof v===
   return aiChart(fake,[time?"date":"x"],"v",head,fmt,time?"column":"bar").replace(/ by x<\/div>/," </div>")}
 const PROMISE=/^(here (are|is)|these are|this is|let'?s see|let me|below|showing|following|i('| wi)ll (show|list|check)|নিচে|এখানে|यहाँ)/i;
 async function gaiAnswer(q,cols,rows){const g=GAI.get();if(!g)return"";const csv=[cols.join(","),...rows.slice(0,40).map(r=>r.map(v=>String(v??"").replace(/,/g," ")).join(","))].join("\n");
-  const body={contents:[{role:"user",parts:[{text:`The user asked: "${q}"\nThe app calculated this from their real data (CSV, ${rows.length} rows${rows.length>40?", first 40 shown":""}):\n${rows.length?csv:"(no rows — nothing matched)"}\n\nAnswer the user's question directly in 1-2 short sentences, always in English (even if the question was in Bangla or Nepali). Use the numbers exactly as given (money in $). Reply as JSON {"say":"..."}.`}]}],generationConfig:{responseMimeType:"application/json",temperature:.1,maxOutputTokens:300}};
+  const body={contents:[{role:"user",parts:[{text:`The user asked: "${q}"\nThe app calculated this from their real data (CSV, ${rows.length} rows${rows.length>40?", first 40 shown":""}):\n${rows.length?csv:"(no rows — nothing matched)"}\n\nAnswer the user's question directly in 1-2 short sentences, always in English (even if the question was in Bangla or Nepali). Use the numbers exactly as given (money in $). Talk like a helpful person: never mention 'the data provided', 'the CSV', 'the table' or 'rows'. Reply as JSON {"say":"..."}.`}]}],generationConfig:{responseMimeType:"application/json",temperature:.1,maxOutputTokens:300}};
   for(const m of [g.m,"gemini-flash-lite-latest","gemini-flash-latest"].filter((x,i,a)=>x&&a.indexOf(x)===i)){try{const ctl=new AbortController(),t=setTimeout(()=>ctl.abort(),12000);const r=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${m}:generateContent`,{method:"POST",headers:{"Content-Type":"application/json","x-goog-api-key":g.k},body:JSON.stringify(body),signal:ctl.signal});clearTimeout(t);if(!r.ok)continue;const j=await r.json();const tx=(j.candidates?.[0]?.content?.parts||[]).map(p=>p.text||"").join("");try{return (JSON.parse(tx).say||"").trim()}catch(_){return tx.replace(/^[{"\s]*say"?\s*:\s*"?|"?\s*}?\s*$/g,"").trim()}}catch(e){}}return""}
 async function aiCompute(a,box,q,again){const id=box.id;
   try{const r=await cmpRun(String(a.code||""));const T=cmpTable(r&&r.table||r);const el=document.getElementById(id);if(!el)return;
