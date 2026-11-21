@@ -764,7 +764,7 @@ const JOIN=(()=>{const m=(location.hash||"").match(/join=(CW1\.[A-Za-z0-9_\-]+)/
 if(JOIN&&!IS_APP){const l=document.querySelector('link[rel="manifest"]');if(l)l.remove()}
 let deferredInstall=null;
 addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredInstall=e;setTimeout(showInstallGuide,50)});
-const APP_VERSION="7.8.12";
+const APP_VERSION="7.8.13";
 /* ============ data layer ============ */
 const TABLES=["clients","sites","workers","rates","entries","income"];
 const EMPTY=()=>({clients:[],sites:[],workers:[],rates:[],entries:[],income:[]});
@@ -1355,6 +1355,8 @@ async function aiSelfTest(){if(!GAI.get())return toast("Turn on Smart AI first")
     one.w.id?[`${one.w.name} kaam chhodyo`,o=>{const a=ACT(o,"worker_left");return a&&a.worker_id===one.w.id}]:null,
     swp?[`From tomorrow ${swp[0].name} will work at ${Sx(RS(swp[1])[0].siteId).name} instead of ${Sx(RS(swp[0])[0].siteId).name}`,o=>siteAfter(o,swp[0])===RS(swp[1])[0].siteId]:null,
     swp?[`${swp[1].name} will also work at ${Sx(RS(swp[0])[0].siteId).name} from next week`,o=>{const s2=siteAfter(o,swp[1],true);return s2.includes(RS(swp[0])[0].siteId)&&s2.includes(RS(swp[1])[0].siteId)}]:null,
+    one.w.id&&two.w.id&&one.w.id!==two.w.id?[`${one.w.name} is sick today, ${two.w.name} will cover for them`,o=>{const a=acts(o).find(x=>x.type==="cover");return a&&a.cover_worker_id===two.w.id&&a.sick_worker_id===one.w.id&&(!(a.dates||[]).length||(a.dates||[]).includes(todayD()))&&(!a.site_id||a.site_id===one.rs[0].siteId)}]:null,
+    one.w.id&&two.w.id&&one.w.id!==two.w.id?[`${one.w.name} bholi birami cha, ${two.w.name} le 8 ghanta cover garchha`,o=>{const a=acts(o).find(x=>x.type==="cover");return a&&a.cover_worker_id===two.w.id&&a.sick_worker_id===one.w.id&&(a.dates||[]).includes(addD(todayD(),1))&&(!a.hours||+a.hours===8)}]:null,
     ["Add a worker",o=>!acts(o).some(a=>["new_worker","change","assign"].includes(a.type))&&/name/i.test(say(o)),"start"],
     top?[`Ram Thapa, ${top.x.name}, 27 dollars an hour`,o=>{const a=acts(o).find(x=>x.type==="new_worker");return a&&/ram thapa/i.test(a.name||"")&&a.site_id===top.x.id&&+a.rate===27},"keep"]:null,
     three.rs.length>1?[`Remove ${three.w.name} from ${Sx(three.rs[0].siteId).name}`,o=>{if(acts(o).some(a=>a.type==="delete"))return false;const ss=siteAfter(o,three.w,true);return !ss.includes(three.rs[0].siteId)&&three.rs.slice(1).every(r=>ss.includes(r.siteId))}]:null,
