@@ -734,6 +734,7 @@ html,body{overscroll-behavior-y:none}
  #app .greet .me svg,#app .top.root .gear svg,#app .welgear svg{width:20px;height:20px}
  #app .greet{padding-right:56px}#app .top.root{padding-right:56px}}
 @media (prefers-color-scheme:dark){.nav .tabsg button:not(.on){color:#A0A0A6!important}}
+.sheet.scrolly::after{content:"";display:block;height:28px}
 .setgh{font-size:12.5px;font-weight:750;letter-spacing:.06em;text-transform:uppercase;color:var(--mut);margin:0 4px 8px}
 .teamseg{margin:0 0 14px}
 .sec .link,.row .link{padding:10px 6px;margin:-10px -6px;min-height:40px}
@@ -761,7 +762,7 @@ const JOIN=(()=>{const m=(location.hash||"").match(/join=(CW1\.[A-Za-z0-9_\-]+)/
 if(JOIN&&!IS_APP){const l=document.querySelector('link[rel="manifest"]');if(l)l.remove()}
 let deferredInstall=null;
 addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredInstall=e;setTimeout(showInstallGuide,50)});
-const APP_VERSION="7.5.5";
+const APP_VERSION="7.5.6";
 /* ============ data layer ============ */
 const TABLES=["clients","sites","workers","rates","entries","income"];
 const EMPTY=()=>({clients:[],sites:[],workers:[],rates:[],entries:[],income:[]});
@@ -2339,7 +2340,10 @@ let lastOut=0;const isField=el=>el&&el.matches&&el.matches("input:not([type=chec
     const maxY=document.documentElement.scrollHeight-window.innerHeight,bounce=window.scrollY<0||window.scrollY>maxY+1||vv.offsetTop<0||PTR.on,recent=Date.now()-lastOut<2500;
     const shift=typing||bounce||!recent?0:Math.round(vv.offsetTop+vv.height-window.innerHeight);document.documentElement.style.setProperty("--vvshift",(Math.abs(shift)>2?shift:0)+"px")};
   const reveal=()=>{const el=document.activeElement;if(!isField(el)||!vv)return;const r=el.getBoundingClientRect();
-    if(sh.classList.contains("on")&&sh.contains(el)){const sr=sh.getBoundingClientRect(),bot=Math.min(sr.bottom,vv.offsetTop+vv.height)-24,top=sr.top+70;
+    if(sh.classList.contains("on")&&sh.contains(el)){const sr=sh.getBoundingClientRect();
+      /* keep the field above the sticky Save button, not hidden behind it */
+      const sb=[...sh.querySelectorAll(".btn:not(.ghost)")].find(b=>getComputedStyle(b).position==="sticky"&&b.offsetParent&&!b.contains(el));
+      const foot=sb?sb.getBoundingClientRect().height+48:24,bot=Math.min(sr.bottom,vv.offsetTop+vv.height)-foot,top=sr.top+70;
       if(r.bottom>bot)sh.scrollTop+=r.bottom-bot;else if(r.top<top)sh.scrollTop-=top-r.top}
     else{const bot=vv.offsetTop+vv.height-(document.querySelector(".tdbar")?150:40),top=vv.offsetTop+90;if(r.bottom>bot)window.scrollBy(0,r.bottom-bot);else if(r.top<top)window.scrollBy(0,r.top-top)}};
   document.addEventListener("focusin",e=>{if(!isField(e.target))return;[60,160,320,600,900].forEach(t=>setTimeout(()=>{fit();fit2();reveal()},t))});
