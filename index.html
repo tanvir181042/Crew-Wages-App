@@ -295,7 +295,8 @@ html.ios-app .toast{bottom:124px}
 html.ios-app .sheet{bottom:calc(var(--kb,0px) + max(14px, env(safe-area-inset-bottom)))}
 @media (prefers-color-scheme:dark){.sheet{box-shadow:0 24px 70px rgba(0,0,0,.7),0 0 0 .5px rgba(255,255,255,.1)}}
 .grab{width:40px;height:5px;border-radius:3px;background:var(--line);margin:0 auto 12px;box-shadow:0 0 0 14px transparent}
-body.sheet-open{overflow:hidden}
+body.sheet-open{overflow:hidden;position:fixed;left:0;right:0;top:var(--locky,0px);width:100%}
+#aimsgs{overscroll-behavior:contain}
 .sheet h3{font-size:21px;font-weight:760;letter-spacing:-.02em;margin-bottom:4px}
 .sheet .lead{color:var(--mut);font-size:14.5px;margin-bottom:16px}
 .seg{display:flex;background:var(--soft);border-radius:13px;padding:4px;gap:4px;margin-bottom:18px;overflow-x:auto;scrollbar-width:none}
@@ -763,7 +764,7 @@ const JOIN=(()=>{const m=(location.hash||"").match(/join=(CW1\.[A-Za-z0-9_\-]+)/
 if(JOIN&&!IS_APP){const l=document.querySelector('link[rel="manifest"]');if(l)l.remove()}
 let deferredInstall=null;
 addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredInstall=e;setTimeout(showInstallGuide,50)});
-const APP_VERSION="7.7";
+const APP_VERSION="7.7.2";
 /* ============ data layer ============ */
 const TABLES=["clients","sites","workers","rates","entries","income"];
 const EMPTY=()=>({clients:[],sites:[],workers:[],rates:[],entries:[],income:[]});
@@ -1401,8 +1402,8 @@ async function gaiCall(text,onPart){const g=GAI.get();if(!g)throw new Error("off
   const mk=th=>({systemInstruction:{parts:[{text:GAI_SYS+"\n\n"+gaiCtx()}]},contents:contents(),generationConfig:{responseMimeType:"application/json",temperature:.2,maxOutputTokens:4096,...(th===1?{thinkingConfig:{thinkingLevel:"low"}}:th===2?{thinkingConfig:{thinkingBudget:0}}:th===3?{thinkingConfig:{thinkingLevel:"minimal"}}:{})}});
   const models=(aud?[g.m,"gemini-flash-latest","gemini-2.5-flash"]:[g.m,...(g.alt||[]),"gemini-flash-lite-latest","gemini-flash-latest"]).filter((x,i,a)=>x&&a.indexOf(x)===i).slice(0,3);let last;
   const parse=t=>{t=(t||"").replace(/^```(json)?|```$/g,"").trim();try{return JSON.parse(t)}catch(_){const a=t.indexOf("{"),b=t.lastIndexOf("}");if(a>=0&&b>a){try{return JSON.parse(t.slice(a,b+1))}catch(_){}}if(t&&!/^[\[{]/.test(t))return {say:t.slice(0,600),action:null};throw new Error("AI reply wasn't readable")}};
-  for(const m of models){const thc=aud?[0]:(g.thm&&g.thm[m]!=null)?[g.thm[m]]:[2,3,1,0];for(const th of thc){if(Date.now()-t0>45000)throw last||new Error("Gemini is taking too long — try again");
-    try{const ctl=new AbortController(),to=setTimeout(()=>ctl.abort(),Math.max(8000,Math.min(22000,45000-(Date.now()-t0))));
+  for(const m of models){const thc=aud?[0]:(g.thm&&g.thm[m]!=null)?[g.thm[m]]:[2,3,1,0];for(const th of thc){if(Date.now()-t0>50000)throw last||new Error("Gemini is taking too long — try again");
+    try{const ctl=new AbortController(),to=setTimeout(()=>ctl.abort(),Math.max(8000,Math.min(15000,50000-(Date.now()-t0))));
       const stream=!!(onPart&&window.ReadableStream);
       const r=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${m}:${stream?"streamGenerateContent?alt=sse":"generateContent"}`,{method:"POST",headers:{"Content-Type":"application/json","x-goog-api-key":g.k},body:JSON.stringify(mk(th)),signal:ctl.signal});
       let j;
@@ -1416,7 +1417,7 @@ async function gaiCall(text,onPart){const g=GAI.get();if(!g)throw new Error("off
       const c=(j.candidates||[])[0]||{},t=((c.content||{}).parts||[]).filter(p=>!p.thought).map(p=>p.text||"").join("");
       if(!t.trim()){last=new Error(c.finishReason==="SAFETY"?"Gemini wouldn't answer that":"Gemini sent an empty reply ("+(c.finishReason||"?")+")");break}
       const o=parse(t);if(aud){if(AI.audU){AI.audU.textContent="🎤 "+(o.heard||"(voice)");AI.audU=null}text=o.heard||"(voice message)"}if(!aud){const ng=GAI.get()||g;GAI.set({...ng,m,thm:{...(ng.thm||{}),[m]:th}})}GAI.hist.push({role:"user",parts:[{text}]},{role:"model",parts:[{text:t}]});GAI.hist=GAI.hist.slice(-8);return o}
-    catch(e){last=e;if(e.name==="AbortError"){last=new Error("Gemini is taking too long — try again");if(Date.now()-t0<36000)break;throw last}if(/readable/.test(e.message))break;throw e}}}
+    catch(e){last=e;if(e.name==="AbortError"){last=new Error("Gemini is taking too long — try again");if(Date.now()-t0<40000)break;throw last}if(/readable/.test(e.message))break;throw e}}}
   throw last||new Error("AI unavailable")}
 const okD=d=>/^\d{4}-\d{2}-\d{2}$/.test(d||"")&&!isNaN(parseD(d));
 function gaiRender(o,q){if(Array.isArray(o.actions)&&o.actions.length>1){const say=esc(o.say||"");AI.say=o.say||"";AI.ps=[];let h=say?`<div class="aisay">${say}</div>`:"";
@@ -1482,9 +1483,10 @@ function gaiRender(o,q){if(Array.isArray(o.actions)&&o.actions.length>1){const s
   return say?ansHead(say,""):bad()}
 async function aiSmart(q){const box=$("#askres");if(!box||!q.trim())return;const w=$(".askw");
   box.innerHTML=aiDots();w&&w.classList.add("thinking");
-  let live=null,streamed=false;const onPart=t=>{if(!box.isConnected)return;if(!live){box.innerHTML=`<div class="aisay">${esc(t)}</div>`;live=box.firstChild;streamed=true;aiScroll(box.parentNode.previousElementSibling)}else live.textContent=t};
-  try{const o=await gaiCall(q,onPart);if(!box.isConnected)return;AI.ps=null;box.innerHTML=gaiRender(o,q);setTimeout(aiAutoRun,350);if(streamed){box.querySelectorAll(".aicard,.list,.askchips,.btn,.aierr").forEach((e,n)=>{e.style.animation=`ansIn .3s ${n*.04}s cubic-bezier(.32,.72,0,1) both`})}else aiPolish(box);aiScroll(box.parentNode.previousElementSibling);aiTalk(AI.say||(box.querySelector(".ansb")?.textContent||""))}
-  catch(e){const em=String(e&&e.message||e);if(q!=="(voice message)"&&!/Failed to fetch|NetworkError|Load failed/i.test(em)&&!/API key|API_KEY|key not valid|PERMISSION|unregistered|quota|429|RESOURCE_EXHAUSTED/i.test(em)){box.innerHTML=`<div class="aisay">Sorry, Google's AI didn't answer this time. Please tap ➤ to send it again.</div><div class="aierr"><small>${esc(em.slice(0,160))}</small></div>`;AI.lastQ=q;return}if(q==="(voice message)"){if(AI.audU){AI.audU.textContent="🎤 (voice)";AI.audU=null}box.innerHTML=`<div class="aisay">Sorry, I couldn't catch that voice message. Please tap the mic and say it again, or type it.</div>`;return}const loc=aiCmd(q)||askAnswer(q),m=String(e&&e.message||e);box.innerHTML=`<div class="aierr"><b>Gemini didn't answer</b> — showing the quick answer instead.<br><small>${esc(/API key|API_KEY|key not valid|PERMISSION|unregistered/i.test(m)?"The Google key isn't accepted. Settings → Smart AI → Change key.":/quota|429|RESOURCE_EXHAUSTED/i.test(m)?"Free limit reached for now — try again in a minute.":/too long/i.test(m)?"Gemini took too long to answer — tap ➤ to try again.":/Failed to fetch|NetworkError|Load failed/i.test(m)?"Couldn't reach Google ("+m.slice(0,60)+"). Check the internet and try again.":m.slice(0,160))}</small></div></div>`+loc}
+  const slowT=setTimeout(()=>{if(box.isConnected&&!streamed)box.innerHTML=aiDots()+`<div class="aic3" style="margin-top:6px">Still working — the connection to Google is slow…</div>`},7000);
+  let live=null,streamed=false;const onPart=t=>{clearTimeout(slowT);if(!box.isConnected)return;if(!live){box.innerHTML=`<div class="aisay">${esc(t)}</div>`;live=box.firstChild;streamed=true;aiScroll(box.parentNode.previousElementSibling)}else live.textContent=t};
+  try{const o=await gaiCall(q,onPart);clearTimeout(slowT);if(!box.isConnected)return;AI.ps=null;box.innerHTML=gaiRender(o,q);setTimeout(aiAutoRun,350);if(streamed){box.querySelectorAll(".aicard,.list,.askchips,.btn,.aierr").forEach((e,n)=>{e.style.animation=`ansIn .3s ${n*.04}s cubic-bezier(.32,.72,0,1) both`})}else aiPolish(box);aiScroll(box.parentNode.previousElementSibling);aiTalk(AI.say||(box.querySelector(".ansb")?.textContent||""))}
+  catch(e){clearTimeout(slowT);const em=String(e&&e.message||e);if(q!=="(voice message)"&&!/Failed to fetch|NetworkError|Load failed/i.test(em)&&!/API key|API_KEY|key not valid|PERMISSION|unregistered|quota|429|RESOURCE_EXHAUSTED/i.test(em)){box.innerHTML=`<div class="aisay">Sorry, Google's AI didn't answer this time — usually a slow or weak internet connection. Please tap ➤ to send it again.</div><div class="aierr"><small>${esc(em.slice(0,160))}</small></div>`;AI.lastQ=q;return}if(q==="(voice message)"){if(AI.audU){AI.audU.textContent="🎤 (voice)";AI.audU=null}box.innerHTML=`<div class="aisay">Sorry, I couldn't catch that voice message. Please tap the mic and say it again, or type it.</div>`;return}const loc=aiCmd(q)||askAnswer(q),m=String(e&&e.message||e);box.innerHTML=`<div class="aierr"><b>Gemini didn't answer</b> — showing the quick answer instead.<br><small>${esc(/API key|API_KEY|key not valid|PERMISSION|unregistered/i.test(m)?"The Google key isn't accepted. Settings → Smart AI → Change key.":/quota|429|RESOURCE_EXHAUSTED/i.test(m)?"Free limit reached for now — try again in a minute.":/too long/i.test(m)?"Gemini took too long to answer — tap ➤ to try again.":/Failed to fetch|NetworkError|Load failed/i.test(m)?"Couldn't reach Google ("+m.slice(0,60)+"). Check the internet and try again.":m.slice(0,160))}</small></div></div>`+loc}
   finally{w&&w.classList.remove("thinking")}}
 const AILANG={"en-AU":"EN","bn-BD":"বাং","ne-NP":"नेपा"},AILANGN={"en-AU":"English","bn-BD":"বাংলা","ne-NP":"नेपाली"};
 function aiLang(b){const k=Object.keys(AILANG),n=k[(k.indexOf(AI.lang)+1)%k.length];AI.lang=n;try{localStorage.setItem("cw_ailang",n)}catch(e){}b.textContent=AILANG[n];toast("Mic: "+AILANGN[n])}
@@ -2320,12 +2322,12 @@ function morePage(){
 
 /* ============ sheets ============ */
 let sheetClose=null;
-function openSheet(html,onClose){$("#sheet").innerHTML=`<div class="grab"></div>`+html;void $("#sheet").offsetHeight;$("#sheet").classList.add("on");$("#scrim").classList.add("on");sheetClose=onClose||null;$("#sheet").scrollTop=0}
+function openSheet(html,onClose){$("#sheet").innerHTML=`<div class="grab"></div>`+html;void $("#sheet").offsetHeight;$("#sheet").classList.add("on");$("#scrim").classList.add("on");sheetClose=onClose||null;$("#sheet").scrollTop=0;window.__chk&&window.__chk()}
 function closeSheet(){if($("#sheet").classList.contains("chatmode")){aiKeep();if(VREC.on&&VREC.stop)VREC.stop();setTimeout(aiMicRelease,300)}setTimeout(()=>{if(!$("#sheet").classList.contains("on"))$("#sheet").classList.remove("chatmode")},400);document.body.classList.remove("sheet-open");const sh=$("#sheet");if(sh.style.transform){sh.style.transition="transform .25s";sh.style.transform="translateY(110%)";setTimeout(()=>{sh.style.transition="";sh.style.transform=""},300)}sh.classList.remove("on");$("#scrim").classList.remove("on");if(sheetClose)sheetClose()}
-$("#scrim").onclick=closeSheet;
+$("#scrim").onclick=closeSheet;$("#scrim").addEventListener("touchmove",e=>e.preventDefault(),{passive:false});
 document.addEventListener("touchstart",()=>{},{passive:true});
 const tint={on:false};let sheetY=0,wasOn=false;
-(function(){const sh=document.getElementById("sheet");const chk=()=>{(sh.getAnimations&&sh.getAnimations().length?0:sh.classList.toggle("scrolly",sh.scrollHeight>sh.clientHeight+4));const on=sh.classList.contains("on");document.body.classList.toggle("sheet-open",on);if(on&&!wasOn)sheetY=window.scrollY;if(!on&&wasOn)setTimeout(()=>window.scrollTo(0,sheetY),60);wasOn=on;if(false){tint.on=on;const l=document.getElementById("tcl"),d=document.getElementById("tcd");if(l)l.content=on?"#9497A1":"#F5F6FA";if(d)d.content=on?"#0C101B":"#0B0D14"}};
+(function(){const sh=document.getElementById("sheet");const chk=()=>{(sh.getAnimations&&sh.getAnimations().length?0:sh.classList.toggle("scrolly",sh.scrollHeight>sh.clientHeight+4));const on=sh.classList.contains("on");document.body.classList.toggle("sheet-open",on);if(on&&!wasOn){sheetY=window.scrollY;document.documentElement.style.setProperty("--locky",(-sheetY)+"px")}if(!on&&wasOn){document.documentElement.style.setProperty("--locky","0px");window.scrollTo(0,sheetY);setTimeout(()=>window.scrollTo(0,sheetY),60)}wasOn=on;if(false){tint.on=on;const l=document.getElementById("tcl"),d=document.getElementById("tcd");if(l)l.content=on?"#9497A1":"#F5F6FA";if(d)d.content=on?"#0C101B":"#0B0D14"}};
   new MutationObserver(chk).observe(sh,{attributes:true,attributeFilter:["class"]});
   /* keyboard: keep the panel above it */
   const vv=window.visualViewport;const fit=()=>{if(!vv)return;const kb=Math.max(0,window.innerHeight-vv.height-vv.offsetTop);if(kb<40&&sh.classList.contains("on")&&Math.abs(window.scrollY-sheetY)>2)window.scrollTo(0,sheetY);document.documentElement.style.setProperty("--kb",kb+"px");document.documentElement.style.setProperty("--vvh",vv.height+"px");document.documentElement.style.setProperty("--vvt",vv.offsetTop+"px");chk()};
@@ -2360,10 +2362,12 @@ let lastOut=0;const isField=el=>el&&el.matches&&el.matches("input:not([type=chec
   if(vv){vv.addEventListener("resize",()=>{fit();fit2();reveal()});vv.addEventListener("scroll",()=>{fit();fit2()});fit();fit2()}
   window.addEventListener("scroll",fit2,{passive:true});
   /* swipe down to close, like iOS */
-  let y0=null,dy=0;sh.addEventListener("touchstart",e=>{if(sh.scrollTop<=0&&!e.target.closest("input,textarea,.sug")){y0=e.touches[0].clientY;dy=0}else y0=null},{passive:true});
+  let y0=null,dy=0;sh.addEventListener("touchstart",e=>{const tg=e.target;let inner=null;for(let n=tg;n&&n!==sh;n=n.parentElement){if(n.scrollHeight>n.clientHeight+2&&/(auto|scroll)/.test(getComputedStyle(n).overflowY)){inner=n;break}}
+    const chat=sh.classList.contains("chatmode"),head=tg.closest(".grab,.askhead,.aihead");
+    if(sh.scrollTop<=0&&!tg.closest("input,textarea,.sug,.airep")&&(!inner||inner.scrollTop<=0)&&(!chat||head)){y0=e.touches[0].clientY;dy=0}else y0=null},{passive:true});
   sh.addEventListener("touchmove",e=>{if(y0==null)return;dy=e.touches[0].clientY-y0;if(dy>0){sh.style.transition="none";sh.style.transform=`translateY(${dy}px)`}},{passive:true});
   sh.addEventListener("touchend",()=>{if(y0==null)return;sh.style.transition="";if(dy>110)closeSheet();else sh.style.transform="";y0=null});
-  new MutationObserver(()=>requestAnimationFrame(chk)).observe(sh,{childList:true,subtree:true});window.addEventListener("resize",chk)})();
+  window.__chk=chk;new MutationObserver(()=>requestAnimationFrame(chk)).observe(sh,{childList:true,subtree:true,attributes:true,attributeFilter:["class"]});window.addEventListener("resize",chk)})();
 document.addEventListener("keydown",e=>{if(e.key==="Escape")closeSheet()});
 
 let toastT;
@@ -2635,7 +2639,7 @@ function openEntry(id){hideToast();
 }
 
 /* ---- edit worker / rate / client / site / money ---- */
-function showSheet(html){$("#sheet").classList.remove("chatmode");$("#sheet").innerHTML=`<div class="grab"></div>`+html;void $("#sheet").offsetHeight;$("#sheet").classList.add("on");$("#scrim").classList.add("on");sheetClose=null;$("#sheet").scrollTop=0}
+function showSheet(html){$("#sheet").classList.remove("chatmode");$("#sheet").innerHTML=`<div class="grab"></div>`+html;void $("#sheet").offsetHeight;$("#sheet").classList.add("on");$("#scrim").classList.add("on");sheetClose=null;$("#sheet").scrollTop=0;window.__chk&&window.__chk()}
 function editWorker(id){hideToast();const w=W(id);let name=w.name,active=w.active!==false;
   const draw=()=>{showSheet(`<h3>Edit worker</h3><div class="lead">Change the name, or mark them as left.</div>
     <div class="f"><label>Name</label><input class="inp" id="en" autocapitalize="words" value="${esc(name)}"></div>
