@@ -737,6 +737,13 @@ html,body{overscroll-behavior-y:none}
 @media (prefers-color-scheme:dark){.nav .tabsg button:not(.on){color:#A0A0A6!important}}
 .sheet.scrolly::after{content:"";display:block;height:28px}
 .ashim{opacity:.55;animation:ashim 1.2s ease-in-out infinite}@keyframes ashim{50%{opacity:.25}}
+.qfill{margin:0 0 14px;padding:14px;border-radius:16px;background:var(--soft)}
+.qft{font-weight:750;font-size:15px;margin-bottom:10px}.qft span{font-weight:500;color:var(--mut);font-size:13px}
+.qwd{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-bottom:10px}
+.qwd button{height:42px;border-radius:12px;font-weight:750;font-size:15px;background:var(--card);color:var(--mut);border:1.5px solid var(--line)}
+.qwd button.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.qrow{display:grid;grid-template-columns:72px auto 1fr;gap:10px;align-items:center}.qrow .inp{height:46px;text-align:center;padding:0}.qrow span{color:var(--mut);font-size:14px}.qrow .btn{height:46px;margin:0;position:static!important;box-shadow:none!important;width:auto}
+.qhint{margin-top:10px;font-size:13px;color:var(--mut);display:flex;justify-content:space-between;align-items:center}
 .setgh{font-size:12.5px;font-weight:750;letter-spacing:.06em;text-transform:uppercase;color:var(--mut);margin:0 4px 8px}
 .teamseg{margin:0 0 14px}.teamseg .tcount{display:inline-block;margin-left:6px;min-width:20px;padding:1px 6px;border-radius:10px;font-size:12px;font-weight:750;background:rgba(127,127,127,.18);font-variant-numeric:tabular-nums}.teamseg .on .tcount{background:rgba(255,255,255,.22)}@media (prefers-color-scheme:dark){.teamseg .on .tcount{background:rgba(0,0,0,.12)}}
 .sec .link,.row .link{padding:10px 6px;margin:-10px -6px;min-height:40px}
@@ -764,7 +771,7 @@ const JOIN=(()=>{const m=(location.hash||"").match(/join=(CW1\.[A-Za-z0-9_\-]+)/
 if(JOIN&&!IS_APP){const l=document.querySelector('link[rel="manifest"]');if(l)l.remove()}
 let deferredInstall=null;
 addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredInstall=e;setTimeout(showInstallGuide,50)});
-const APP_VERSION="7.9.1";
+const APP_VERSION="7.9.3";
 /* ============ data layer ============ */
 const TABLES=["clients","sites","workers","rates","entries","income"];
 const EMPTY=()=>({clients:[],sites:[],workers:[],rates:[],entries:[],income:[]});
@@ -2552,6 +2559,20 @@ function monthField(){return `<div class="f"><label>Month</label><div class="mon
 const fStart=()=>F.mode==="month"?F.month+"-01":F.wk, fN=()=>F.mode==="month"?mDays(F.month+"-01"):7;
 function fMonthGrid(){const st=fStart(),lead=(parseD(st).getDay()+6)%7,td=todayD();
   return `<div class="wkcells wkm" style="margin-top:4px">${["M","T","W","T","F","S","S"].map(x=>`<i>${x}</i>`).join("")}${"<b></b>".repeat(lead)}${fIdx().map(i=>{const d=addD(st,i);return `<label class="${d===td?"today":""}"><small>${parseD(d).getDate()}</small><input class="num" inputmode="decimal" placeholder="–" value="${esc(F.days[i]||"")}" onfocus="const t=this;setTimeout(()=>t.select(),30)" oninput="F.days[${i}]=this.value.replace(/[^0-9.]/g,'');this.value=F.days[${i}];updPreview()"></label>`}).join("")}</div>`}
+/* quick fill: pick the weekdays they work and the hours, fill the whole week/month at once, then fix single days */
+function fQuick(){if(!F.wd){/* start from how this person usually works (last 5 weeks), else Mon–Fri 8 hrs */
+    const from=addD(todayD(),-35),es=DB.entries.filter(e=>e.workerId===F.workerId&&(!F.siteId||e.siteId===F.siteId)&&e.date&&e.date>=from&&isWork(e)&&+e.hours>0);
+    if(es.length>=4){const cnt=Array(7).fill(0);es.forEach(e=>cnt[parseD(e.date).getDay()]++);const wks=Math.max(1,new Set(es.map(e=>weekStart(e.date))).size);F.wd=cnt.map(c=>c/wks>=.5);
+      const hc={};es.forEach(e=>hc[+e.hours]=(hc[+e.hours]||0)+1);F.fillH=String(Object.entries(hc).sort((a,b)=>b[1]-a[1])[0][0]);F.wdAuto=true}
+    if(!F.wd||!F.wd.some(Boolean)){F.wd=[false,true,true,true,true,true,false];F.wdAuto=false}}
+  if(F.fillH==null)F.fillH="8";const L=["S","M","T","W","T","F","S"],order=[1,2,3,4,5,6,0];
+  return `<div class="qfill"><div class="qft">Quick fill <span>— ${F.wdAuto?"their usual days are picked":"pick their days, then the hours"}</span></div>
+  <div class="qwd">${order.map(d=>`<button class="${F.wd[d]?"on":""}" onclick="F.wd[${d}]=!F.wd[${d}];drawAdd()" aria-label="${DOW[d]}">${L[d]}</button>`).join("")}</div>
+  <div class="qrow"><input class="inp num" inputmode="decimal" value="${esc(F.fillH)}" onfocus="const t=this;setTimeout(()=>t.select(),30)" oninput="F.fillH=this.value.replace(/[^0-9.]/g,'');this.value=F.fillH" aria-label="Hours each day"><span>hrs a day</span>
+  <button class="btn" onclick="fFill()">Fill ${F.mode==="month"?"month":"week"}</button></div>
+  <div class="qhint"><span>Then tap any day below to change it</span><button class="link" onclick="F.days=Array(fN()).fill('');drawAdd()">Clear all</button></div></div>`}
+function fFill(){const h=parseFloat(F.fillH);if(!(h>0))return toast("Type the hours first");if(!F.wd.some(Boolean))return toast("Pick at least one day");
+  F.days=fIdx().map(i=>F.wd[parseD(addD(fStart(),i)).getDay()]?String(h):"");drawAdd();haptic&&haptic();const n=F.days.filter(Boolean).length;toast(`✓ ${n} days × ${h} hrs = ${n*h} hrs — check, then Save`)}
 function fIdx(){return Array.from({length:fN()},(_,i)=>i)}
 function hoursTotal(){return F.mode!=="day"?F.days.reduce((a,v)=>a+(parseFloat(v)||0),0):(parseFloat(F.hours)||0)}
 function dupDays(){if(!(F.workerId&&F.siteId))return[];const ds=F.mode==="day"?(parseFloat(F.hours)>0?[F.date]:[]):fIdx().filter(i=>parseFloat(F.days[i])>0).map(i=>addD(fStart(),i));
@@ -2581,8 +2602,7 @@ function formHours(){
       <button class="opt ${F.date===todayD()?"on":""}" onclick="F.date=todayD();drawAdd()">Today</button><button class="opt ${F.date===addD(todayD(),-1)?"on":""}" onclick="F.date=addD(todayD(),-1);drawAdd()">Yesterday</button></div></div>`
     :F.mode==="week"?`<div class="f"><label>Week</label><div class="month" style="box-shadow:none;border:1.5px solid var(--line);height:52px;border-radius:14px;justify-content:space-between"><button onclick="F.wk=addD(F.wk,-7);drawAdd()">‹</button><span>${weekStart(todayD())===F.wk?"This week · ":weekStart(addD(todayD(),-7))===F.wk?"Last week · ":""}${weekLabel(F.wk)}</span><button onclick="F.wk=addD(F.wk,7);drawAdd()">›</button></div></div>`
     :monthField();
-  const hoursField=F.mode!=="day"?`<div class="f"><label>Hours each day</label>${F.mode==="month"?fMonthGrid():`<div class="wkgrid">${[0,1,2,3,4,5,6].map(i=>{const d=addD(F.wk,i);return `<label class="wkd${d===todayD()?" today":""}"><span>${DOW[parseD(d).getDay()]}</span><small>${parseD(d).getDate()}</small><input class="inp num" inputmode="decimal" placeholder="–" value="${esc(F.days[i])}" oninput="F.days[${i}]=this.value.replace(/[^0-9.]/g,'');this.value=F.days[${i}];updPreview()"></label>`}).join("")}</div>`}
-      <div class="opts" style="margin-top:8px"><button class="opt" style="padding:9px 14px;font-size:14px" onclick="F.days=F.days.map((v,i)=>{const w=parseD(addD(fStart(),i)).getDay();return w>0&&w<6?'8':v});drawAdd()">8 hrs Mon–Fri</button><button class="opt" style="padding:9px 14px;font-size:14px" onclick="F.days=Array(fN()).fill('');drawAdd()">Clear</button></div></div>
+  const hoursField=F.mode!=="day"?`${fQuick()}<div class="f"><label>Hours each day</label>${F.mode==="month"?fMonthGrid():`<div class="wkgrid">${[0,1,2,3,4,5,6].map(i=>{const d=addD(F.wk,i);return `<label class="wkd${d===todayD()?" today":""}"><span>${DOW[parseD(d).getDay()]}</span><small>${parseD(d).getDate()}</small><input class="inp num" inputmode="decimal" placeholder="–" value="${esc(F.days[i])}" oninput="F.days[${i}]=this.value.replace(/[^0-9.]/g,'');this.value=F.days[${i}];updPreview()"></label>`}).join("")}</div>`}</div>
 `
     :`<div class="f"><label>Hours</label><input class="inp num" id="hrs" inputmode="decimal" placeholder="0" value="${esc(F.hours)}" oninput="F.hours=this.value.replace(/[^0-9.]/g,'');this.value=F.hours;updPreview()"></div>
   <div class="opts" style="margin:-4px 0 14px">${(F.mode==="day"?[4,6,8,10]:[8,16,38,40]).map(n=>`<button class="opt" style="padding:9px 14px;font-size:14px" onclick="F.hours='${n}';drawAdd()">${n} hrs</button>`).join("")}</div>`;
