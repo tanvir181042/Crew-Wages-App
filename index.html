@@ -744,6 +744,8 @@ html,body{overscroll-behavior-y:none}
 .qwd button.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
 .qrow{display:grid;grid-template-columns:72px auto 1fr;gap:10px;align-items:center}.qrow .inp{height:46px;text-align:center;padding:0}.qrow span{color:var(--mut);font-size:14px}.qrow .btn{height:46px;margin:0;position:static!important;box-shadow:none!important;width:auto}
 .qhint{margin-top:10px;font-size:13px;color:var(--mut);display:flex;justify-content:space-between;align-items:center}
+.pacts{display:flex;gap:10px;margin:0 0 14px}.pacts .btn{flex:1;margin:0}.pacts .btn.ghost{background:var(--card);color:var(--ink);box-shadow:inset 0 0 0 1.5px var(--line)}
+.problems .pi.tap::before{display:none!important}.problems .pi.tap{text-align:left;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:10px}.problems .pi.tap b{white-space:nowrap;font-weight:750}
 .setgh{font-size:12.5px;font-weight:750;letter-spacing:.06em;text-transform:uppercase;color:var(--mut);margin:0 4px 8px}
 .teamseg{margin:0 0 14px}.teamseg .tcount{display:inline-block;margin-left:6px;min-width:20px;padding:1px 6px;border-radius:10px;font-size:12px;font-weight:750;background:rgba(127,127,127,.18);font-variant-numeric:tabular-nums}.teamseg .on .tcount{background:rgba(255,255,255,.22)}@media (prefers-color-scheme:dark){.teamseg .on .tcount{background:rgba(0,0,0,.12)}}
 .sec .link,.row .link{padding:10px 6px;margin:-10px -6px;min-height:40px}
@@ -771,7 +773,7 @@ const JOIN=(()=>{const m=(location.hash||"").match(/join=(CW1\.[A-Za-z0-9_\-]+)/
 if(JOIN&&!IS_APP){const l=document.querySelector('link[rel="manifest"]');if(l)l.remove()}
 let deferredInstall=null;
 addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredInstall=e;setTimeout(showInstallGuide,50)});
-const APP_VERSION="7.9.3";
+const APP_VERSION="7.9.4";
 /* ============ data layer ============ */
 const TABLES=["clients","sites","workers","rates","entries","income"];
 const EMPTY=()=>({clients:[],sites:[],workers:[],rates:[],entries:[],income:[]});
@@ -2145,8 +2147,8 @@ function personPage(id){
     <div style="display:flex;justify-content:space-between;align-items:center"><button class="back" onclick="goBack()">${ICON.back}Back</button><button class="link" style="display:flex;gap:6px;align-items:center;padding:6px 2px 14px" onclick="editWorker('${id}')">${ICON.edit}Edit</button></div>
     <div class="ph">${av(w.name)}<div style="flex:1;min-width:0"><h1>${esc(w.name)}${w.active===false?' <span class="tag mut" style="vertical-align:middle">Left</span>':""}</h1><div class="t2">${(()=>{const last=all.filter(e=>e.date).sort((a,b)=>b.date.localeCompare(a.date))[0];return last?`Last worked ${dayRel(last.date)===dayLabel(last.date)?dayLabel(last.date):dayRel(last.date).toLowerCase()} · ${esc(Sx(last.siteId).name)}`:""})()||(isSup(w)?"Supervisor":rates.length?rates.map(r=>esc(Sx(r.siteId).name)).join(" · "):"No site yet")}</div></div></div>
     ${isSup(w)&&w.payType==="fixed"?(()=>{const d=P1.mode==="all"||P1.mode==="day"?todayD():(P1.mode==="month"?P1.d.slice(0,7)+"-15":P1.d),has=salaryAdded(w,d);return `<div class="card" style="padding:16px;margin:0 0 14px;display:flex;align-items:center;gap:12px"><div style="flex:1;min-width:0"><div class="t2">Supervisor · fixed salary</div><div class="t1" style="font-size:17px">${money(w.salary)} per ${PERW[w.salaryPer]}</div><div class="t2">${salaryLabel(w.salaryPer,d)} · ${has?"added ✓":"not added yet"}</div></div>${has?"":`<button class="opt on" style="flex:none" onclick="addSalary('${id}','${d}')">Add salary</button>`}</div>`})():""}
-    ${owe?`<button class="btn" style="margin:0 0 14px" onclick="openPay('${id}',state.pper)">Pay ${money(owe)}</button>`:""}
-    ${pr.length?`<div class="problems" style="margin:0 0 14px">${pr.map(p=>`<div class="pi" style="cursor:default">${esc(p.text)}</div>`).join("")}</div>`:""}
+    <div class="pacts">${w.active!==false?`<button class="btn ${owe?"ghost":""}" onclick="openAdd('hours','${id}')">+ Add hours</button>`:""}${owe?`<button class="btn" onclick="openPay('${id}',state.pper)">Pay ${money(owe)}</button>`:""}</div>
+    ${pr.length?`<div class="problems" style="margin:0 0 14px">${pr.map(p=>{const r=p.type==="rate"&&DB.rates.find(x=>x.workerId===p.e.workerId&&x.siteId===p.e.siteId);return r?`<div class="pi tap" onclick="editRate('${r.id}')"><span>${esc(Sx(p.e.siteId).name)}: no pay rate yet</span><b>Set rate ›</b></div>`:`<div class="pi" style="cursor:default">${esc(p.text)}</div>`}).join("")}</div>`:""}
     <div class="card mcard"><div class="mhead">${perSwitch("person",[["day","Day"],["week","Week"],["fort","Fortnight"],["month","Month"],["all","All"]])}</div>
       ${(()=>{const dd=new Set(es.filter(e=>e.date).map(e=>e.date)).size;return `<div class="kpis">
         <div class="kpi"><span>Earned</span><b class="num">${money(total)}</b><em class="fl">${perLabel(P1)}</em></div>
@@ -2800,12 +2802,12 @@ function editWorker(id){hideToast();const w=W(id);let name=w.name,active=w.activ
   draw()}
 function editRate(rid){hideToast();const r=DB.rates.find(x=>x.id===rid);if(!r)return;let rate=r.rate;
   showSheet(`<h3>${esc(W(r.workerId).name)}</h3><div class="lead">${esc(Sx(r.siteId).name)}</div>
-  <div class="f"><label>Pay rate ($ per hour)</label><input class="inp num" inputmode="decimal" id="rr" value="${r.rate}"></div>
+  <div class="f"><label>Pay rate ($ per hour)</label><input class="inp num" inputmode="decimal" id="rr" value="${+r.rate>0?r.rate:""}" placeholder="e.g. 28"></div>
   ${(()=>{const n=DB.entries.filter(e=>e.workerId===r.workerId&&e.siteId===r.siteId&&!e.paid&&isWork(e)).length;return n?`<button class="toggle" style="width:100%;margin-bottom:8px" id="rfix"><span>Also fix ${n} unpaid ${n===1?"entry":"entries"} already saved</span><span class="sw"></span></button>`:""})()}
   <div class="hint" id="rhint">New hours use the new rate. Hours already saved keep their old rate. Paid hours never change.</div>
   <button class="btn" id="rs">Save rate</button><button class="btn ghost" id="rd" style="color:var(--pay)">Remove this site from ${esc(W(r.workerId).name)}</button>`);
   $("#rr").oninput=e=>rate=parseFloat(e.target.value)||0;
-  let fix=false;const fb=$("#rfix");if(fb)fb.onclick=()=>{fix=!fix;fb.querySelector(".sw").classList.toggle("on",fix);$("#rhint").textContent=fix?"Unpaid hours already saved will use the new rate too. Paid hours never change.":"New hours use the new rate. Hours already saved keep their old rate. Paid hours never change."};
+  let fix=!(+r.rate>0);const fb=$("#rfix");if(fb&&fix){fb.querySelector(".sw").classList.add("on");$("#rhint").textContent="Unpaid hours already saved will use the new rate too. Paid hours never change."}if(fb)fb.onclick=()=>{fix=!fix;fb.querySelector(".sw").classList.toggle("on",fix);$("#rhint").textContent=fix?"Unpaid hours already saved will use the new rate too. Paid hours never change.":"New hours use the new rate. Hours already saved keep their old rate. Paid hours never change."};
   $("#rs").onclick=async()=>{if(!(rate>0))return;await put("rates",{...r,rate});let ch=[];
     if(fix){ch=DB.entries.filter(e=>e.workerId===r.workerId&&e.siteId===r.siteId&&!e.paid&&isWork(e)&&e.rate!==rate);const old=ch.map(e=>({...e}));if(ch.length)await putMany("entries",ch.map(e=>({...e,rate})));closeSheet();render();toast(`✓ Rate updated${ch.length?` · ${plural(ch.length,"entry")} fixed`:""}`,async()=>{await put("rates",r);if(old.length)await putMany("entries",old);render()});return}
     closeSheet();render();toast("✓ Rate updated",async()=>{await put("rates",r);render()})};
