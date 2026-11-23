@@ -773,7 +773,7 @@ const JOIN=(()=>{const m=(location.hash||"").match(/join=(CW1\.[A-Za-z0-9_\-]+)/
 if(JOIN&&!IS_APP){const l=document.querySelector('link[rel="manifest"]');if(l)l.remove()}
 let deferredInstall=null;
 addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredInstall=e;setTimeout(showInstallGuide,50)});
-const APP_VERSION="7.9.4";
+const APP_VERSION="7.9.5";
 /* ============ data layer ============ */
 const TABLES=["clients","sites","workers","rates","entries","income"];
 const EMPTY=()=>({clients:[],sites:[],workers:[],rates:[],entries:[],income:[]});
@@ -1277,7 +1277,7 @@ async function aiDo(mode){const p=AI.p;if(!p)return;
   if(p.k==="edit"){const now=todayD(),es=DB.entries.filter(e=>e.workerId===p.wid&&e.siteId===p.sid&&e.date===p.d&&isWork(e)&&!e.paid),old=es.map(e=>({...e})),r=DB.rates.find(x=>x.workerId===p.wid&&x.siteId===p.sid)||{};let add=null;
     if(es.length){for(const e of es.slice(1))await del("entries",e.id);if(p.h>0)await put("entries",{...es[0],hours:p.h});else await del("entries",es[0].id)}else if(p.h>0){add={id:uid(),date:p.d,month:p.d.slice(0,7),workerId:p.wid,siteId:p.sid,hours:p.h,rate:r.rate||0,paid:false,paidAt:"",notes:"",createdAt:now,kind:"work"};await put("entries",add)}
     render();aiDone(`✓ ${esc(W(p.wid).name)} · ${dayLabel(p.d)} · ${p.h} hrs`,async()=>{if(add)await del("entries",add.id);if(old.length)await putMany("entries",old);render()});return}
-  if(p.k==="rate"){const r=DB.rates.find(x=>x.workerId===p.wid&&x.siteId===p.sid),old=r?{...r}:null;const nr=r?{...r,rate:p.rate}:{id:uid(),workerId:p.wid,siteId:p.sid,rate:p.rate};await put("rates",nr);render();aiDone(`✓ ${esc(W(p.wid).name)}: ${money(p.rate)}/hr at ${esc(Sx(p.sid).name)}`,async()=>{if(old)await put("rates",old);else await del("rates",nr.id);render()});return}
+  if(p.k==="rate"){const r=DB.rates.find(x=>x.workerId===p.wid&&x.siteId===p.sid),old=r?{...r}:null;const nr=r?{...r,rate:p.rate}:{id:uid(),workerId:p.wid,siteId:p.sid,rate:p.rate};await put("rates",nr);const fz=await fillZeroRates([nr]);render();aiDone(`✓ ${esc(W(p.wid).name)}: ${money(p.rate)}/hr at ${esc(Sx(p.sid).name)}${fz?` · ${plural(fz.n,"saved entry").replace("entrys","entries")} updated`:""}`,async()=>{if(fz)await fz.undo();if(old)await put("rates",old);else await del("rates",nr.id);render()});return}
   if(p.k==="charge"){const x=DB.sites.find(y=>y.id===p.sid),old={...x};await put("sites",{...x,billType:p.bill,charge:p.bill==="hourly"?p.amt:0,fixed:p.bill==="fixed"?p.amt:0});render();aiDone(`✓ ${esc(x.name)} charge saved`,async()=>{await put("sites",old);render()});return}
   if(p.k==="left"){const w=W(p.wid),old={...w};await put("workers",{...w,active:false});render();aiDone(`✓ ${esc(w.name)} marked as left`,async()=>{await put("workers",old);render()});return}askRemember($("#askq")?.value||"");const now=todayD();
   if(p.k==="hours"){const r=DB.rates.find(x=>x.workerId===p.wid&&x.siteId===p.sid)||{},nd=p.ds.filter(d=>!DB.entries.some(e=>e.workerId===p.wid&&e.siteId===p.sid&&e.date===d&&isWork(e)));
@@ -1581,7 +1581,7 @@ function gaiRender(o,q){if(Array.isArray(o.actions)&&o.actions.length>1){const s
       const cur=es.filter(e=>e.siteId===sid).reduce((x,e)=>x+ +e.hours,0);AI.p={k:"edit",wid:w.id,sid,d:a.date,h:+a.hours};
       return lead+aiCard(`${esc(w.name)} · ${dayLabel(a.date)}`,`${esc(Sx(sid).name)} · ${cur} hrs → <b>${+a.hours} hrs</b>`,"",`<button class="btn" onclick="aiDo()">${+a.hours?"Save":"Remove hours"}</button>`)}
     if(t==="set_rate"){const w=DB.workers.find(x=>x.id===a.worker_id),x=DB.sites.find(y=>y.id===a.site_id);if(!w||!x||!(+a.rate>0))return lead||bad();const r=DB.rates.find(r=>r.workerId===w.id&&r.siteId===x.id);AI.p={k:"rate",wid:w.id,sid:x.id,rate:+a.rate};
-      return lead+aiCard(`${esc(w.name)} at ${esc(x.name)}`,`${r?money(r.rate)+"/hr → ":""}<b>${money(+a.rate)}/hr</b>`,`<div class="aic3">New hours use the new rate. Hours already entered keep their rate.</div>`,`<button class="btn" onclick="aiDo()">Save rate</button>`)}
+      return lead+aiCard(`${esc(w.name)} at ${esc(x.name)}`,`${r?money(r.rate)+"/hr → ":""}<b>${money(+a.rate)}/hr</b>`,`<div class="aic3">New hours use the new rate. Hours saved with no rate get it too; other saved hours keep theirs.</div>`,`<button class="btn" onclick="aiDo()">Save rate</button>`)}
     if(t==="set_charge"){const x=DB.sites.find(y=>y.id===a.site_id);if(!x||!(+a.amount>0))return lead||bad();const bill=a.bill==="fixed"?"fixed":"hourly";AI.p={k:"charge",sid:x.id,bill,amt:+a.amount};
       return lead+aiCard(`${esc(x.name)}: client pays`,`<b>${money(+a.amount)}${bill==="fixed"?" per month":"/hr"}</b>`,"",`<button class="btn" onclick="aiDo()">Save</button>`)}
     if(t==="worker_left"){const w=DB.workers.find(x=>x.id===a.worker_id);if(!w)return lead||bad();AI.p={k:"left",wid:w.id};return lead+aiCard(`${esc(w.name)} has left?`,"Hidden from lists. Their history and anything owed stays.","",`<button class="btn" onclick="aiDo()">Mark as left</button>`)}
@@ -1750,8 +1750,9 @@ function chgPlan(ops){const plan=[],errs=[];const now=new Date().toISOString();
   return {plan:plan.concat(extra),errs}}
 async function chgApply(plan){const by=(op)=>{const m={};plan.filter(p=>p.op===op).forEach(p=>(m[p.t]=m[p.t]||[]).push(p));return m};
   for(const[t,ps]of Object.entries(by("create")))await putMany(t,ps.map(p=>p.row));for(const[t,ps]of Object.entries(by("update")))await putMany(t,ps.map(p=>p.row));for(const[t,ps]of Object.entries(by("delete")))await delMany(t,ps.map(p=>p.old.id));
+  const fz=await fillZeroRates(plan.filter(p=>p.t==="rates"&&p.op!=="delete").map(p=>p.row));
   TDR=null;render();
-  return async()=>{for(const[t,ps]of Object.entries(by("create")))await delMany(t,ps.map(p=>p.row.id));for(const[t,ps]of Object.entries(by("update")))await putMany(t,ps.map(p=>p.old));for(const[t,ps]of Object.entries(by("delete")))await putMany(t,ps.map(p=>p.old));TDR=null;render()}}
+  return async()=>{if(fz)await fz.undo();for(const[t,ps]of Object.entries(by("create")))await delMany(t,ps.map(p=>p.row.id));for(const[t,ps]of Object.entries(by("update")))await putMany(t,ps.map(p=>p.old));for(const[t,ps]of Object.entries(by("delete")))await putMany(t,ps.map(p=>p.old));TDR=null;render()}}
 function aiChange(a){const {plan,errs}=chgPlan(a.ops);if(!plan.length)return aiCard("Nothing to change",esc(errs.join(", ")||"I couldn't match that to anything."),"","");
   const k="c"+uid();AI.chg=AI.chg||{};AI.chg[k]=plan;const del=plan.some(p=>p.op==="delete"),dep=plan.filter(p=>p.dep).length;const onlyLinks=plan.filter(p=>p.op==="delete").every(p=>p.t==="rates");
   const line=p=>{const n=CHG_N[p.t];if(p.t==="rates"&&p.op==="create")return `➕ Add ${esc(W(p.row.workerId).name)} to ${esc(Sx(p.row.siteId).name)}${+p.row.rate?` · ${money(+p.row.rate)}/h`:""}`;if(p.t==="rates"&&p.op==="delete")return `➖ Take ${esc(W(p.old.workerId).name)} off ${esc(Sx(p.old.siteId).name)}`;if(p.op==="create")return `➕ New ${n}: ${esc(chgName(p.t,p.row))}`;if(p.op==="delete")return `🗑 Delete ${n}: ${esc(chgName(p.t,p.old))}`;const ch=Object.keys(p.row).filter(f=>CHG_T[p.t].includes(f)&&String(p.row[f])!==String(p.old[f])).map(f=>`${CHG_L[f]||f}: ${esc(chgVal(f,p.old[f]))} → <b>${esc(chgVal(f,p.row[f]))}</b>`).join(", ");return `✏️ ${esc(chgName(p.t,p.old))}${ch?" — "+ch:""}`};
@@ -2800,6 +2801,8 @@ function editWorker(id){hideToast();const w=W(id);let name=w.name,active=w.activ
     $("#en").oninput=e=>name=e.target.value; $("#ea").onclick=()=>{active=!active;draw()};
     $("#es").onclick=async()=>{if(!name.trim())return;await put("workers",{...w,name:name.trim(),active});closeSheet();render();toast("✓ Saved")}};
   draw()}
+async function fillZeroRates(list){const ch=[];list.forEach(({workerId,siteId,rate})=>{if(!(+rate>0))return;DB.entries.forEach(e=>{if(e.workerId===workerId&&e.siteId===siteId&&!e.paid&&isWork(e)&&!(+e.rate>0)&&!ch.some(x=>x.id===e.id))ch.push({...e,rate:+rate})})});
+  if(!ch.length)return null;const old=ch.map(e=>({...DB.entries.find(x=>x.id===e.id)}));await putMany("entries",ch);return {n:ch.length,undo:async()=>putMany("entries",old)}}
 function editRate(rid){hideToast();const r=DB.rates.find(x=>x.id===rid);if(!r)return;let rate=r.rate;
   showSheet(`<h3>${esc(W(r.workerId).name)}</h3><div class="lead">${esc(Sx(r.siteId).name)}</div>
   <div class="f"><label>Pay rate ($ per hour)</label><input class="inp num" inputmode="decimal" id="rr" value="${+r.rate>0?r.rate:""}" placeholder="e.g. 28"></div>
