@@ -773,7 +773,7 @@ const JOIN=(()=>{const m=(location.hash||"").match(/join=(CW1\.[A-Za-z0-9_\-]+)/
 if(JOIN&&!IS_APP){const l=document.querySelector('link[rel="manifest"]');if(l)l.remove()}
 let deferredInstall=null;
 addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredInstall=e;setTimeout(showInstallGuide,50)});
-const APP_VERSION="7.9.5";
+const APP_VERSION="7.9.6";
 /* ============ data layer ============ */
 const TABLES=["clients","sites","workers","rates","entries","income"];
 const EMPTY=()=>({clients:[],sites:[],workers:[],rates:[],entries:[],income:[]});
@@ -1015,6 +1015,8 @@ function owedByWorker(){ // all months
   });
   return Object.values(map).sort((a,b)=>b.amount-a.amount);
 }
+const isNoRate=e=>isWork(e)&&!e.paid&&e.hours>0&&!(+e.rate>0);
+function noRateByWorker(){const m={};DB.entries.filter(isNoRate).forEach(e=>{m[e.workerId]=(m[e.workerId]||0)+1});return m}
 function monthStats(m){
   const es=DB.entries.filter(e=>e.month===m);
   const hours=es.reduce((s,e)=>s+ +e.hours,0), wages=es.reduce((s,e)=>s+wage(e),0);
@@ -2042,14 +2044,14 @@ function whoWorked(P){const td=todayD(),[a,b]=perRange(P);
   const chips=`<div class="card mcard" style="margin-bottom:12px"><div class="mhead">${perSwitch("hw",[["week","Week"],["fort","Fortnight"],["month","Month"]])}</div></div>`,dates="";
   const head=`<div class="sec" style="margin-top:22px"><h2>Who worked</h2></div>${chips}${dates}`;
   if(!es.length)return head+`<div class="card empty" style="padding:24px">No hours in these dates</div>`;
-  const g={};es.forEach(e=>{const x=g[e.workerId]||(g[e.workerId]={h:0,w:0,paidW:0,s:new Set(),d:new Set()});if(isWork(e))x.h+= +e.hours;x.w+=wage(e);if(e.paid)x.paidW+=wage(e);x.s.add(Sx(e.siteId).name);x.d.add(e.date)});
-  return head+`<div class="wcards">${Object.entries(g).sort((p,q)=>q[1].h-p[1].h||q[1].w-p[1].w).map(([id,x])=>{const st=x.paidW>=x.w-.005?["ok","Paid"]:x.paidW>0?["part","Part paid"]:["pay","To pay"];
+  const g={};es.forEach(e=>{const x=g[e.workerId]||(g[e.workerId]={h:0,w:0,paidW:0,s:new Set(),d:new Set()});if(isWork(e))x.h+= +e.hours;x.w+=wage(e);if(e.paid)x.paidW+=wage(e);if(isNoRate(e))x.nr=1;x.s.add(Sx(e.siteId).name);x.d.add(e.date)});
+  return head+`<div class="wcards">${Object.entries(g).sort((p,q)=>q[1].h-p[1].h||q[1].w-p[1].w).map(([id,x])=>{const st=x.nr?["part","Set rate"]:x.paidW>=x.w-.005?["ok","Paid"]:x.paidW>0?["part","Part paid"]:["pay","To pay"];
     return `<button class="wcard" onclick="dayDetail('${id}')">${av(W(id).name)}<span class="wm"><b>${esc(W(id).name)}</b><small>${[...x.s].map(esc).join(", ")}</small><em class="st ${st[0]}">${st[1]}</em></span><span class="wr"><b class="num">${x.h?x.h.toLocaleString()+" hrs":"Salary"}</b><small class="num">${money(x.w)} · ${plural(x.d.size,"day")}</small></span></button>`}).join("")}</div>`}
 function dayDetail(id){const P=state.hper,[a,b]=perRange(P),w=W(id);
   const es=DB.entries.filter(e=>e.workerId===id&&e.date&&e.date>=a&&e.date<=b&&e.hours>0).sort((p,q)=>p.date.localeCompare(q.date));
   const h=es.filter(isWork).reduce((s,e)=>s+ +e.hours,0),tot=es.reduce((s,e)=>s+wage(e),0),unp=es.filter(e=>!e.paid).reduce((s,e)=>s+wage(e),0);
   showSheet(`<div style="display:flex;gap:14px;align-items:center;margin-bottom:6px">${av(w.name)}<div><h3 style="margin:0">${esc(w.name)}</h3><div class="t2">${rngLabel(a,b)} · ${h.toLocaleString()} hrs · ${money(tot)}</div></div></div>
-  <div class="list" style="margin:12px 0 14px">${es.map(e=>`<div class="row tap" onclick="openEntry('${e.id}')"><div class="main"><div class="t1">${dayLabel(e.date)}</div><div class="t2">${e.kind==="salary"?"Salary":esc(Sx(e.siteId).name)+" · "+e.hours+" hrs"}</div></div><span class="tag ${e.paid?"ok":"pay"}">${e.paid?"Paid":"To pay"}</span><div class="amt num" style="min-width:66px">${money(wage(e))}</div></div>`).join("")}</div>
+  <div class="list" style="margin:12px 0 14px">${es.map(e=>`<div class="row tap" onclick="openEntry('${e.id}')"><div class="main"><div class="t1">${dayLabel(e.date)}</div><div class="t2">${e.kind==="salary"?"Salary":esc(Sx(e.siteId).name)+" · "+e.hours+" hrs"}</div></div><span class="tag ${isNoRate(e)?"warn":e.paid?"ok":"pay"}">${isNoRate(e)?"No rate":e.paid?"Paid":"To pay"}</span><div class="amt num" style="min-width:66px">${money(wage(e))}</div></div>`).join("")}</div>
   ${unp>0?`<button class="btn" onclick="closeSheet();setTimeout(()=>openPay('${id}',state.hper),220)">Pay ${money(unp)}</button>`:`<div class="hint" style="text-align:center;margin-bottom:8px">✓ All paid for these dates</div>`}
   <button class="btn ghost" onclick="closeSheet();setTimeout(()=>{state.pper=JSON.parse(JSON.stringify(state.hper));openPerson('${id}')},220)">Open ${esc(w.name.split(" ")[0])}'s page</button>`)}
 function addMenu(){hideToast();const it=[["Tell Hourza AI","Say or type it — “Sam 8 hours Mon to Fri”",ICON.spark,"closeSheet();setTimeout(()=>openAsk(),200)"],["Hours","For everyone, or for one worker",ICON.clockq,"hoursChoice()"],["Money received","A payment from a client",ICON.wallet,"openAdd('money')"],["Worker","Someone new on the team, or a supervisor",ICON.useradd,"openAdd('worker')"],["Site","A new place where work happens",ICON.sites,"openAdd('site')"]];
@@ -2058,7 +2060,7 @@ function hoursChoice(){showSheet(`<h3>Add hours</h3><div class="addmenu"><button
 function showProblems(){const pr=problems();showSheet(`<h3>Things to check</h3><div class="lead">Tap one to fix it.</div><div class="list" style="margin-bottom:12px">${pr.map(p=>`<div class="row tap" onclick="closeSheet();setTimeout(()=>{${p.type==="bill"?`editSite('${p.site.id}')`:`openPerson('${p.e.workerId}')`}},200)"><div class="av" style="background:var(--warn-s);color:var(--warn)">!</div><div class="main"><div class="t1" style="white-space:normal">${esc(p.text)}</div></div>${ICON.chev}</div>`).join("")}</div><button class="btn ghost" onclick="closeSheet()">Close</button>`)}
 function tipHtml(k,txt){const d=ls.get("cw_tips",{});if(d[k])return "";return `<div class="tip"><span>💡</span><div>${txt}</div><button onclick="const d=ls.get('cw_tips',{});d['${k}']=1;ls.set('cw_tips',d);this.parentNode.remove()" aria-label="Got it">Got it</button></div>`}
 function homePage(){
-  const owed=owedByWorker(); const total=owed.reduce((s,o)=>s+o.amount,0);
+  const owed=owedByWorker(); const total=owed.reduce((s,o)=>s+o.amount,0); const nrN=Object.keys(noRateByWorker()).length;
   const pr=problems();
   const hr=new Date().getHours(),greet=hr<12?"Good morning":hr<17?"Good afternoon":"Good evening";
   if(!DB.workers.length){
@@ -2076,8 +2078,8 @@ function homePage(){
     <div class="hero">
       <div class="lbl" style="display:flex;justify-content:space-between;position:relative;z-index:1">To pay your team ${online()?syncBadge():""}</div>
       <div class="big num" data-count="${total}">${money(total)}</div>
-      <div class="sub">${owed.length?`${plural(owed.length,"worker")} waiting to be paid`:"Everyone is paid 🎉"}</div>
-      ${owed.length?`<button class="limebtn" onclick="go('pay')">Pay people</button>`:""}
+      <div class="sub">${owed.length?`${plural(owed.length,"worker")} waiting to be paid`:nrN?`${plural(nrN,"worker")} ${nrN===1?"needs":"need"} a pay rate`:"Everyone is paid 🎉"}${owed.length&&nrN?` · ${nrN} need a rate`:""}</div>
+      ${owed.length?`<button class="limebtn" onclick="go('pay')">Pay people</button>`:nrN?`<button class="limebtn" onclick="go('people')">Set pay rates</button>`:""}
     </div>
     <div class="tiles3">
       <button onclick="hoursChoice()"><i>${ICON.clockq}</i>Add hours</button>
@@ -2110,14 +2112,14 @@ function clientSheet(cid){const c=C(cid),ss=DB.sites.filter(x=>x.clientId===cid)
   <button class="btn" onclick="closeSheet();setTimeout(()=>moneyList('${cid}'),220)">Money received</button>
   <button class="btn ghost" onclick="closeSheet();setTimeout(()=>editClient('${cid}'),220)">Edit client</button>`)}
 function peoplePage(){
-  const q=state.q.trim().toLowerCase(); const owed=Object.fromEntries(owedByWorker().map(o=>[o.workerId,o.amount]));
+  const q=state.q.trim().toLowerCase(); const owed=Object.fromEntries(owedByWorker().map(o=>[o.workerId,o.amount])),nrw=noRateByWorker();
   let ws=DB.workers.filter(w=>w.active!==false);
   if(q) ws=ws.filter(w=>{
     if(w.name.toLowerCase().includes(q))return true;
     return DB.rates.some(r=>r.workerId===w.id&&(Sx(r.siteId).name.toLowerCase().includes(q)||C(Sx(r.siteId).clientId).name.toLowerCase().includes(q)));
   });
   if(state.filter==="owed") ws=ws.filter(w=>owed[w.id]);
-  if(state.filter==="paid") ws=ws.filter(w=>!owed[w.id]);
+  if(state.filter==="paid") ws=ws.filter(w=>!owed[w.id]&&!nrw[w.id]);
   ws.sort((a,b)=>(owed[b.id]||0)-(owed[a.id]||0)||a.name.localeCompare(b.name));
   const nOwed=DB.workers.filter(w=>owed[w.id]).length;
   if(!DB.workers.length)return teamEmpty(ICON.people,"No workers yet","Add the people who work for you, and what you pay them.","+ Add a worker","openAdd('worker')");
@@ -2127,7 +2129,7 @@ function peoplePage(){
     <div class="list" style="margin-top:14px">${ws.length?ws.map(w=>{
       const sites=isSup(w)?[w.payType==="fixed"?`Supervisor · ${money(w.salary)} per ${PERW[w.salaryPer]}`:"Supervisor"]:DB.rates.filter(r=>r.workerId===w.id).map(r=>Sx(r.siteId).name);
       return `<div class="row tap" onclick="openPerson('${w.id}')">${av(w.name)}<div class="main"><div class="t1">${hl(w.name,q)}</div><div class="t2">${sites.length?sites.map(s=>hl(s,q)).join(", "):"No site yet"}</div></div>
-        ${owed[w.id]?`<div class="amt num" style="color:var(--pay)">${money(owed[w.id])}<small>to pay</small></div>`:`<span class="tag ok">Paid</span>`}${ICON.chev}</div>`}).join(""):`<div class="empty"><div class="e" style="color:var(--mut)">${ICON.find}</div>${!DB.workers.length?`No workers yet<br><button class="link" onclick="openAdd('worker')">+ Add your first worker</button>`:state.q?`No one matches “${esc(state.q)}”`:"No one in this list"}</div>`}</div>
+        ${owed[w.id]?`<div class="amt num" style="color:var(--pay)">${money(owed[w.id])}<small>to pay</small></div>`:nrw[w.id]?`<span class="tag warn">Set rate</span>`:`<span class="tag ok">Paid</span>`}${ICON.chev}</div>`}).join(""):`<div class="empty"><div class="e" style="color:var(--mut)">${ICON.find}</div>${!DB.workers.length?`No workers yet<br><button class="link" onclick="openAdd('worker')">+ Add your first worker</button>`:state.q?`No one matches “${esc(state.q)}”`:"No one in this list"}</div>`}</div>
     ${DB.workers.length?`<button class="btn" style="margin-top:14px" onclick="openAdd('worker')">+ New worker</button>`:""}`;
 }
 function hl(text,q){const t=esc(text); if(!q)return t; const i=text.toLowerCase().indexOf(q); if(i<0)return t; return esc(text.slice(0,i))+`<mark style="background:var(--hl);color:inherit;border-radius:3px">${esc(text.slice(i,i+q.length))}</mark>`+esc(text.slice(i+q.length))}
@@ -2143,7 +2145,7 @@ function personPage(id){
   const months=Object.keys(byM), cap=P1.mode==="all"&&!state.allHist?3:99;
   const hidden=(P1.mode==="day"||P1.mode==="week"||P1.mode==="fort")&&all.some(e=>!e.date&&e.month===P1.d.slice(0,7));
   const row=e=>`<div class="row tap" onclick="openEntry('${e.id}')"><div class="main"><div class="t1">${e.date?dayLabel(e.date):"Whole month"} · ${isWork(e)?esc(Sx(e.siteId).name):kindLbl(e.kind)}</div><div class="t2">${e.kind==="salary"?esc(e.notes||"Fixed salary"):`${e.hours} hrs × ${money(e.rate)}${e.notes?" · "+esc(e.notes):""}`}</div></div>
-          <span class="tag ${e.paid?"ok":"pay"}">${e.paid?"Paid":"To pay"}</span><div class="amt num" style="min-width:72px">${money(wage(e))}</div></div>`;
+          <span class="tag ${isNoRate(e)?"warn":e.paid?"ok":"pay"}">${isNoRate(e)?"No rate":e.paid?"Paid":"To pay"}</span><div class="amt num" style="min-width:72px">${money(wage(e))}</div></div>`;
   return `
     <div style="display:flex;justify-content:space-between;align-items:center"><button class="back" onclick="goBack()">${ICON.back}Back</button><button class="link" style="display:flex;gap:6px;align-items:center;padding:6px 2px 14px" onclick="editWorker('${id}')">${ICON.edit}Edit</button></div>
     <div class="ph">${av(w.name)}<div style="flex:1;min-width:0"><h1>${esc(w.name)}${w.active===false?' <span class="tag mut" style="vertical-align:middle">Left</span>':""}</h1><div class="t2">${(()=>{const last=all.filter(e=>e.date).sort((a,b)=>b.date.localeCompare(a.date))[0];return last?`Last worked ${dayRel(last.date)===dayLabel(last.date)?dayLabel(last.date):dayRel(last.date).toLowerCase()} · ${esc(Sx(last.siteId).name)}`:""})()||(isSup(w)?"Supervisor":rates.length?rates.map(r=>esc(Sx(r.siteId).name)).join(" · "):"No site yet")}</div></div></div>
