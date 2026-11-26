@@ -773,7 +773,7 @@ const JOIN=(()=>{const m=(location.hash||"").match(/join=(CW1\.[A-Za-z0-9_\-]+)/
 if(JOIN&&!IS_APP){const l=document.querySelector('link[rel="manifest"]');if(l)l.remove()}
 let deferredInstall=null;
 addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredInstall=e;setTimeout(showInstallGuide,50)});
-const APP_VERSION="7.9.8";
+const APP_VERSION="7.9.9";
 /* ============ data layer ============ */
 const TABLES=["clients","sites","workers","rates","entries","income"];
 const EMPTY=()=>({clients:[],sites:[],workers:[],rates:[],entries:[],income:[]});
@@ -1520,7 +1520,7 @@ For how-to questions about the app, answer in "say" (max 40 words). Never claim 
 async function gaiCall(text,onPart,opt){opt=opt||{};let ext=false;const g=GAI.get();if(!g)throw new Error("off");
   const aud=AI.audio;AI.audio=null;let clean=false;const hist=()=>clean?[]:GAI.hist.slice(-6).filter(h=>h&&h.parts&&h.parts.every(x=>x.text&&String(x.text).trim()));const contents=()=>[...hist(),{role:"user",parts:aud?[{text:"The user sent this voice message. First write exactly what they said in \"heard\" (fix names to match the lists; keep their language), then act on it."},{inlineData:{mimeType:"audio/wav",data:aud.b64}}]:[{text}]}],t0=Date.now();if(aud)AI.audU=aud.u;void 0;
   const mk=th=>({systemInstruction:{parts:[{text:GAI_SYS+"\n\n"+gaiCtx()}]},contents:contents(),generationConfig:{responseMimeType:"application/json",temperature:.2,maxOutputTokens:4096,...(th===1?{thinkingConfig:{thinkingLevel:"low"}}:th===2?{thinkingConfig:{thinkingBudget:0}}:th===3?{thinkingConfig:{thinkingLevel:"minimal"}}:{})}});
-  const models=(opt.model?[opt.model,"gemini-flash-latest",g.m]:aud?[g.m,"gemini-flash-latest","gemini-2.5-flash"]:[g.m,...(g.alt||[]),"gemini-flash-lite-latest","gemini-flash-latest"]).filter((x,i,a)=>x&&a.indexOf(x)===i).slice(0,3);let last;
+  const models=(opt.model?[opt.model,"gemini-flash-latest",g.m]:aud?[g.m,"gemini-flash-latest"]:[g.m,...(g.alt||[]),"gemini-flash-lite-latest","gemini-flash-latest"]).filter((x,i,a)=>x&&a.indexOf(x)===i&&!(g.dead||[]).includes(x)).slice(0,4);let last,fresh=false;
   const parse=t=>{t=(t||"").replace(/^```(json)?|```$/g,"").trim();try{return JSON.parse(t)}catch(_){const a=t.indexOf("{"),b=t.lastIndexOf("}");if(a>=0&&b>a){try{return JSON.parse(t.slice(a,b+1))}catch(_){}}if(t&&!/^[\[{]/.test(t))return {say:t.slice(0,600),action:null};throw new Error("AI reply wasn't readable")}};
   for(const m of models){const thc=aud?[0]:(g.thm&&g.thm[m]!=null)?[g.thm[m]]:[2,3,1,0];for(const th of thc){if(Date.now()-t0>50000)throw last||new Error("Gemini is taking too long — try again");
     try{const ctl=new AbortController(),to=setTimeout(()=>ctl.abort(),Math.max(8000,Math.min(15000,50000-(Date.now()-t0))));
@@ -1533,7 +1533,8 @@ async function gaiCall(text,onPart,opt){opt=opt||{};let ext=false;const g=GAI.ge
             const mm=acc.match(/"say"\s*:\s*"((?:[^"\\]|\\.)*)/);if(mm){try{onPart(JSON.parse('"'+mm[1].replace(/\\$/,"")+'"'))}catch(_){}}}catch(_){}}}
         clearTimeout(to);j={candidates:[{content:{parts:[{text:acc}]},finishReason:fin}]}}
       else{clearTimeout(to);j=await r.json().catch(()=>({}))}
-      if(!r.ok){const msg=(j.error&&j.error.message)||"AI error "+r.status;last=new Error(msg);if(r.status===400&&/thinking/i.test(msg))continue;if(r.status===400&&!clean){clean=true;try{const ng=GAI.get()||g;const t2={...(ng.thm||{})};delete t2[m];GAI.set({...ng,thm:t2})}catch(_){}GAI.hist=[];if(th!==0){thc.push(0);continue}}if(r.status===400)break;if(r.status===429||r.status>=500){/* Google busy: try more models after a short pause */if(!ext){ext=true;["gemini-2.5-flash-lite","gemini-2.5-flash","gemini-flash-latest"].forEach(x=>models.includes(x)||models.push(x))}await new Promise(z=>setTimeout(z,900));break}if(r.status===404)break;throw last}
+      if(!r.ok){const msg=(j.error&&j.error.message)||"AI error "+r.status;last=new Error(msg);if(r.status===400&&/thinking/i.test(msg))continue;if(r.status===400&&!clean){clean=true;try{const ng=GAI.get()||g;const t2={...(ng.thm||{})};delete t2[m];GAI.set({...ng,thm:t2})}catch(_){}GAI.hist=[];if(th!==0){thc.push(0);continue}}if(r.status===400)break;if(r.status===429||r.status>=500){/* Google busy: try more models after a short pause */if(!ext){ext=true;["gemini-flash-lite-latest","gemini-flash-latest"].forEach(x=>models.includes(x)||models.push(x))}await new Promise(z=>setTimeout(z,900));break}if(r.status===404||/no longer available|not found|not supported/i.test(msg)){/* Google retired this model: remember it, find a working one */try{const ng=GAI.get()||g,dead=[...new Set([...(ng.dead||[]),m])];let fm=[];if(!fresh){fresh=true;fm=(await gaiModels(g.k)).filter(x=>!dead.includes(x))}
+          GAI.set({...ng,dead,...(fm.length?{m:fm[0],alt:fm.slice(1,3)}:{})});fm.slice(0,2).forEach(x=>models.includes(x)||models.push(x))}catch(_){}break}throw last}
       const c=(j.candidates||[])[0]||{},t=((c.content||{}).parts||[]).filter(p=>!p.thought).map(p=>p.text||"").join("");
       if(!t.trim()){last=new Error(c.finishReason==="SAFETY"?"Gemini wouldn't answer that":"Gemini sent an empty reply ("+(c.finishReason||"?")+")");break}
       const o=gaiNorm(parse(t));if(aud){if(AI.audU){AI.audU.textContent="🎤 "+(o.heard||"(voice)");AI.audU=null}text=o.heard||"(voice message)"}if(!aud&&!opt.model){const ng=GAI.get()||g;GAI.set({...ng,m,thm:{...(ng.thm||{}),[m]:th}})}GAI.hist.push({role:"user",parts:[{text}]},{role:"model",parts:[{text:t}]});GAI.hist=GAI.hist.slice(-8);return o}
@@ -2403,10 +2404,12 @@ async function paySlip(wid){const x=prGroups().find(g=>g.id===wid);if(!x)return;
   try{await navigator.clipboard.writeText(text);toast("✓ Pay summary copied")}catch(e){showSheet(`<h3>Pay summary</h3><pre style="white-space:pre-wrap;font:inherit;font-size:14.5px;margin-top:10px">${esc(text)}</pre>`)}}
 
 /* ---------- Reports ---------- */
-let RP={by:"site",all:false};
+let RP={by:"site",all:false,rng:null};
+function rpMode(k){RP.all=k==="all";if(k==="custom"){if(!RP.rng){const t=todayD(),d=+t.slice(8),m=t.slice(0,7);RP.rng=d>=25?{from:m+"-25",to:t}:{from:addM(m,-1)+"-25",to:t}}}else RP.rng=null;render()}
+function rpSet(k,v){if(!v)return;RP.rng={...RP.rng,[k]:v};if(RP.rng.from>RP.rng.to)RP.rng[k==="from"?"to":"from"]=v;render()}
 function reportData(){
-  const m=state.month,es=DB.entries.filter(e=>RP.all||e.month===m),inc=DB.income.filter(i=>RP.all||i.month===m);
-  const siteRow=s=>{const se=es.filter(e=>e.siteId===s.id),h=se.filter(isWork).reduce((a,e)=>a+ +e.hours,0),w=se.reduce((a,e)=>a+wage(e),0),months=RP.all?new Set(se.map(e=>e.month)).size:1;
+  const m=state.month,R=RP.rng,es=R?DB.entries.filter(e=>e.date&&e.date>=R.from&&e.date<=R.to):DB.entries.filter(e=>RP.all||e.month===m),inc=R?DB.income.filter(i=>i.month+"-01"<=R.to&&mEnd(i.month)>=R.from):DB.income.filter(i=>RP.all||i.month===m);
+  const siteRow=s=>{const se=es.filter(e=>e.siteId===s.id),h=se.filter(isWork).reduce((a,e)=>a+ +e.hours,0),w=se.reduce((a,e)=>a+wage(e),0),months=RP.all||R?new Set(se.map(e=>e.month)).size:1;
     const b=hasBill(s)?(s.billType==="fixed"?(+s.fixed||0)*months:h*(+s.charge||0)):null;return {name:s.name,sub:C(s.clientId).name,h,w,b,p:b==null?null:b-w,cid:s.clientId}};
   if(RP.by==="site")return DB.sites.map(siteRow).filter(r=>r.h||r.w||r.b);
   if(RP.by==="client")return DB.clients.map(c=>{const rs=DB.sites.filter(s=>s.clientId===c.id).map(siteRow),any=rs.some(r=>r.b!=null),b=rs.reduce((a,r)=>a+(r.b||0),0),w=rs.reduce((a,r)=>a+r.w,0),rec=inc.filter(i=>i.clientId===c.id).reduce((a,i)=>a+ +i.amount,0);
@@ -2414,10 +2417,11 @@ function reportData(){
   return DB.workers.map(wk=>{const se=es.filter(e=>e.workerId===wk.id);return {name:wk.name,sub:`${money(se.filter(e=>!e.paid).reduce((a,e)=>a+wage(e),0))} still to pay`,h:se.reduce((a,e)=>a+ +e.hours,0),w:se.reduce((a,e)=>a+wage(e),0),b:null,p:null}}).filter(r=>r.h||r.w);
 }
 function reportsPage(){
-  const rows=reportData().sort((a,b)=>RP.by==="worker"?b.w-a.w:(b.p??-1e12)-(a.p??-1e12)),T0=profitTotals(RP.all?{mode:"all",d:todayD()}:{mode:"month",d:state.month+"-15"}),T={h:rows.reduce((a,r)=>a+r.h,0),w:rows.reduce((a,r)=>a+r.w,0),b:T0.billed},money2=RP.by!=="worker";
+  const rows=reportData().sort((a,b)=>RP.by==="worker"?b.w-a.w:(b.p??-1e12)-(a.p??-1e12)),T0=profitTotals(RP.rng?{mode:"range",from:RP.rng.from,to:RP.rng.to}:RP.all?{mode:"all",d:todayD()}:{mode:"month",d:state.month+"-15"}),T={h:rows.reduce((a,r)=>a+r.h,0),w:rows.reduce((a,r)=>a+r.w,0),b:T0.billed},money2=RP.by!=="worker";
   return `${subBack}<div class="card mcard"><div class="mhead"><div class="pseg">${[["site","Sites"],["client","Clients"],["worker","Workers"]].map(([k,l])=>`<button class="${RP.by===k?"on":""}" onclick="RP.by='${k}';render()">${l}</button>`).join("")}</div>
-      <div class="m8" style="grid-template-columns:1fr 1fr;margin-top:10px">${[[false,"Month",FMN[+state.month.slice(5)-1]],[true,"All time","Everything"]].map(([k,l,sub])=>`<button class="${RP.all===k?"on":""}" onclick="RP.all=${k};render()">${l}<small>${sub}</small></button>`).join("")}</div>
-      ${RP.all?"":`<div class="mstep2"><button onclick="state.month=addM(state.month,-1);render()" aria-label="Previous month">‹</button><b>${mLabel(state.month)}</b><button onclick="state.month=addM(state.month,1);render()" aria-label="Next month">›</button></div>`}</div>
+      <div class="m8" style="grid-template-columns:1fr 1fr 1fr;margin-top:10px">${[["month","Month",FMN[+state.month.slice(5)-1],!RP.all&&!RP.rng],["custom","Custom",RP.rng?rngLabel(RP.rng.from,RP.rng.to):"Pick dates",!!RP.rng],["all","All time","Everything",RP.all]].map(([k,l,sub,on])=>`<button class="${on?"on":""}" onclick="rpMode('${k}')">${l}<small>${sub}</small></button>`).join("")}</div>
+      ${RP.rng?`<div class="two" style="margin-top:10px;gap:10px"><div class="f" style="margin:0"><label>From</label><input class="inp" type="date" value="${RP.rng.from}" onchange="rpSet('from',this.value)"></div><div class="f" style="margin:0"><label>To</label><input class="inp" type="date" value="${RP.rng.to}" onchange="rpSet('to',this.value)"></div></div>`:""}
+      ${RP.all||RP.rng?"":`<div class="mstep2"><button onclick="state.month=addM(state.month,-1);render()" aria-label="Previous month">‹</button><b>${mLabel(state.month)}</b><button onclick="state.month=addM(state.month,1);render()" aria-label="Next month">›</button></div>`}</div>
       <div class="mgrid">${money2?`<div><span>Charged</span><b class="num">${money(T.b)}</b></div><div><span>Wages</span><b class="num">${money(T.w)}</b></div><div><span>${T0.profit<0?"You lose":"You keep"}</span><b class="num" style="color:${T0.profit<0?"var(--pay)":"var(--ok)"}">${money(T0.profit)}</b></div><div><span>Margin</span><b class="num">${T.b?Math.round(T0.profit/T.b*100)+"%":"–"}</b></div>`:`<div><span>Hours</span><b class="num">${T.h.toLocaleString()}</b></div><div><span>Wages</span><b class="num">${money(T.w)}</b></div>`}</div></div>
     <div class="sec"><h2>${RP.by==="site"?"Sites":RP.by==="client"?"Clients":"Workers"}</h2><button class="link" onclick="reportCSV()">Download</button></div>
     <div class="list">${rows.length?rows.map(r=>`<div class="row"><div class="main"><div class="t1">${esc(r.name)}</div><div class="t2 num">${r.h} hrs${money2?` · charged ${r.b==null?"–":money(r.b)} · wages ${money(r.w)}`:""}${r.sub?" · "+esc(r.sub):""}</div></div>
@@ -2425,7 +2429,7 @@ function reportsPage(){
     ${money2&&rows.some(r=>r.p!=null&&r.p<0)?`<div class="problems"><div class="pt">${ICON.warn} ${plural(rows.filter(r=>r.p!=null&&r.p<0).length,"loss-making "+RP.by)} — wages are higher than what you bill</div></div>`:""}`;
 }
 function reportCSV(){const q=v=>`"${String(v??"").replace(/"/g,'""')}"`,rows=[["Name","Detail","Hours","Money in","Wages","Profit"]].concat(reportData().map(r=>[r.name,r.sub,r.h,r.b??"",r.w,r.p??""]));
-  try{download(`Hourza_report_${RP.by}_${RP.all?"all":state.month}.csv`,"﻿"+rows.map(r=>r.map(q).join(",")).join("\r\n"),"text/csv");toast("✓ Report downloaded")}catch(e){}}
+  try{download(`Hourza_report_${RP.by}_${RP.rng?RP.rng.from+"_to_"+RP.rng.to:RP.all?"all":state.month}.csv`,"﻿"+rows.map(r=>r.map(q).join(",")).join("\r\n"),"text/csv");toast("✓ Report downloaded")}catch(e){}}
 
 /* ---------- More ---------- */
 function sheetId(){const t=String((CONN&&CONN.u)||"").replace(/\/u\/\d+\//,"/");let h=5381;for(const c of t)h=((h*33)^c.charCodeAt(0))>>>0;return h.toString(36).toUpperCase().slice(-4).padStart(4,"0")}
