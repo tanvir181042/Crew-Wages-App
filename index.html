@@ -267,6 +267,11 @@ input,textarea,select{font-size:max(16px,1em)}
 @media (min-width:1100px) and (prefers-color-scheme:dark){.wkt .we{background:rgba(255,255,255,.03)}.wkt input:focus{background:#26330F}}
 @media (prefers-color-scheme:dark){.add-top{background:#C9F26B!important;color:#111!important;box-shadow:none!important}.add-top svg{stroke:#111;color:#111}}
 #updbar{position:fixed;left:50%;transform:translateX(-50%);top:calc(env(safe-area-inset-top) + 12px);z-index:9999;display:flex;align-items:center;gap:12px;background:#111214;color:#fff;padding:8px 8px 8px 18px;border-radius:16px;box-shadow:0 10px 30px rgba(0,0,0,.25);font-weight:650;font-size:15px;white-space:nowrap}#updbar button{height:38px;padding:0 16px;border-radius:11px;background:#C9F26B;color:#111;font-weight:750}#updbar .x{background:transparent;color:#aaa;padding:0 8px}
+.dpk{position:relative;display:flex!important;align-items:center;justify-content:space-between;gap:8px;cursor:pointer;min-width:0;width:100%;box-sizing:border-box}
+.dpk b{font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;pointer-events:none}.dpk svg{flex:none;color:var(--mut);pointer-events:none}
+.dpk input[type=date]{position:absolute;inset:0;width:100%!important;height:100%!important;opacity:0;cursor:pointer;border:0;padding:0;margin:0}
+.dpk.inp{padding:0 14px}
+:root{color-scheme:light}@media (prefers-color-scheme:dark){:root{color-scheme:dark}.dpk svg{color:#C9F26B}}
 .two>.f{min-width:0}.two input[type=date]{min-width:0;width:100%;box-sizing:border-box;padding-left:10px;padding-right:8px;font-size:15px}
 .tag{font-size:12px;font-weight:650;border-radius:8px;padding:3px 8px;white-space:nowrap}
 .tag.ok{background:var(--ok-s);color:var(--ok)} .tag.pay{background:var(--pay-s);color:var(--pay)} .tag.warn{background:var(--warn-s);color:var(--warn)} .tag.mut{background:var(--soft);color:var(--mut)}
@@ -806,7 +811,7 @@ const JOIN=(()=>{const m=(location.hash||"").match(/join=(CW1\.[A-Za-z0-9_\-]+)/
 if(JOIN&&!IS_APP){const l=document.querySelector('link[rel="manifest"]');if(l)l.remove()}
 let deferredInstall=null;
 addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredInstall=e;setTimeout(showInstallGuide,50)});
-const APP_VERSION="7.9.21";
+const APP_VERSION="7.9.22";
 /* new-version check: on focus and every 5 min; shows an Update bar (never reloads on its own, so nothing unsaved is lost) */
 let UPD_SEEN="";async function updCheck(){try{if(!/^https?:/.test(location.protocol)||document.hidden)return;const r=await fetch(location.pathname.replace(/[^/]*$/,"")+"index.html?v="+Date.now(),{cache:"no-store"});const t=await r.text(),m=t.match(/APP_VERSION="([^"]+)"/);
   if(m&&m[1]!==APP_VERSION&&m[1]!==UPD_SEEN){UPD_SEEN=m[1];let b=document.getElementById("updbar");if(!b){b=document.createElement("div");b.id="updbar";document.body.appendChild(b)}
@@ -1109,6 +1114,13 @@ function render(){TDR=null;TDP=null;
 let lastHero=null;
 function countUp(){const el=$("#app .hero .big[data-count]");if(!el)return;const to=+el.dataset.count,from=lastHero===null?0:lastHero;lastHero=to;if(RM||from===to)return;
   const t0=performance.now(),d=lastHero!==null&&from?520:800;el.textContent=money(from);const st=t=>{const k=Math.min(1,(t-t0)/d),e=1-Math.pow(1-k,4);el.textContent=money(k<1?Math.round(from+(to-from)*e):to);if(k<1&&el.isConnected)requestAnimationFrame(st)};requestAnimationFrame(st)}
+
+/* nicer date fields: show "Sun 25 Oct 2026" + a visible calendar icon; the native picker still opens on tap */
+function dateFx(root){(root||document).querySelectorAll('input[type=date]:not([data-fx])').forEach(i=>{i.dataset.fx=1;const w=document.createElement("span");w.className="dpk"+(i.classList.contains("inp")?" inp":"");i.classList.remove("inp");i.parentNode.insertBefore(w,i);w.appendChild(i);
+  const t=document.createElement("b");w.insertBefore(t,i);w.insertAdjacentHTML("beforeend",'<svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4.5" width="18" height="16" rx="3"/><path d="M3 9.5h18M8 3v3M16 3v3"/></svg>');
+  const up=()=>{const v=i.value;t.textContent=v&&/^\d{4}-\d{2}-\d{2}$/.test(v)?(()=>{const d=parseD(v);return `${DOW[d.getDay()].slice(0,3)} ${d.getDate()} ${MN[d.getMonth()]}${d.getFullYear()!==new Date().getFullYear()?" "+d.getFullYear():""}`})():"Pick a date"};up();i.addEventListener("input",up);i.addEventListener("change",up);
+  w.addEventListener("click",e=>{if(e.target!==i)try{i.showPicker()}catch(_){i.focus()}});i.addEventListener("click",()=>{try{i.showPicker()}catch(_){}})})}
+new MutationObserver(()=>dateFx()).observe(document.documentElement,{childList:true,subtree:true});document.addEventListener("DOMContentLoaded",()=>dateFx());
 const DESKQ=matchMedia("(min-width:1100px)"),DESK=()=>DESKQ.matches;
 try{DESKQ.addEventListener("change",()=>{try{render()}catch(e){}})}catch(e){}
 const TITLES={home:"Home",today:"Hours",people:"Team",sites:"Team",clients:"Team",more:"Settings",pay:"Pay",reports:"Reports"};
