@@ -854,7 +854,7 @@ const JOIN=(()=>{const m=(location.hash||"").match(/join=(CW1\.[A-Za-z0-9_\-]+)/
 if(JOIN&&!IS_APP){const l=document.querySelector('link[rel="manifest"]');if(l)l.remove()}
 let deferredInstall=null;
 addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredInstall=e;setTimeout(showInstallGuide,50)});
-const APP_VERSION="7.11.1";
+const APP_VERSION="7.11.2";
 /* new-version check: on focus and every 5 min; shows an Update bar (never reloads on its own, so nothing unsaved is lost) */
 let UPD_SEEN="";async function updCheck(){try{if(!/^https?:/.test(location.protocol)||document.hidden)return;const r=await fetch(location.pathname.replace(/[^/]*$/,"")+"index.html?v="+Date.now(),{cache:"no-store"});const t=await r.text(),m=t.match(/APP_VERSION="([^"]+)"/);
   if(m&&m[1]!==APP_VERSION&&m[1]!==UPD_SEEN){UPD_SEEN=m[1];let b=document.getElementById("updbar");if(!b){b=document.createElement("div");b.id="updbar";document.body.appendChild(b)}
@@ -2700,7 +2700,7 @@ function payDays(){const o=jp((metaGet("payto")||{}).notes);return Array.isArray
 async function setPayTo(to,prev){const o=jp((metaGet("payto")||{}).notes),days=[...new Set([+to.slice(8),...(o.days||[])])].slice(0,3);
   await put("meta",{id:"payto",workerId:"",siteId:"",date:to,month:to.slice(0,7),hours:0,rate:0,paid:false,paidAt:"",notes:JSON.stringify({to,prev:prev===undefined?(o.to||""):prev,days}),createdAt:new Date().toISOString(),kind:"meta"})}
 function prPeriodInit(){const td=todayD(),yd=addD(td,-1),pt=payTo();const firstUnpaid=DB.entries.filter(e=>!e.paid&&isWork(e)&&e.date&&e.hours>0).map(e=>e.date).sort()[0];
-  PR.mode="period";PR.from=pt?addD(pt,1):(firstUnpaid||td.slice(0,7)+"-01");PR.to=yd>=PR.from?yd:td;PR.off=new Set()}
+  PR.mode="period";PR.from=pt?addD(pt,1):(firstUnpaid||td.slice(0,7)+"-01");PR.to=yd>=PR.from?yd:td>=PR.from?td:PR.from;PR.off=new Set()}
 function prEndChips(){const td=todayD(),yd=addD(td,-1),out=[["Yesterday",yd]];payDays().forEach(dm=>{let c=td.slice(0,7)+"-"+String(dm).padStart(2,"0");if(c>td)c=addM(td.slice(0,7),-1)+"-"+String(dm).padStart(2,"0");if(c>=PR.from&&!out.some(x=>x[1]===c))out.push([`Up to the ${dm}${[,"st","nd","rd"][dm%10>3||Math.floor(dm/10)===1?0:dm%10]||"th"}`,c])});
   if(td>=PR.from&&!out.some(x=>x[1]===td))out.push(["Today",td]);return out.filter(x=>x[1]>=PR.from)}
 function prOld(){if(PR.mode!=="period")return [];return DB.entries.filter(e=>!e.paid&&isWork(e)&&e.hours>0&&e.rate>0&&(e.date?e.date<PR.from:mEnd(e.month)<PR.from))}
@@ -2712,6 +2712,7 @@ function prStep(n){if(PR.mode==="week")PR.d=addD(PR.d,7*n);else if(PR.mode==="fo
 function prGroups(){const g={};DB.entries.filter(prIn).forEach(e=>{const x=g[e.workerId]||(g[e.workerId]={id:e.workerId,es:[],amt:0,h:0});x.es.push(e);x.amt+=wage(e);x.h+= +e.hours});return Object.values(g).sort((a,b)=>W(a.id).name.localeCompare(W(b.id).name))}
 function prPeriodUI(){const pt=payTo(),old=prOld(),oldAmt=old.reduce((a,e)=>a+wage(e),0);
   return `<div class="ppbox">${pt?`<span class="ppok">✓ Paid up to ${dayLabel(pt)}</span>`:`<div class="hint" style="margin:0 0 8px">First time: when were people last paid up to? <input class="inp" type="date" style="margin-top:6px" onchange="if(this.value){setPayTo(this.value,'').then(()=>{prPeriodInit();render()})}"></div>`}
+    ${PR.from>todayD()?`<div class="hint" style="margin:0 0 10px">Everyone is paid up to ${dayLabel(pt)}. The next pay starts ${dayLabel(PR.from)} — come back after that day's work. Paid too far by mistake? Undo it in Past payments below.</div>`:""}
     <div class="pprow"><div class="ppfrom"><small>From</small><b>${dayLabel(PR.from)}</b></div><span>→</span><div class="ppto"><small>Up to</small><input class="inp" type="date" value="${PR.to}" min="${PR.from}" onchange="if(this.value&&this.value>=PR.from){PR.to=this.value;PR.off=new Set();render()}"></div></div>
     <div class="ppchips">${prEndChips().map(([l,d])=>`<button class="${PR.to===d?"on":""}" onclick="PR.to='${d}';PR.off=new Set();render()">${l}<small>${dayLabel(d).replace(/^\\w+ /,"")}</small></button>`).join("")}</div>
     ${old.length?`<div class="warn2" style="margin:10px 0 0"><b>⚠ Earlier, not paid yet: ${money(oldAmt)}</b>${plural(old.length,"entry")} before ${dayLabel(PR.from)}${[...new Set(old.map(e=>W(e.workerId).name))].slice(0,3).map(n=>" · "+esc(n)).join("")}<button class="btn ${PR.old?"ghost":""}" style="margin-top:10px" onclick="PR.old=!PR.old;PR.off=new Set();render()">${PR.old?"Leave them for later":"Add them to this pay"}</button></div>`:""}</div>`}
