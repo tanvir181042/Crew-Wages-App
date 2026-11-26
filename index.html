@@ -315,6 +315,7 @@ input,textarea,select{font-size:max(16px,1em)}
 .ppchips{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.ppchips button{flex:1;min-width:92px;padding:8px 10px;border-radius:12px;background:var(--card);font-weight:750;font-size:13.5px;color:var(--ink);box-shadow:inset 0 0 0 1px var(--line);line-height:1.2}.ppchips button small{display:block;font-weight:600;font-size:11px;color:var(--mut)}
 .ppchips button.on{background:var(--ink);color:var(--bg);box-shadow:none}.ppchips button.on small{color:inherit;opacity:.75}
 @media (prefers-color-scheme:dark){.ppok{background:#16351f;color:#7ee2a8}}
+.ppokrow{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px}.ppokrow .ppok{margin:0}.ppset{background:var(--card);border-radius:14px;padding:12px 14px;margin-bottom:10px;box-shadow:inset 0 0 0 1px var(--line)}.ppset b{font-size:14.5px}
 .two>.f{min-width:0}.two input[type=date]{min-width:0;width:100%;box-sizing:border-box;padding-left:10px;padding-right:8px;font-size:15px}
 .tag{font-size:12px;font-weight:650;border-radius:8px;padding:3px 8px;white-space:nowrap}
 .tag.ok{background:var(--ok-s);color:var(--ok)} .tag.pay{background:var(--pay-s);color:var(--pay)} .tag.warn{background:var(--warn-s);color:var(--warn)} .tag.mut{background:var(--soft);color:var(--mut)}
@@ -854,7 +855,7 @@ const JOIN=(()=>{const m=(location.hash||"").match(/join=(CW1\.[A-Za-z0-9_\-]+)/
 if(JOIN&&!IS_APP){const l=document.querySelector('link[rel="manifest"]');if(l)l.remove()}
 let deferredInstall=null;
 addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredInstall=e;setTimeout(showInstallGuide,50)});
-const APP_VERSION="7.11.2";
+const APP_VERSION="7.11.3";
 /* new-version check: on focus and every 5 min; shows an Update bar (never reloads on its own, so nothing unsaved is lost) */
 let UPD_SEEN="";async function updCheck(){try{if(!/^https?:/.test(location.protocol)||document.hidden)return;const r=await fetch(location.pathname.replace(/[^/]*$/,"")+"index.html?v="+Date.now(),{cache:"no-store"});const t=await r.text(),m=t.match(/APP_VERSION="([^"]+)"/);
   if(m&&m[1]!==APP_VERSION&&m[1]!==UPD_SEEN){UPD_SEEN=m[1];let b=document.getElementById("updbar");if(!b){b=document.createElement("div");b.id="updbar";document.body.appendChild(b)}
@@ -2694,8 +2695,9 @@ async function tdSave(){
 let PR={mode:"fort",d:addD(todayD(),-14),off:new Set()};
 /* ---- "paid up to": the pay period always starts the day after the last pay; the manager only picks the end ---- */
 const metaGet=id=>(DB.meta||[]).find(m=>m.id===id);
-function payTo(){const m=metaGet("payto");if(m){const o=jp(m.notes);if(o.to)return o.to}
-  const rs=payRuns().filter(r=>r.d!=="?");if(!rs.length)return null;const last=rs[0];return last.es.filter(e=>e.date).map(e=>e.date).sort().pop()||null}
+function payTo(){const m=metaGet("payto");if(m){const o=jp(m.notes);if(o.to)return o.to}return null}
+/* a guess only (shown as a suggestion, never used on its own): the latest work day among the most recent big payment */
+function payToGuess(){const rs=payRuns().filter(r=>r.d!=="?"&&r.n>=Math.min(2,new Set(DB.entries.map(e=>e.workerId)).size));const last=rs[0];return last?last.es.filter(e=>e.date).map(e=>e.date).sort().pop()||null:null}
 function payDays(){const o=jp((metaGet("payto")||{}).notes);return Array.isArray(o.days)?o.days:[]}
 async function setPayTo(to,prev){const o=jp((metaGet("payto")||{}).notes),days=[...new Set([+to.slice(8),...(o.days||[])])].slice(0,3);
   await put("meta",{id:"payto",workerId:"",siteId:"",date:to,month:to.slice(0,7),hours:0,rate:0,paid:false,paidAt:"",notes:JSON.stringify({to,prev:prev===undefined?(o.to||""):prev,days}),createdAt:new Date().toISOString(),kind:"meta"})}
@@ -2704,14 +2706,17 @@ function prPeriodInit(){const td=todayD(),yd=addD(td,-1),pt=payTo();const firstU
 function prEndChips(){const td=todayD(),yd=addD(td,-1),out=[["Yesterday",yd]];payDays().forEach(dm=>{let c=td.slice(0,7)+"-"+String(dm).padStart(2,"0");if(c>td)c=addM(td.slice(0,7),-1)+"-"+String(dm).padStart(2,"0");if(c>=PR.from&&!out.some(x=>x[1]===c))out.push([`Up to the ${dm}${[,"st","nd","rd"][dm%10>3||Math.floor(dm/10)===1?0:dm%10]||"th"}`,c])});
   if(td>=PR.from&&!out.some(x=>x[1]===td))out.push(["Today",td]);return out.filter(x=>x[1]>=PR.from)}
 function prOld(){if(PR.mode!=="period")return [];return DB.entries.filter(e=>!e.paid&&isWork(e)&&e.hours>0&&e.rate>0&&(e.date?e.date<PR.from:mEnd(e.month)<PR.from))}
-function prSmart(){if(payTo()||DB.meta&&DB.meta.length){prPeriodInit();return}const td=todayD(),c=[{mode:"fort",d:addD(td,-14)},{mode:"fort",d:td},{mode:"all",d:td}];for(const x of c){PR={...x,off:new Set()};if(DB.entries.some(prIn))return}PR={mode:"fort",d:addD(td,-14),off:new Set()}}
+function prSmart(){if(payTo()||payToGuess()||DB.entries.some(e=>e.paid)){prPeriodInit();return}const td=todayD(),c=[{mode:"fort",d:addD(td,-14)},{mode:"fort",d:td},{mode:"all",d:td}];for(const x of c){PR={...x,off:new Set()};if(DB.entries.some(prIn))return}PR={mode:"fort",d:addD(td,-14),off:new Set()}}
 function prRange(){if(PR.mode==="range"||PR.mode==="period")return [PR.from,PR.to];const ws=weekStart(PR.d);if(PR.mode==="week")return [ws,addD(ws,6)];if(PR.mode==="fort")return [addD(ws,-7),addD(ws,6)];return null}
 function prIn(e){if(e.paid||!(e.hours>0)||!(e.rate>0))return false;if(PR.mode==="all")return true;if(PR.mode==="period"){if(PR.old&&(e.date?e.date<PR.from:mEnd(e.month)<PR.from))return true;if(!e.date)return e.month+"-01">=PR.from&&mEnd(e.month)<=PR.to;return e.date>=PR.from&&e.date<=PR.to}if(PR.mode==="month")return e.month===PR.d.slice(0,7);const[a,b]=prRange();return !!e.date&&e.date>=a&&e.date<=b}
 function prLabel(){if(PR.mode==="period")return rngLabel(PR.from,PR.to)+(PR.old&&prOld().length?" + earlier":"");if(PR.mode==="all")return "Everything unpaid";if(PR.mode==="month")return mLabel(PR.d.slice(0,7));const[a,b]=prRange();const A=parseD(a),B=parseD(b);return `${A.getDate()} ${MN[A.getMonth()]} – ${B.getDate()} ${MN[B.getMonth()]}`}
 function prStep(n){if(PR.mode==="week")PR.d=addD(PR.d,7*n);else if(PR.mode==="fort")PR.d=addD(PR.d,14*n);else if(PR.mode==="month")PR.d=addM(PR.d.slice(0,7),n)+"-15";render()}
 function prGroups(){const g={};DB.entries.filter(prIn).forEach(e=>{const x=g[e.workerId]||(g[e.workerId]={id:e.workerId,es:[],amt:0,h:0});x.es.push(e);x.amt+=wage(e);x.h+= +e.hours});return Object.values(g).sort((a,b)=>W(a.id).name.localeCompare(W(b.id).name))}
+function payToEdit(){const pt=payTo();showSheet(`<h3>Paid up to</h3><div class="lead">The day everyone has been paid up to. The next pay starts the day after.</div><div class="f"><label>Paid up to</label><input class="inp" type="date" id="ptd" value="${pt||""}"></div>
+  <button class="btn" onclick="const v=$('#ptd').value;if(v)setPayTo(v).then(()=>{closeSheet();prPeriodInit();render()})">Save</button><button class="btn ghost" onclick="clearPayTo()">Not set — ask me again</button><button class="btn ghost" onclick="closeSheet()">Cancel</button>`)}
+async function clearPayTo(){const m=metaGet("payto");if(m)await del("meta",m.id);closeSheet();prPeriodInit();render()}
 function prPeriodUI(){const pt=payTo(),old=prOld(),oldAmt=old.reduce((a,e)=>a+wage(e),0);
-  return `<div class="ppbox">${pt?`<span class="ppok">✓ Paid up to ${dayLabel(pt)}</span>`:`<div class="hint" style="margin:0 0 8px">First time: when were people last paid up to? <input class="inp" type="date" style="margin-top:6px" onchange="if(this.value){setPayTo(this.value,'').then(()=>{prPeriodInit();render()})}"></div>`}
+  return `<div class="ppbox">${pt?`<div class="ppokrow"><span class="ppok">✓ Paid up to ${dayLabel(pt)}</span><button class="link" style="font-size:13px;padding:0" onclick="payToEdit()">Change</button></div>`:`<div class="ppset"><b>First time: up to which day has everyone been paid?</b>${payToGuess()?`<button class="btn" style="margin-top:8px" onclick="setPayTo('${payToGuess()}','').then(()=>{prPeriodInit();render()})">Up to ${dayLabel(payToGuess())} <small style="opacity:.7;font-weight:600">· from your last payment</small></button>`:""}<div class="hint" style="margin:8px 0 4px">or pick the day:</div><input class="inp" type="date" onchange="if(this.value){setPayTo(this.value,'').then(()=>{prPeriodInit();render()})}"></div>`}
     ${PR.from>todayD()?`<div class="hint" style="margin:0 0 10px">Everyone is paid up to ${dayLabel(pt)}. The next pay starts ${dayLabel(PR.from)} — come back after that day's work. Paid too far by mistake? Undo it in Past payments below.</div>`:""}
     <div class="pprow"><div class="ppfrom"><small>From</small><b>${dayLabel(PR.from)}</b></div><span>→</span><div class="ppto"><small>Up to</small><input class="inp" type="date" value="${PR.to}" min="${PR.from}" onchange="if(this.value&&this.value>=PR.from){PR.to=this.value;PR.off=new Set();render()}"></div></div>
     <div class="ppchips">${prEndChips().map(([l,d])=>`<button class="${PR.to===d?"on":""}" onclick="PR.to='${d}';PR.off=new Set();render()">${l}<small>${dayLabel(d).replace(/^\\w+ /,"")}</small></button>`).join("")}</div>
