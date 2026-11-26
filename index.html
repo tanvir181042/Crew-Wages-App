@@ -308,6 +308,13 @@ input,textarea,select{font-size:max(16px,1em)}
 .warn2{background:#FDECEC;color:#8a1c12;border-radius:16px;padding:12px 14px;margin:14px 0;font-size:13.5px;line-height:1.45}.warn2 b{display:block;font-size:14.5px;margin-bottom:4px}
 @media (prefers-color-scheme:dark){.warn2{background:#3a1d1d;color:#ffb4ab}}
 .calb{display:flex;align-items:center;justify-content:center;gap:10px;margin:0 0 14px}.calb svg{width:20px;height:20px}
+.ppbox{margin-top:10px}.ppok{display:inline-block;font-size:12.5px;font-weight:700;color:#0F7B45;background:#E3F5EA;padding:5px 10px;border-radius:9px;margin-bottom:10px}
+.pprow{display:flex;align-items:center;gap:8px}.pprow>span{font-weight:800;color:var(--mut)}.ppfrom,.ppto{flex:1;min-width:0}.ppfrom small,.ppto small{display:block;font-size:11.5px;color:var(--mut);font-weight:700;margin-bottom:4px}
+.ppfrom b{display:flex;align-items:center;height:52px;padding:0 14px;border-radius:14px;background:var(--card);font-size:15px;box-shadow:inset 0 0 0 1px var(--line)}
+.ppto .dpk.inp,.ppto .inp{box-shadow:inset 0 0 0 2px var(--ink);background:var(--card)}
+.ppchips{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.ppchips button{flex:1;min-width:92px;padding:8px 10px;border-radius:12px;background:var(--card);font-weight:750;font-size:13.5px;color:var(--ink);box-shadow:inset 0 0 0 1px var(--line);line-height:1.2}.ppchips button small{display:block;font-weight:600;font-size:11px;color:var(--mut)}
+.ppchips button.on{background:var(--ink);color:var(--bg);box-shadow:none}.ppchips button.on small{color:inherit;opacity:.75}
+@media (prefers-color-scheme:dark){.ppok{background:#16351f;color:#7ee2a8}}
 .two>.f{min-width:0}.two input[type=date]{min-width:0;width:100%;box-sizing:border-box;padding-left:10px;padding-right:8px;font-size:15px}
 .tag{font-size:12px;font-weight:650;border-radius:8px;padding:3px 8px;white-space:nowrap}
 .tag.ok{background:var(--ok-s);color:var(--ok)} .tag.pay{background:var(--pay-s);color:var(--pay)} .tag.warn{background:var(--warn-s);color:var(--warn)} .tag.mut{background:var(--soft);color:var(--mut)}
@@ -847,7 +854,7 @@ const JOIN=(()=>{const m=(location.hash||"").match(/join=(CW1\.[A-Za-z0-9_\-]+)/
 if(JOIN&&!IS_APP){const l=document.querySelector('link[rel="manifest"]');if(l)l.remove()}
 let deferredInstall=null;
 addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredInstall=e;setTimeout(showInstallGuide,50)});
-const APP_VERSION="7.10.8";
+const APP_VERSION="7.11.0";
 /* new-version check: on focus and every 5 min; shows an Update bar (never reloads on its own, so nothing unsaved is lost) */
 let UPD_SEEN="";async function updCheck(){try{if(!/^https?:/.test(location.protocol)||document.hidden)return;const r=await fetch(location.pathname.replace(/[^/]*$/,"")+"index.html?v="+Date.now(),{cache:"no-store"});const t=await r.text(),m=t.match(/APP_VERSION="([^"]+)"/);
   if(m&&m[1]!==APP_VERSION&&m[1]!==UPD_SEEN){UPD_SEEN=m[1];let b=document.getElementById("updbar");if(!b){b=document.createElement("div");b.id="updbar";document.body.appendChild(b)}
@@ -856,12 +863,12 @@ function updGo(){const go=()=>location.reload();(navigator.serviceWorker&&naviga
 document.addEventListener("visibilitychange",()=>{if(!document.hidden)updCheck()});window.addEventListener("focus",updCheck);setInterval(updCheck,300000);setTimeout(updCheck,4000);
 /* ============ data layer ============ */
 const TABLES=["clients","sites","workers","rates","entries","income"];
-const EMPTY=()=>({clients:[],sites:[],workers:[],rates:[],entries:[],income:[],roster:[],marks:[]});
+const EMPTY=()=>({clients:[],sites:[],workers:[],rates:[],entries:[],income:[],roster:[],marks:[],meta:[]});
 /* roster lines and day marks are stored as special rows (kind "roster" / "mark") in the Sheet's entries tab, so the Sheet script needs no change */
-function splitV(d){if(!d)return d;d.roster=Array.isArray(d.roster)?d.roster:[];d.marks=Array.isArray(d.marks)?d.marks:[];const keep=[],ri=new Set(d.roster.map(r=>r.id)),mi=new Set(d.marks.map(r=>r.id));
-  (d.entries||[]).forEach(e=>{if(e.kind==="roster"){if(!ri.has(e.id)){d.roster.push(e);ri.add(e.id)}}else if(e.kind==="mark"){if(!mi.has(e.id)){d.marks.push(e);mi.add(e.id)}}else keep.push(e)});d.entries=keep;return d}
-function joinV(d){const o={...d,entries:[...(d.entries||[]),...(d.roster||[]),...(d.marks||[])]};delete o.roster;delete o.marks;return o}
-const RT=t=>t==="roster"||t==="marks"?"entries":t;
+function splitV(d){if(!d)return d;d.roster=Array.isArray(d.roster)?d.roster:[];d.marks=Array.isArray(d.marks)?d.marks:[];d.meta=Array.isArray(d.meta)?d.meta:[];const keep=[],ri=new Set(d.roster.map(r=>r.id)),mi=new Set(d.marks.map(r=>r.id)),xi=new Set(d.meta.map(r=>r.id));
+  (d.entries||[]).forEach(e=>{if(e.kind==="roster"){if(!ri.has(e.id)){d.roster.push(e);ri.add(e.id)}}else if(e.kind==="mark"){if(!mi.has(e.id)){d.marks.push(e);mi.add(e.id)}}else if(e.kind==="meta"){if(!xi.has(e.id)){d.meta.push(e);xi.add(e.id)}}else keep.push(e)});d.entries=keep;return d}
+function joinV(d){const o={...d,entries:[...(d.entries||[]),...(d.roster||[]),...(d.marks||[]),...(d.meta||[])]};delete o.roster;delete o.marks;delete o.meta;return o}
+const RT=t=>t==="roster"||t==="marks"||t==="meta"?"entries":t;
 let DB=EMPTY();
 const KEY="crewwages_v2", K_CONN="cw_conn", K_CACHE="cw_cache", K_OUT="cw_outbox", K_PIN="cw_pin";
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
@@ -2684,18 +2691,36 @@ async function tdSave(){
 
 /* ---------- Pay run ---------- */
 let PR={mode:"fort",d:addD(todayD(),-14),off:new Set()};
-function prSmart(){const td=todayD(),c=[{mode:"fort",d:addD(td,-14)},{mode:"fort",d:td},{mode:"all",d:td}];for(const x of c){PR={...x,off:new Set()};if(DB.entries.some(prIn))return}PR={mode:"fort",d:addD(td,-14),off:new Set()}}
-function prRange(){if(PR.mode==="range")return [PR.from,PR.to];const ws=weekStart(PR.d);if(PR.mode==="week")return [ws,addD(ws,6)];if(PR.mode==="fort")return [addD(ws,-7),addD(ws,6)];return null}
-function prIn(e){if(e.paid||!(e.hours>0)||!(e.rate>0))return false;if(PR.mode==="all")return true;if(PR.mode==="month")return e.month===PR.d.slice(0,7);const[a,b]=prRange();return !!e.date&&e.date>=a&&e.date<=b}
-function prLabel(){if(PR.mode==="all")return "Everything unpaid";if(PR.mode==="month")return mLabel(PR.d.slice(0,7));const[a,b]=prRange();const A=parseD(a),B=parseD(b);return `${A.getDate()} ${MN[A.getMonth()]} – ${B.getDate()} ${MN[B.getMonth()]}`}
+/* ---- "paid up to": the pay period always starts the day after the last pay; the manager only picks the end ---- */
+const metaGet=id=>(DB.meta||[]).find(m=>m.id===id);
+function payTo(){const m=metaGet("payto");if(m){const o=jp(m.notes);if(o.to)return o.to}
+  const rs=payRuns().filter(r=>r.d!=="?");if(!rs.length)return null;const last=rs[0];return last.es.filter(e=>e.date).map(e=>e.date).sort().pop()||null}
+function payDays(){const o=jp((metaGet("payto")||{}).notes);return Array.isArray(o.days)?o.days:[]}
+async function setPayTo(to,prev){const o=jp((metaGet("payto")||{}).notes),days=[...new Set([+to.slice(8),...(o.days||[])])].slice(0,3);
+  await put("meta",{id:"payto",workerId:"",siteId:"",date:to,month:to.slice(0,7),hours:0,rate:0,paid:false,paidAt:"",notes:JSON.stringify({to,prev:prev===undefined?(o.to||""):prev,days}),createdAt:new Date().toISOString(),kind:"meta"})}
+function prPeriodInit(){const td=todayD(),yd=addD(td,-1),pt=payTo();const firstUnpaid=DB.entries.filter(e=>!e.paid&&isWork(e)&&e.date&&e.hours>0).map(e=>e.date).sort()[0];
+  PR.mode="period";PR.from=pt?addD(pt,1):(firstUnpaid||td.slice(0,7)+"-01");PR.to=yd>=PR.from?yd:td;PR.off=new Set()}
+function prEndChips(){const td=todayD(),yd=addD(td,-1),out=[["Yesterday",yd]];payDays().forEach(dm=>{let c=td.slice(0,7)+"-"+String(dm).padStart(2,"0");if(c>td)c=addM(td.slice(0,7),-1)+"-"+String(dm).padStart(2,"0");if(c>=PR.from&&!out.some(x=>x[1]===c))out.push([`Up to the ${dm}${[,"st","nd","rd"][dm%10>3||Math.floor(dm/10)===1?0:dm%10]||"th"}`,c])});
+  if(td>=PR.from&&!out.some(x=>x[1]===td))out.push(["Today",td]);return out.filter(x=>x[1]>=PR.from)}
+function prOld(){if(PR.mode!=="period")return [];return DB.entries.filter(e=>!e.paid&&isWork(e)&&e.hours>0&&e.rate>0&&(e.date?e.date<PR.from:mEnd(e.month)<PR.from))}
+function prSmart(){if(payTo()||DB.meta&&DB.meta.length){prPeriodInit();return}const td=todayD(),c=[{mode:"fort",d:addD(td,-14)},{mode:"fort",d:td},{mode:"all",d:td}];for(const x of c){PR={...x,off:new Set()};if(DB.entries.some(prIn))return}PR={mode:"fort",d:addD(td,-14),off:new Set()}}
+function prRange(){if(PR.mode==="range"||PR.mode==="period")return [PR.from,PR.to];const ws=weekStart(PR.d);if(PR.mode==="week")return [ws,addD(ws,6)];if(PR.mode==="fort")return [addD(ws,-7),addD(ws,6)];return null}
+function prIn(e){if(e.paid||!(e.hours>0)||!(e.rate>0))return false;if(PR.mode==="all")return true;if(PR.mode==="period"){if(PR.old&&(e.date?e.date<PR.from:mEnd(e.month)<PR.from))return true;if(!e.date)return e.month+"-01">=PR.from&&mEnd(e.month)<=PR.to;return e.date>=PR.from&&e.date<=PR.to}if(PR.mode==="month")return e.month===PR.d.slice(0,7);const[a,b]=prRange();return !!e.date&&e.date>=a&&e.date<=b}
+function prLabel(){if(PR.mode==="period")return rngLabel(PR.from,PR.to)+(PR.old&&prOld().length?" + earlier":"");if(PR.mode==="all")return "Everything unpaid";if(PR.mode==="month")return mLabel(PR.d.slice(0,7));const[a,b]=prRange();const A=parseD(a),B=parseD(b);return `${A.getDate()} ${MN[A.getMonth()]} – ${B.getDate()} ${MN[B.getMonth()]}`}
 function prStep(n){if(PR.mode==="week")PR.d=addD(PR.d,7*n);else if(PR.mode==="fort")PR.d=addD(PR.d,14*n);else if(PR.mode==="month")PR.d=addM(PR.d.slice(0,7),n)+"-15";render()}
 function prGroups(){const g={};DB.entries.filter(prIn).forEach(e=>{const x=g[e.workerId]||(g[e.workerId]={id:e.workerId,es:[],amt:0,h:0});x.es.push(e);x.amt+=wage(e);x.h+= +e.hours});return Object.values(g).sort((a,b)=>W(a.id).name.localeCompare(W(b.id).name))}
+function prPeriodUI(){const pt=payTo(),old=prOld(),oldAmt=old.reduce((a,e)=>a+wage(e),0);
+  return `<div class="ppbox">${pt?`<span class="ppok">✓ Paid up to ${dayLabel(pt)}</span>`:`<div class="hint" style="margin:0 0 8px">First time: when were people last paid up to? <input class="inp" type="date" style="margin-top:6px" onchange="if(this.value){setPayTo(this.value,'').then(()=>{prPeriodInit();render()})}"></div>`}
+    <div class="pprow"><div class="ppfrom"><small>From</small><b>${dayLabel(PR.from)}</b></div><span>→</span><div class="ppto"><small>Up to</small><input class="inp" type="date" value="${PR.to}" min="${PR.from}" onchange="if(this.value&&this.value>=PR.from){PR.to=this.value;PR.off=new Set();render()}"></div></div>
+    <div class="ppchips">${prEndChips().map(([l,d])=>`<button class="${PR.to===d?"on":""}" onclick="PR.to='${d}';PR.off=new Set();render()">${l}<small>${dayLabel(d).replace(/^\\w+ /,"")}</small></button>`).join("")}</div>
+    ${old.length?`<div class="warn2" style="margin:10px 0 0"><b>⚠ Earlier, not paid yet: ${money(oldAmt)}</b>${plural(old.length,"entry")} before ${dayLabel(PR.from)}${[...new Set(old.map(e=>W(e.workerId).name))].slice(0,3).map(n=>" · "+esc(n)).join("")}<button class="btn ${PR.old?"ghost":""}" style="margin-top:10px" onclick="PR.old=!PR.old;PR.off=new Set();render()">${PR.old?"Leave them for later":"Add them to this pay"}</button></div>`:""}</div>`}
 function payPage(){
   const gs=prGroups(),on=gs.filter(x=>!PR.off.has(x.id)),tot=on.reduce((a,x)=>a+x.amt,0);
   return `<div class="card mcard"><div class="mhead"><div class="m8" style="grid-template-columns:repeat(4,1fr)">${(()=>{const lf=fortRange(addD(todayD(),-14))[1],tf=fortRange(todayD())[1],cur=PR.mode==="fort"?fortRange(PR.d)[1]:null;
-    return [["lf","Last 2 weeks",PR.mode==="fort"&&cur===lf,`PR.mode='fort';PR.d=addD(todayD(),-14)`,fortLabel(addD(todayD(),-14))],["tf","This 2 weeks",PR.mode==="fort"&&cur===tf,`PR.mode='fort';PR.d=todayD()`,fortLabel(todayD())],["rg","Custom",PR.mode==="range",`if(PR.mode!='range'){const r=rngDef();PR.mode='range';PR.from=r.from;PR.to=r.to}`,PR.mode==="range"?rngLabel(PR.from,PR.to):"Pick dates"],["all","All owed",PR.mode==="all",`PR.mode='all'`,"Everything"]].map(([k,l,on,js,sub])=>`<button class="${on?"on":""}" onclick="${js};PR.off=new Set();render()">${l}<small>${sub}</small></button>`).join("")})()}</div>
+    return [["pp","Pay period",PR.mode==="period",`prPeriodInit()`,payTo()?"after "+dayLabel(payTo()).replace(/^\w+ /,""):"Set it up"],["lf","2 weeks",PR.mode==="fort",`PR.mode='fort';PR.d=addD(todayD(),-14)`,fortLabel(PR.mode==="fort"?PR.d:addD(todayD(),-14))],["rg","Custom",PR.mode==="range",`if(PR.mode!='range'){const r=rngDef();PR.mode='range';PR.from=r.from;PR.to=r.to}`,PR.mode==="range"?rngLabel(PR.from,PR.to):"Pick dates"],["all","All owed",PR.mode==="all",`PR.mode='all'`,"Everything"]].map(([k,l,on,js,sub])=>`<button class="${on?"on":""}" onclick="${js};PR.off=new Set();render()">${l}<small>${sub}</small></button>`).join("")})()}</div>
       ${PR.mode==="range"?`<div class="two" style="margin-top:10px;gap:10px"><div class="f" style="margin:0"><label>From</label><input class="inp" type="date" value="${PR.from}" onchange="if(this.value){PR.from=this.value;if(PR.from>PR.to)PR.to=PR.from;PR.off=new Set();render()}"></div><div class="f" style="margin:0"><label>To</label><input class="inp" type="date" value="${PR.to}" onchange="if(this.value){PR.to=this.value;if(PR.from>PR.to)PR.from=PR.to;PR.off=new Set();render()}"></div></div>`:""}
-      ${PR.mode==="all"||PR.mode==="range"?"":`<div class="mstep2"><button onclick="prStep(-1)" aria-label="Previous">‹</button><b>${prLabel()}</b><button onclick="prStep(1)" aria-label="Next">›</button></div>`}</div>
+      ${PR.mode==="period"?prPeriodUI():""}
+      ${PR.mode==="all"||PR.mode==="range"||PR.mode==="period"?"":`<div class="mstep2"><button onclick="prStep(-1)" aria-label="Previous">‹</button><b>${prLabel()}</b><button onclick="prStep(1)" aria-label="Next">›</button></div>`}</div>
       <div class="mgrid"><div><span>To pay now</span><b class="num">${money(tot)}</b></div><div><span>People</span><b class="num">${on.length}${on.length!==gs.length?` of ${gs.length}`:""}</b></div></div>
       <div class="mfoot">${PR.mode==="week"||PR.mode==="fort"?"Only hours entered by day are included here.":"Untick anyone you're not paying today."}</div></div>
     <div class="sec"><h2>${prLabel()}</h2>${gs.length?`<button class="link" onclick="PR.off=PR.off.size?new Set():new Set(prGroups().map(x=>x.id));render()">${PR.off.size?"Select all":"Select none"}</button>`:""}</div>
@@ -2725,7 +2750,8 @@ async function payDupFix(){const on=prGroups().filter(x=>!PR.off.has(x.id)),ex=p
 async function doPayRun(){{const on0=prGroups().filter(x=>!PR.off.has(x.id)),ex=payExtras(on0.flatMap(x=>x.es));if(ex.length&&confirmBox(`${plural(ex.length,"day")} would be paid twice (${money(ex.reduce((a,x)=>a+wage(x.e),0))}). Remove the extra copies first?\n\nOK = remove them, Cancel = pay anyway`)){await payDupFix()}}
   const today=todayD(),on=prGroups().filter(x=>!PR.off.has(x.id)),before=on.flatMap(x=>x.es.map(e=>({...e}))),rows=before.map(e=>({...e,paid:true,paidAt:today})),tot=rows.reduce((a,e)=>a+wage(e),0);
   if(!confirmBox(`Mark ${plural(on.length,"person")} as paid — ${money(tot)}?`))return;
-  await putMany("entries",rows);PR.off=new Set();render();toast(`✓ ${plural(on.length,"person")} paid · ${money(tot)}`,async()=>{await putMany("entries",before);render()});billNudge(rows)}
+  const per=PR.mode==="period",prevPT=payTo(),newTo=PR.to,full=on.length===prGroups().length;await putMany("entries",rows);if(per&&full)await setPayTo(newTo,prevPT||"");PR.off=new Set();if(per){PR.old=false;prPeriodInit()}render();
+  toast(`✓ ${plural(on.length,"person")} paid · ${money(tot)}${per?" · up to "+dayLabel(newTo):""}`,async()=>{await putMany("entries",before);if(per)await setPayTo(prevPT||newTo,"");if(per)prPeriodInit();render()});billNudge(rows)}
 async function paySlip(wid){const x=prGroups().find(g=>g.id===wid);if(!x)return;
   const lines=x.es.slice().sort((a,b)=>sortKey(a).localeCompare(sortKey(b))).map(e=>`${e.date?dayLabel(e.date):mLabel(e.month)} · ${Sx(e.siteId).name}${isWork(e)?"":" ("+KIND[e.kind]+")"} · ${e.hours} hrs × ${money(e.rate)} = ${money(wage(e))}`);
   const text=`Pay summary — ${W(wid).name}\n${prLabel()}\n\n${lines.join("\n")}\n\nTotal hours: ${x.h}\nTotal pay: ${money(x.amt)}`;
