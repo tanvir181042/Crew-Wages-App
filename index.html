@@ -235,6 +235,7 @@ input,textarea,select{font-size:max(16px,1em)}
 .amt small{display:block;font-size:12.5px;color:var(--mut);font-weight:550;margin-top:1px}
 .pay-btn{height:44px;padding:0 18px;border-radius:12px;background:var(--pay-s);color:var(--pay);font-weight:700;font-size:14.5px;flex:none}
 .pay-btn:active{opacity:.6}
+.two>.f{min-width:0}.two input[type=date]{min-width:0;width:100%;box-sizing:border-box;padding-left:10px;padding-right:8px;font-size:15px}
 .tag{font-size:12px;font-weight:650;border-radius:8px;padding:3px 8px;white-space:nowrap}
 .tag.ok{background:var(--ok-s);color:var(--ok)} .tag.pay{background:var(--pay-s);color:var(--pay)} .tag.warn{background:var(--warn-s);color:var(--warn)} .tag.mut{background:var(--soft);color:var(--mut)}
 .empty{padding:26px 16px;text-align:center;color:var(--mut);font-size:14.5px}
@@ -773,7 +774,7 @@ const JOIN=(()=>{const m=(location.hash||"").match(/join=(CW1\.[A-Za-z0-9_\-]+)/
 if(JOIN&&!IS_APP){const l=document.querySelector('link[rel="manifest"]');if(l)l.remove()}
 let deferredInstall=null;
 addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredInstall=e;setTimeout(showInstallGuide,50)});
-const APP_VERSION="7.9.9";
+const APP_VERSION="7.9.10";
 /* ============ data layer ============ */
 const TABLES=["clients","sites","workers","rates","entries","income"];
 const EMPTY=()=>({clients:[],sites:[],workers:[],rates:[],entries:[],income:[]});
@@ -976,12 +977,16 @@ function rngLabel(a,b){const A=parseD(a),B=parseD(b);return a===b?dayLabel(a):A.
 function inPer(e,p){if(p.mode==="all")return true;if(p.mode==="range")return !!e.date&&e.date>=p.from&&e.date<=p.to;if(p.mode==="l7"){const a=addD(p.d,-6);return !!e.date&&e.date>=a&&e.date<=p.d}if(p.mode==="fort"){const[a,b]=fortRange(p.d);return !!e.date&&e.date>=a&&e.date<=b}if(p.mode==="month")return e.month===p.d.slice(0,7);if(p.mode==="week")return !!e.date&&weekStart(e.date)===weekStart(p.d);return e.date===p.d}
 function perLabel(p){if(p.mode==="all")return "All time";if(p.mode==="range")return rngLabel(p.from,p.to);if(p.mode==="l7")return l7Label(p.d);if(p.mode==="fort")return (fortRange(p.d)[1]===fortRange(todayD())[1]?"This fortnight · ":"")+fortLabel(p.d);if(p.mode==="month")return mLabel(p.d.slice(0,7));if(p.mode==="week")return (weekStart(p.d)===weekStart(todayD())?"This week · ":"")+weekLabel(p.d);return dayRel(p.d)}
 function perStep(p,n){if(p.mode==="day")p.d=addD(p.d,n);else if(p.mode==="week")p.d=addD(p.d,7*n);else if(p.mode==="fort")p.d=addD(p.d,14*n);else if(p.mode==="l7"){p.d=addD(p.d,7*n);if(p.d>todayD())p.d=todayD()}else if(p.mode==="month"){const m=addM(p.d.slice(0,7),n);p.d=m===todayD().slice(0,7)?todayD():m+"-01"}}
+function rngDef(){const t=todayD(),d=+t.slice(8),m=t.slice(0,7);return d>=25?{from:m+"-25",to:t}:{from:addM(m,-1)+"-25",to:t}}
+function perMode(key,k){const p=PERS[key]();p.mode=k;if(k==="range"&&!(p.from&&p.to)){const r=rngDef();p.from=r.from;p.to=r.to}render()}
+function perSet(key,f,v){if(!v)return;const p=PERS[key]();p[f]=v;if(p.from>p.to)p[f==="from"?"to":"from"]=v;render()}
 const PERS={hw:()=>state.hper,home:()=>state.per,person:()=>state.pper,site:()=>state.sper,sites:()=>state.slper};
-function perSwitch(key,modes){const p=PERS[key]();
-  const sub=k=>{const d=parseD(p.d);return k==="day"?`${DOW[d.getDay()]} ${d.getDate()}`:k==="week"?weekLabel(p.d):k==="fort"?fortLabel(p.d):k==="month"?FMN[d.getMonth()]:"Everything"};
+function perSwitch(key,modes){const p=PERS[key]();if(!p.d)p.d=p.to||todayD();
+  const sub=k=>{const d=parseD(p.d);return k==="day"?`${DOW[d.getDay()]} ${d.getDate()}`:k==="week"?weekLabel(p.d):k==="fort"?fortLabel(p.d):k==="month"?FMN[d.getMonth()]:k==="range"?(p.from?rngLabel(p.from,p.to):"Pick dates"):"Everything"};
   const full=k=>{const d=parseD(p.d);return k==="day"?dayRel(p.d)+(dayRel(p.d)===dayLabel(p.d)?"":" · "+dayLabel(p.d)):k==="week"||k==="fort"||k==="l7"?perLabel(p):FMN[d.getMonth()]+" "+d.getFullYear()};
-  return `<div class="m8 ${modes.length>4?"m5":""}" style="grid-template-columns:${modes.length>4?modes.map(([k,l])=>(0.7+l.length*0.12).toFixed(2)+"fr").join(" "):`repeat(${modes.length},1fr)`}">${modes.map(([k,l])=>`<button class="${p.mode===k?"on":""}" onclick="PERS['${key}']().mode='${k}';render()">${l}<small>${sub(k)}</small></button>`).join("")}</div>
-  ${p.mode==="all"?"":`<div class="mstep2"><button onclick="perStep(PERS['${key}'](),-1);render()" aria-label="Previous">‹</button><b>${full(p.mode)}</b><button onclick="perStep(PERS['${key}'](),1);render()" aria-label="Next">›</button></div>`}`}
+  return `<div class="m8 ${modes.length>4?"m5":""}" style="grid-template-columns:${modes.length>4?modes.map(([k,l])=>(0.7+l.length*0.12).toFixed(2)+"fr").join(" "):`repeat(${modes.length},1fr)`}">${modes.map(([k,l])=>`<button class="${p.mode===k?"on":""}" onclick="perMode('${key}','${k}')">${l}<small>${sub(k)}</small></button>`).join("")}</div>
+  ${p.mode==="range"?`<div class="two" style="margin-top:10px;gap:10px"><div class="f" style="margin:0"><label>From</label><input class="inp" type="date" value="${p.from}" onchange="perSet('${key}','from',this.value)"></div><div class="f" style="margin:0"><label>To</label><input class="inp" type="date" value="${p.to}" onchange="perSet('${key}','to',this.value)"></div></div>`:""}
+  ${p.mode==="all"||p.mode==="range"?"":`<div class="mstep2"><button onclick="perStep(PERS['${key}'](),-1);render()" aria-label="Previous">‹</button><b>${full(p.mode)}</b><button onclick="perStep(PERS['${key}'](),1);render()" aria-label="Next">›</button></div>`}`}
 const FMN=["January","February","March","April","May","June","July","August","September","October","November","December"];
 function perStats(p,cut){const es=DB.entries.filter(e=>inPer(e,p)&&(!cut||!e.date||e.date<=cut));const hours=es.filter(isWork).reduce((s,e)=>s+ +e.hours,0),wages=es.reduce((s,e)=>s+wage(e),0);
   const income=p.mode==="month"?DB.income.filter(i=>i.month===p.d.slice(0,7)).reduce((s,i)=>s+ +i.amount,0):0;
@@ -2042,7 +2047,7 @@ function askAdd(wid,sid,d,h){askRemember($("#askq")?.value||"");openAdd("hours",
 /* ---------- Home ---------- */
 function whoWorked(P){const td=todayD(),[a,b]=perRange(P);
   const es=DB.entries.filter(e=>e.date&&e.date>=a&&e.date<=b&&e.hours>0);
-  const chips=`<div class="card mcard" style="margin-bottom:12px"><div class="mhead">${perSwitch("hw",[["week","Week"],["fort","Fortnight"],["month","Month"]])}</div></div>`,dates="";
+  const chips=`<div class="card mcard" style="margin-bottom:12px"><div class="mhead">${perSwitch("hw",[["week","Week"],["fort","Fortnight"],["month","Month"],["range","Custom"]])}</div></div>`,dates="";
   const head=`<div class="sec" style="margin-top:22px"><h2>Who worked</h2></div>${chips}${dates}`;
   if(!es.length)return head+`<div class="card empty" style="padding:24px">No hours in these dates</div>`;
   const g={};es.forEach(e=>{const x=g[e.workerId]||(g[e.workerId]={h:0,w:0,paidW:0,s:new Set(),d:new Set()});if(isWork(e))x.h+= +e.hours;x.w+=wage(e);if(e.paid)x.paidW+=wage(e);if(isNoRate(e))x.nr=1;x.s.add(Sx(e.siteId).name);x.d.add(e.date)});
@@ -2072,7 +2077,7 @@ function homePage(){
     <button class="joincard aiw" onclick="openAsk()" style="margin-top:12px"><span class="ji">${ICON.spark}</span><span><b>Or just tell Hourza AI</b><small>“New site Kogarah for Bupa” · “New worker Sam at Kogarah $26”</small></span>${ICON.chev}</button>
     ${online()?"":`<button class="btn ghost" style="margin-top:14px" onclick="resetDemo(true,true)">Or try it with sample data</button>`}`;
   }
-  if(!state.hper||!["week","fort","month"].includes(state.hper.mode))state.hper={mode:"week",d:todayD()};const HP=state.hper;
+  if(!state.hper||!["week","fort","month","range"].includes(state.hper.mode))state.hper={mode:"week",d:todayD()};const HP=state.hper;
   return `<div class="home simple">
     <div class="greet"><div><small>${DOW[new Date().getDay()]} ${new Date().getDate()} ${MN[new Date().getMonth()]}</small><h1>${greet}</h1></div><button class="me" onclick="go('more')" aria-label="Settings">${ICON.more.replace('width="24" height="24"','width="20" height="20"')}</button></div>
     <div class="askbar" role="button" onclick="openAsk()"><span class="ai">${ICON.spark}</span><span class="askph">Ask or tell Hourza anything…</span><button class="mic" onclick="event.stopPropagation();openAsk();setTimeout(()=>aiVoice&&aiVoice(),350)" aria-label="Speak">${ICON.mic}</button></div>
@@ -2153,7 +2158,7 @@ function personPage(id){
     ${isSup(w)&&w.payType==="fixed"?(()=>{const d=P1.mode==="all"||P1.mode==="day"?todayD():(P1.mode==="month"?P1.d.slice(0,7)+"-15":P1.d),has=salaryAdded(w,d);return `<div class="card" style="padding:16px;margin:0 0 14px;display:flex;align-items:center;gap:12px"><div style="flex:1;min-width:0"><div class="t2">Supervisor · fixed salary</div><div class="t1" style="font-size:17px">${money(w.salary)} per ${PERW[w.salaryPer]}</div><div class="t2">${salaryLabel(w.salaryPer,d)} · ${has?"added ✓":"not added yet"}</div></div>${has?"":`<button class="opt on" style="flex:none" onclick="addSalary('${id}','${d}')">Add salary</button>`}</div>`})():""}
     <div class="pacts">${w.active!==false?`<button class="btn ${owe?"ghost":""}" onclick="openAdd('hours','${id}')">+ Add hours</button>`:""}${owe?`<button class="btn" onclick="openPay('${id}',state.pper)">Pay ${money(owe)}</button>`:""}</div>
     ${pr.length?`<div class="problems" style="margin:0 0 14px">${pr.map(p=>{const r=p.type==="rate"&&DB.rates.find(x=>x.workerId===p.e.workerId&&x.siteId===p.e.siteId);return r?`<div class="pi tap" onclick="editRate('${r.id}')"><span>${esc(Sx(p.e.siteId).name)}: no pay rate yet</span><b>Set rate ›</b></div>`:`<div class="pi" style="cursor:default">${esc(p.text)}</div>`}).join("")}</div>`:""}
-    <div class="card mcard"><div class="mhead">${perSwitch("person",[["day","Day"],["week","Week"],["fort","Fortnight"],["month","Month"],["all","All"]])}</div>
+    <div class="card mcard"><div class="mhead">${perSwitch("person",[["day","Day"],["week","Week"],["fort","Fortnight"],["month","Month"],["range","Custom"],["all","All"]])}</div>
       ${(()=>{const dd=new Set(es.filter(e=>e.date).map(e=>e.date)).size;return `<div class="kpis">
         <div class="kpi"><span>Earned</span><b class="num">${money(total)}</b><em class="fl">${perLabel(P1)}</em></div>
         <div class="kpi"><span>Hours</span><b class="num">${hours.toLocaleString()}</b>${dd?`<em class="fl">${plural(dd,"day")} worked</em>`:""}</div>
@@ -2201,7 +2206,7 @@ function sitesPage(){
   return `${teamSeg()}
   <div class="search" style="margin:0 0 10px">${ICON.search}<input type="search" placeholder="Search site, client or address" value="${esc(state.sq||"")}" oninput="state.sq=this.value;clearTimeout(window._sqt);window._sqt=setTimeout(()=>{render();const i=document.querySelector('.search input');if(i){i.focus();i.setSelectionRange(i.value.length,i.value.length)}},250)"></div>
   <div class="chips" style="padding-top:0">${[["all","All",DB.sites.length],["active","Active",nAct],["idle","Not active",DB.sites.length-nAct]].map(([k,l,n])=>`<button class="chip ${af===k?"on":""}" onclick="state.afilter='${k}';render()">${l} · ${n}</button>`).join("")}${cl?`<button class="chip on" onclick="state.cfilter='all';render()">${esc(cl.name)} ✕</button>`:""}</div>
-  <div class="card mcard" style="margin:10px 0 14px"><div class="mhead">${perSwitch("sites",[["day","Day"],["week","Week"],["fort","Fortnight"],["month","Month"]])}</div>
+  <div class="card mcard" style="margin:10px 0 14px"><div class="mhead">${perSwitch("sites",[["day","Day"],["week","Week"],["fort","Fortnight"],["month","Month"],["range","Custom"]])}</div>
     <div class="kpis" style="grid-template-columns:repeat(3,1fr)"><div class="kpi"><span>Charged</span><b class="num" style="font-size:18px">${money(tot.b)}</b></div><div class="kpi"><span>Wages</span><b class="num" style="font-size:18px">${money(tot.w)}</b></div>
       <div class="kpi"><span>${tp<0?"You lose":"You keep"}</span><b class="num" style="font-size:18px;color:${tp<0?"var(--pay)":"var(--ok)"}">${money(tp)}</b></div></div>${profitNote(PT)?`<div class="mfoot" style="color:var(--warn)">${profitNote(PT)}</div>`:""}</div>
   <div class="sec" style="margin-top:4px"><h2>${af==="active"?"Active sites":af==="idle"?"Not active":"All sites"}</h2><span class="h"><span class="count">${rows.length}</span></span></div>
@@ -2228,7 +2233,7 @@ function sitePage(key){
   return `
   <div style="display:flex;justify-content:space-between;align-items:center"><button class="back" onclick="goBack()">${ICON.back}Back</button><button class="link" style="display:flex;gap:6px;align-items:center;padding:6px 2px 14px" onclick="editSite('${id}')">${ICON.edit}Edit</button></div>
   <div class="ph"><div class="av" style="border-radius:16px!important">${ICON.sites.replace('width="24" height="24"','width="26" height="26"')}</div><div style="flex:1;min-width:0"><h1>${esc(x.name)}</h1><div class="t2">${esc(c.name)}${x.address?" · "+esc(x.address):""}</div></div></div>
-  <div class="card mcard"><div class="mhead">${perSwitch("site",[["day","Day"],["week","Week"],["fort","Fortnight"],["month","Month"],["all","All"]])}</div>
+  <div class="card mcard"><div class="mhead">${perSwitch("site",[["day","Day"],["week","Week"],["fort","Fortnight"],["month","Month"],["range","Custom"],["all","All"]])}</div>
     <div class="kpis">
       <div class="kpi"><span>Charged</span><b class="num">${st.b==null?"–":money(st.b)}</b></div>
       <div class="kpi"><span>Wages</span><b class="num">${money(st.w)}</b></div>
@@ -2378,16 +2383,17 @@ async function tdSave(){
 /* ---------- Pay run ---------- */
 let PR={mode:"fort",d:addD(todayD(),-14),off:new Set()};
 function prSmart(){const td=todayD(),c=[{mode:"fort",d:addD(td,-14)},{mode:"fort",d:td},{mode:"all",d:td}];for(const x of c){PR={...x,off:new Set()};if(DB.entries.some(prIn))return}PR={mode:"fort",d:addD(td,-14),off:new Set()}}
-function prRange(){const ws=weekStart(PR.d);if(PR.mode==="week")return [ws,addD(ws,6)];if(PR.mode==="fort")return [addD(ws,-7),addD(ws,6)];return null}
+function prRange(){if(PR.mode==="range")return [PR.from,PR.to];const ws=weekStart(PR.d);if(PR.mode==="week")return [ws,addD(ws,6)];if(PR.mode==="fort")return [addD(ws,-7),addD(ws,6)];return null}
 function prIn(e){if(e.paid||!(e.hours>0)||!(e.rate>0))return false;if(PR.mode==="all")return true;if(PR.mode==="month")return e.month===PR.d.slice(0,7);const[a,b]=prRange();return !!e.date&&e.date>=a&&e.date<=b}
 function prLabel(){if(PR.mode==="all")return "Everything unpaid";if(PR.mode==="month")return mLabel(PR.d.slice(0,7));const[a,b]=prRange();const A=parseD(a),B=parseD(b);return `${A.getDate()} ${MN[A.getMonth()]} – ${B.getDate()} ${MN[B.getMonth()]}`}
 function prStep(n){if(PR.mode==="week")PR.d=addD(PR.d,7*n);else if(PR.mode==="fort")PR.d=addD(PR.d,14*n);else if(PR.mode==="month")PR.d=addM(PR.d.slice(0,7),n)+"-15";render()}
 function prGroups(){const g={};DB.entries.filter(prIn).forEach(e=>{const x=g[e.workerId]||(g[e.workerId]={id:e.workerId,es:[],amt:0,h:0});x.es.push(e);x.amt+=wage(e);x.h+= +e.hours});return Object.values(g).sort((a,b)=>W(a.id).name.localeCompare(W(b.id).name))}
 function payPage(){
   const gs=prGroups(),on=gs.filter(x=>!PR.off.has(x.id)),tot=on.reduce((a,x)=>a+x.amt,0);
-  return `<div class="card mcard"><div class="mhead"><div class="m8" style="grid-template-columns:repeat(3,1fr)">${(()=>{const lf=fortRange(addD(todayD(),-14))[1],tf=fortRange(todayD())[1],cur=PR.mode==="fort"?fortRange(PR.d)[1]:null;
-    return [["lf","Last 2 weeks",PR.mode==="fort"&&cur===lf,`PR.mode='fort';PR.d=addD(todayD(),-14)`,fortLabel(addD(todayD(),-14))],["tf","This 2 weeks",PR.mode==="fort"&&cur===tf,`PR.mode='fort';PR.d=todayD()`,fortLabel(todayD())],["all","All owed",PR.mode==="all",`PR.mode='all'`,"Everything"]].map(([k,l,on,js,sub])=>`<button class="${on?"on":""}" onclick="${js};PR.off=new Set();render()">${l}<small>${sub}</small></button>`).join("")})()}</div>
-      ${PR.mode==="all"?"":`<div class="mstep2"><button onclick="prStep(-1)" aria-label="Previous">‹</button><b>${prLabel()}</b><button onclick="prStep(1)" aria-label="Next">›</button></div>`}</div>
+  return `<div class="card mcard"><div class="mhead"><div class="m8" style="grid-template-columns:repeat(4,1fr)">${(()=>{const lf=fortRange(addD(todayD(),-14))[1],tf=fortRange(todayD())[1],cur=PR.mode==="fort"?fortRange(PR.d)[1]:null;
+    return [["lf","Last 2 weeks",PR.mode==="fort"&&cur===lf,`PR.mode='fort';PR.d=addD(todayD(),-14)`,fortLabel(addD(todayD(),-14))],["tf","This 2 weeks",PR.mode==="fort"&&cur===tf,`PR.mode='fort';PR.d=todayD()`,fortLabel(todayD())],["rg","Custom",PR.mode==="range",`if(PR.mode!='range'){const r=rngDef();PR.mode='range';PR.from=r.from;PR.to=r.to}`,PR.mode==="range"?rngLabel(PR.from,PR.to):"Pick dates"],["all","All owed",PR.mode==="all",`PR.mode='all'`,"Everything"]].map(([k,l,on,js,sub])=>`<button class="${on?"on":""}" onclick="${js};PR.off=new Set();render()">${l}<small>${sub}</small></button>`).join("")})()}</div>
+      ${PR.mode==="range"?`<div class="two" style="margin-top:10px;gap:10px"><div class="f" style="margin:0"><label>From</label><input class="inp" type="date" value="${PR.from}" onchange="if(this.value){PR.from=this.value;if(PR.from>PR.to)PR.to=PR.from;PR.off=new Set();render()}"></div><div class="f" style="margin:0"><label>To</label><input class="inp" type="date" value="${PR.to}" onchange="if(this.value){PR.to=this.value;if(PR.from>PR.to)PR.from=PR.to;PR.off=new Set();render()}"></div></div>`:""}
+      ${PR.mode==="all"||PR.mode==="range"?"":`<div class="mstep2"><button onclick="prStep(-1)" aria-label="Previous">‹</button><b>${prLabel()}</b><button onclick="prStep(1)" aria-label="Next">›</button></div>`}</div>
       <div class="mgrid"><div><span>To pay now</span><b class="num">${money(tot)}</b></div><div><span>People</span><b class="num">${on.length}${on.length!==gs.length?` of ${gs.length}`:""}</b></div></div>
       <div class="mfoot">${PR.mode==="week"||PR.mode==="fort"?"Only hours entered by day are included here.":"Untick anyone you're not paying today."}</div></div>
     <div class="sec"><h2>${prLabel()}</h2>${gs.length?`<button class="link" onclick="PR.off=PR.off.size?new Set():new Set(prGroups().map(x=>x.id));render()">${PR.off.size?"Select all":"Select none"}</button>`:""}</div>
