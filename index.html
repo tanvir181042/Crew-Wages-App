@@ -266,6 +266,7 @@ input,textarea,select{font-size:max(16px,1em)}
 }
 @media (min-width:1100px) and (prefers-color-scheme:dark){.wkt .we{background:rgba(255,255,255,.03)}.wkt input:focus{background:#26330F}}
 @media (prefers-color-scheme:dark){.add-top{background:#C9F26B!important;color:#111!important;box-shadow:none!important}.add-top svg{stroke:#111;color:#111}}
+#updbar{position:fixed;left:50%;transform:translateX(-50%);top:calc(env(safe-area-inset-top) + 12px);z-index:9999;display:flex;align-items:center;gap:12px;background:#111214;color:#fff;padding:8px 8px 8px 18px;border-radius:16px;box-shadow:0 10px 30px rgba(0,0,0,.25);font-weight:650;font-size:15px;white-space:nowrap}#updbar button{height:38px;padding:0 16px;border-radius:11px;background:#C9F26B;color:#111;font-weight:750}#updbar .x{background:transparent;color:#aaa;padding:0 8px}
 .two>.f{min-width:0}.two input[type=date]{min-width:0;width:100%;box-sizing:border-box;padding-left:10px;padding-right:8px;font-size:15px}
 .tag{font-size:12px;font-weight:650;border-radius:8px;padding:3px 8px;white-space:nowrap}
 .tag.ok{background:var(--ok-s);color:var(--ok)} .tag.pay{background:var(--pay-s);color:var(--pay)} .tag.warn{background:var(--warn-s);color:var(--warn)} .tag.mut{background:var(--soft);color:var(--mut)}
@@ -805,7 +806,13 @@ const JOIN=(()=>{const m=(location.hash||"").match(/join=(CW1\.[A-Za-z0-9_\-]+)/
 if(JOIN&&!IS_APP){const l=document.querySelector('link[rel="manifest"]');if(l)l.remove()}
 let deferredInstall=null;
 addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredInstall=e;setTimeout(showInstallGuide,50)});
-const APP_VERSION="7.9.15";
+const APP_VERSION="7.9.16";
+/* new-version check: on focus and every 5 min; shows an Update bar (never reloads on its own, so nothing unsaved is lost) */
+let UPD_SEEN="";async function updCheck(){try{if(!/^https?:/.test(location.protocol)||document.hidden)return;const r=await fetch(location.pathname.replace(/[^/]*$/,"")+"index.html?v="+Date.now(),{cache:"no-store"});const t=await r.text(),m=t.match(/APP_VERSION="([^"]+)"/);
+  if(m&&m[1]!==APP_VERSION&&m[1]!==UPD_SEEN){UPD_SEEN=m[1];let b=document.getElementById("updbar");if(!b){b=document.createElement("div");b.id="updbar";document.body.appendChild(b)}
+    b.innerHTML=`<span>New version ${m[1]} is ready</span><button onclick="updGo()">Update</button><button class="x" onclick="this.parentNode.remove()" aria-label="Later">✕</button>`}}catch(e){}}
+function updGo(){const go=()=>location.reload();(navigator.serviceWorker&&navigator.serviceWorker.getRegistration?navigator.serviceWorker.getRegistration().then(r=>r&&r.update()).catch(()=>{}):Promise.resolve()).finally(()=>setTimeout(go,300))}
+document.addEventListener("visibilitychange",()=>{if(!document.hidden)updCheck()});window.addEventListener("focus",updCheck);setInterval(updCheck,300000);setTimeout(updCheck,4000);
 /* ============ data layer ============ */
 const TABLES=["clients","sites","workers","rates","entries","income"];
 const EMPTY=()=>({clients:[],sites:[],workers:[],rates:[],entries:[],income:[]});
