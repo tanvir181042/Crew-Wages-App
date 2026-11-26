@@ -773,7 +773,7 @@ const JOIN=(()=>{const m=(location.hash||"").match(/join=(CW1\.[A-Za-z0-9_\-]+)/
 if(JOIN&&!IS_APP){const l=document.querySelector('link[rel="manifest"]');if(l)l.remove()}
 let deferredInstall=null;
 addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredInstall=e;setTimeout(showInstallGuide,50)});
-const APP_VERSION="7.9.7";
+const APP_VERSION="7.9.8";
 /* ============ data layer ============ */
 const TABLES=["clients","sites","workers","rates","entries","income"];
 const EMPTY=()=>({clients:[],sites:[],workers:[],rates:[],entries:[],income:[]});
@@ -1442,7 +1442,7 @@ Actions (use ids from the lists; dates are YYYY-MM-DD; never invent ids):
 - {"type":"money_in","client_id":"..","amount":number,"month":"YYYY-MM"}
 - {"type":"new_worker","name":"..","site_id":".." or null,"rate":number or null}
 - {"type":"new_site","name":"..","client_id":".." or null,"client_name":".." or null}
-- {"type":"delete_hours","worker_id":"..","site_id":".." or null,"dates":[".."]}
+- {"type":"delete_hours","worker_id":"..","site_id":".." or null,"dates":[".."]} // for "delete ALL hours of X" use "all":true and no dates; paid hours are kept
 - {"type":"open","page":"home|today|people|sites|clients|pay|reports|more|checks|settings|pin|connect|ai_check"}   // checks = "what needs checking / problems"; pin = change PIN; connect = connect Google Sheet; ai_check = run the AI test
 - {"type":"copy_hours","from":"YYYY-MM-DD","to":"YYYY-MM-DD","days":1|7|n,"worker_ids":[] or null}   // "copy yesterday to today" (days 1), "copy last week to this week" (from = last Monday, to = this Monday, days 7); only days without hours get filled
 - {"type":"leave","worker_id":"..","kind":"sick|annual","dates":[".."],"hours":number or null,"site_id":".." or null}   // "Sam took sick leave yesterday", "annual leave Mon–Fri" (default 8 hrs a day)
@@ -1565,9 +1565,9 @@ function gaiRender(o,q){if(Array.isArray(o.actions)&&o.actions.length>1){const s
       return lead+aiCard(`New worker${a.name?": "+esc(a.name):""}`,[sid?"at "+esc(Sx(sid).name):"",AI.p.rate?money(+AI.p.rate)+"/hr":""].filter(Boolean).join(" · "),"",(a.name&&sid&&AI.p.rate?`<button class="btn" onclick="aiDo('save')">Save</button><button class="btn ghost" onclick="aiDo()">Edit first</button>`:`<button class="btn" onclick="aiDo()">Open and check</button>`))}
     if(t==="new_site"){const c=DB.clients.find(x=>x.id===a.client_id);AI.p={k:"site",name:a.name||"",cid:c?c.id:null,cq:c?c.name:(a.client_name||"")};
       return lead+aiCard(`New site${a.name?": "+esc(a.name):""}`,c?"for "+esc(c.name):a.client_name?"for "+esc(a.client_name)+" (new client)":"","",`<button class="btn" onclick="aiDo()">Open and check</button>`)}
-    if(t==="delete_hours"){const w=DB.workers.find(x=>x.id===a.worker_id),ds=(a.dates||[]).filter(okD);if(!w||!ds.length)return lead||bad();const es=DB.entries.filter(e=>e.workerId===w.id&&ds.includes(e.date)&&isWork(e)&&(!a.site_id||e.siteId===a.site_id)),un=es.filter(e=>!e.paid);
-      if(!es.length)return lead+aiCard("Nothing to delete",`${esc(w.name)} has no hours on ${ds.map(dayLabel).join(", ")}`,"","");AI.p={k:"del",ids:un.map(e=>e.id)};
-      return lead+aiCard(`Delete ${esc(w.name)}'s hours?`,hrs(un.reduce((x,e)=>x+ +e.hours,0)),`<div class="list" style="margin-top:10px">${es.map(e=>`<div class="row"><div class="main"><div class="t1">${dayLabel(e.date)} · ${esc(Sx(e.siteId).name)}</div><div class="t2">${e.hours} hrs${e.paid?" · paid, kept":""}</div></div></div>`).join("")}</div>`,un.length?`<button class="btn danger" onclick="aiDo()">Delete ${plural(un.length,"entry")}</button>`:"")}
+    if(t==="delete_hours"){const w=DB.workers.find(x=>x.id===a.worker_id),ds=(a.dates||[]).filter(okD);const all=a.all===true||!(a.dates||[]).length;if(!w||(!ds.length&&!all))return lead||bad();const es=DB.entries.filter(e=>e.workerId===w.id&&(all||ds.includes(e.date))&&isWork(e)&&(!a.site_id||e.siteId===a.site_id)).sort((p,q)=>(p.date||"").localeCompare(q.date||"")),un=es.filter(e=>!e.paid);
+      if(!es.length)return lead+aiCard("Nothing to delete",all?`${esc(w.name)} has no hours saved`:`${esc(w.name)} has no hours on ${ds.map(dayLabel).join(", ")}`,"","");AI.p={k:"del",ids:un.map(e=>e.id)};
+      return lead+aiCard(all?`Delete ALL of ${esc(w.name)}'s hours?`:`Delete ${esc(w.name)}'s hours?`,hrs(un.reduce((x,e)=>x+ +e.hours,0))+(all?` · ${plural(un.length,"entry")}`:""),`<div class="list" style="margin-top:10px;max-height:260px;overflow:auto">${es.map(e=>`<div class="row"><div class="main"><div class="t1">${e.date?dayLabel(e.date):"Whole month"} · ${esc(Sx(e.siteId).name)}</div><div class="t2">${e.hours} hrs${e.paid?" · paid, kept":""}</div></div></div>`).join("")}</div>`,un.length?`<button class="btn danger" onclick="aiDo()">Delete ${plural(un.length,"entry")}</button>`:"")}
     if(t==="show_person"){const w=DB.workers.find(x=>x.id===a.worker_id);if(!w)return lead||bad();aiNav(()=>openPerson(w.id));return lead+aiCard(`Opening ${esc(w.name)}…`,"","","")}
     if(t==="show_site"){const x=DB.sites.find(y=>y.id===a.site_id);if(!x)return lead||bad();aiNav(()=>openSite(x.id));return lead+aiCard(`Opening ${esc(x.name)}…`,"","","")}
     if(t==="show_reports"){aiNav(()=>{RP.by=["site","client","worker"].includes(a.by)?a.by:"site";RP.all=!!a.all_time;if(/^\d{4}-\d{2}$/.test(a.month||""))state.month=a.month;go("reports")});return lead+aiCard("Opening Reports…",`By ${a.by||"site"} · ${a.all_time?"all time":mLabel(a.month||state.month||td.slice(0,7))}`,"","")}
