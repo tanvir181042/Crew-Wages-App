@@ -301,6 +301,8 @@ input,textarea,select{font-size:max(16px,1em)}
 .pwgrid.wide{padding-left:0}.pwgrid.wide .pwc{position:relative;z-index:1}.pwgrid.wide .pwn{position:sticky;left:0;z-index:5;align-self:stretch;display:flex;align-items:center;background:var(--soft);padding-left:10px;margin-left:0;width:88px;box-shadow:6px 0 6px -6px rgba(0,0,0,.15)}
 .pwgrid.wide .pwsite{position:sticky;left:0;padding-left:10px;margin-left:0}.pwdays .pwc span small{display:block;font-size:9.5px;opacity:.8}.pwdays .pwc span.we{opacity:.6}
 @media (min-width:1100px){.pwgrid.wide .pwc{grid-template-columns:repeat(var(--nd),40px)}.pw:has(.pwgrid.wide){max-width:none}}
+.rosterb{width:100%;display:flex;align-items:center;gap:12px;background:var(--soft);border-radius:16px;padding:12px 14px;margin:10px 0 14px;text-align:left;color:var(--ink)}.rosterb .ic{width:38px;height:38px;border-radius:11px;background:var(--card);display:grid;place-items:center;flex:none}.rosterb .ic svg{width:20px;height:20px}
+.rosterb .tx{flex:1;min-width:0}.rosterb b{display:block;font-size:15.5px}.rosterb small{display:block;color:var(--mut);font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.rosterb>svg{flex:none;color:var(--mut)}
 .two>.f{min-width:0}.two input[type=date]{min-width:0;width:100%;box-sizing:border-box;padding-left:10px;padding-right:8px;font-size:15px}
 .tag{font-size:12px;font-weight:650;border-radius:8px;padding:3px 8px;white-space:nowrap}
 .tag.ok{background:var(--ok-s);color:var(--ok)} .tag.pay{background:var(--pay-s);color:var(--pay)} .tag.warn{background:var(--warn-s);color:var(--warn)} .tag.mut{background:var(--soft);color:var(--mut)}
@@ -840,7 +842,7 @@ const JOIN=(()=>{const m=(location.hash||"").match(/join=(CW1\.[A-Za-z0-9_\-]+)/
 if(JOIN&&!IS_APP){const l=document.querySelector('link[rel="manifest"]');if(l)l.remove()}
 let deferredInstall=null;
 addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredInstall=e;setTimeout(showInstallGuide,50)});
-const APP_VERSION="7.10.2";
+const APP_VERSION="7.10.3";
 /* new-version check: on focus and every 5 min; shows an Update bar (never reloads on its own, so nothing unsaved is lost) */
 let UPD_SEEN="";async function updCheck(){try{if(!/^https?:/.test(location.protocol)||document.hidden)return;const r=await fetch(location.pathname.replace(/[^/]*$/,"")+"index.html?v="+Date.now(),{cache:"no-store"});const t=await r.text(),m=t.match(/APP_VERSION="([^"]+)"/);
   if(m&&m[1]!==APP_VERSION&&m[1]!==UPD_SEEN){UPD_SEEN=m[1];let b=document.getElementById("updbar");if(!b){b=document.createElement("div");b.id="updbar";document.body.appendChild(b)}
@@ -1276,6 +1278,9 @@ async function rosterSet(w,sid,days,h,from){const cur=rLines(w,sid).filter(r=>{c
   if(days.length&&h>0)await put("roster",{id:uid(),workerId:w,siteId:sid,hours:h,date:from,month:from.slice(0,7),rate:0,paid:false,paidAt:"",notes:JSON.stringify({d:[...days].sort(),to:"",upto:addD(from,-1)}),createdAt:new Date().toISOString(),kind:"roster"})}
 async function REsave(){const old=(DB.roster||[]).filter(r=>r.workerId===RE.w).map(r=>({...r}));for(const r of RE.rows){if(!r.had&&!r.d.length)continue;await rosterSet(RE.w,r.sid,r.d,r.h,RE.from)}
   closeSheet();await rosterTick(true);render();toast(`✓ Usual days saved for ${esc(W(RE.w).name)}`,async()=>{const now=(DB.roster||[]).filter(r=>r.workerId===RE.w).map(r=>r.id);await delMany("roster",now);await putMany("roster",old);render()})}
+function rosterBtn(w){const t=todayD(),L=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"],parts=DB.rates.filter(r=>r.workerId===w&&r.siteId!==SUP).map(r=>{const c=rLineOn(w,r.siteId,t)||rLines(w,r.siteId).find(x=>rInfo(x).from>t);if(!c)return null;const I=rInfo(c),ds=[1,2,3,4,5,6,0].filter(k=>I.d.includes(k));
+    const lab=ds.length===5&&!I.d.includes(0)&&!I.d.includes(6)?"Mon–Fri":ds.length===7?"Every day":ds.map(k=>L[k]).join(", ");return `${Sx(r.siteId).name.replace(/^Childcare\s+/i,"")}: ${lab} ${fmtH(I.h)}h`}).filter(Boolean);
+  return `<button class="rosterb" onclick="rosterEdit('${w}')"><span class="ic">${ICON.week}</span><span class="tx"><b>Roster</b><small>${parts.length?esc(parts.join(" · ")):"Not set — tap to set usual days"}</small></span>${ICON.chev}</button>`}
 function rosterSummary(w){const t=todayD(),ls2=DB.rates.filter(r=>r.workerId===w&&r.siteId!==SUP).map(r=>{const c=rLineOn(w,r.siteId,t)||rLines(w,r.siteId).find(x=>rInfo(x).from>t);if(!c)return null;const I=rInfo(c),L=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
   const ds=[1,2,3,4,5,6,0].filter(k=>I.d.includes(k)),lab=ds.length===5&&!I.d.includes(0)&&!I.d.includes(6)?"Mon–Fri":ds.length===7?"Every day":ds.map(k=>L[k]).join(", ");return `<div class="row"><div class="main"><div class="t1">${esc(Sx(r.siteId).name)}</div><div class="t2">${lab} · ${fmtH(I.h)} hrs${I.from>t?` · from ${dayLabel(I.from)}`:""}</div></div></div>`}).filter(Boolean);
   return `<div class="sec"><h2>Usual days</h2><button class="link" onclick="rosterEdit('${w}')">${ls2.length?"Edit":"+ Set up"}</button></div><div class="list">${ls2.length?ls2.join(""):`<div class="empty" style="padding:14px">Not set — <button class="link" onclick="rosterEdit('${w}')">set usual days</button> so each week fills itself</div>`}</div>`}
@@ -2414,6 +2419,7 @@ function personPage(id){
     <div class="ph">${av(w.name)}<div style="flex:1;min-width:0"><h1>${esc(w.name)}${w.active===false?' <span class="tag mut" style="vertical-align:middle">Left</span>':""}</h1><div class="t2">${(()=>{const last=all.filter(e=>e.date).sort((a,b)=>b.date.localeCompare(a.date))[0];return last?`Last worked ${dayRel(last.date)===dayLabel(last.date)?dayLabel(last.date):dayRel(last.date).toLowerCase()} · ${esc(Sx(last.siteId).name)}`:""})()||(isSup(w)?"Supervisor":rates.length?rates.map(r=>esc(Sx(r.siteId).name)).join(" · "):"No site yet")}</div></div></div>
     ${isSup(w)&&w.payType==="fixed"?(()=>{const d=P1.mode==="all"||P1.mode==="day"?todayD():(P1.mode==="month"?P1.d.slice(0,7)+"-15":P1.d),has=salaryAdded(w,d);return `<div class="card" style="padding:16px;margin:0 0 14px;display:flex;align-items:center;gap:12px"><div style="flex:1;min-width:0"><div class="t2">Supervisor · fixed salary</div><div class="t1" style="font-size:17px">${money(w.salary)} per ${PERW[w.salaryPer]}</div><div class="t2">${salaryLabel(w.salaryPer,d)} · ${has?"added ✓":"not added yet"}</div></div>${has?"":`<button class="opt on" style="flex:none" onclick="addSalary('${id}','${d}')">Add salary</button>`}</div>`})():""}
     <div class="pacts">${w.active!==false?`<button class="btn ${owe?"ghost":""}" onclick="openAdd('hours','${id}')">+ Add hours</button>`:""}${owe?`<button class="btn" onclick="openPay('${id}',state.pper)">Pay ${money(owe)}</button>`:""}</div>
+    ${w.active!==false&&!isSup(w)?rosterBtn(id):""}
     ${pr.length?`<div class="problems" style="margin:0 0 14px">${pr.map(p=>{const r=p.type==="rate"&&DB.rates.find(x=>x.workerId===p.e.workerId&&x.siteId===p.e.siteId);return r?`<div class="pi tap" onclick="editRate('${r.id}')"><span>${esc(Sx(p.e.siteId).name)}: no pay rate yet</span><b>Set rate ›</b></div>`:`<div class="pi" style="cursor:default">${esc(p.text)}</div>`}).join("")}</div>`:""}
     <div class="card mcard"><div class="mhead">${perSwitch("person",[["day","Day"],["week","Week"],["fort","Fortnight"],["month","Month"],["range","Custom"],["all","All"]])}</div>
       ${(()=>{const dd=new Set(es.filter(e=>e.date).map(e=>e.date)).size;return `<div class="kpis">
@@ -2427,13 +2433,12 @@ function personPage(id){
     ${workerExtras(id,es,P1)}
     <div class="cols">
       <div>
-        <div class="sec"><h2>Hours</h2><span style="display:flex;gap:18px">${es.some(e=>!e.paid)?`<button class="link" style="color:var(--pay)" onclick="bulkDel('${id}')">Delete…</button>`:""}<button class="link" onclick="openAdd('hours','${id}')">+ Add hours</button></span></div>
+        <div class="sec"><h2>Hours</h2>${es.some(e=>!e.paid)?`<button class="link" style="color:var(--pay)" onclick="bulkDel('${id}')">Delete…</button>`:""}</div>
         <div class="list">${es.length?months.slice(0,cap).map(m=>`<div class="grp" style="background:var(--soft2);display:flex;justify-content:space-between"><span>${mLabel(m)} · ${byM[m].reduce((a,e)=>a+ +e.hours,0)} hrs</span><span class="num">${money(byM[m].reduce((a,e)=>a+wage(e),0))}</span></div>`+byM[m].map(row).join("")).join("")
           +(months.length>cap?`<div class="row tap" style="justify-content:center;color:var(--acc);font-weight:600;font-size:14.5px" onclick="state.allHist=true;render()">Show older (${plural(months.length-cap,"more month")})</div>`:"")
           :`<div class="empty">No hours ${P1.mode==="all"?"yet":"for "+perLabel(P1)}</div>`}</div>
       </div>
       <div>
-        ${isSup(w)?"":rosterSummary(id)}
         <div class="sec"><h2>Works at</h2><button class="link" onclick="openAdd('worker','${id}')">+ Add site</button></div>
         <div class="list">${rates.length?rates.map(r=>{const s=Sx(r.siteId); const mates=DB.rates.filter(x=>x.siteId===r.siteId&&x.workerId!==id).map(x=>W(x.workerId));
           return `<div class="row"><div class="main" onclick="openSite('${s.id}')" style="cursor:pointer"><div class="t1">${esc(s.name)} <span class="tag mut" style="margin-left:6px">${esc(C(s.clientId).name)}</span></div>
