@@ -855,7 +855,7 @@ const JOIN=(()=>{const m=(location.hash||"").match(/join=(CW1\.[A-Za-z0-9_\-]+)/
 if(JOIN&&!IS_APP){const l=document.querySelector('link[rel="manifest"]');if(l)l.remove()}
 let deferredInstall=null;
 addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredInstall=e;setTimeout(showInstallGuide,50)});
-const APP_VERSION="7.11.4";
+const APP_VERSION="7.11.6";
 /* new-version check: on focus and every 5 min; shows an Update bar (never reloads on its own, so nothing unsaved is lost) */
 let UPD_SEEN="";async function updCheck(){try{if(!/^https?:/.test(location.protocol)||document.hidden)return;const r=await fetch(location.pathname.replace(/[^/]*$/,"")+"index.html?v="+Date.now(),{cache:"no-store"});const t=await r.text(),m=t.match(/APP_VERSION="([^"]+)"/);
   if(m&&m[1]!==APP_VERSION&&m[1]!==UPD_SEEN){UPD_SEEN=m[1];let b=document.getElementById("updbar");if(!b){b=document.createElement("div");b.id="updbar";document.body.appendChild(b)}
@@ -2695,7 +2695,8 @@ async function tdSave(){
 let PR={mode:"fort",d:addD(todayD(),-14),off:new Set()};
 /* ---- "paid up to": the pay period always starts the day after the last pay; the manager only picks the end ---- */
 const metaGet=id=>(DB.meta||[]).find(m=>m.id===id);
-function payTo(){const m=metaGet("payto");if(m){const o=jp(m.notes);if(o.to)return o.to}return null}
+/* only real payments set this (Mark paid). A saved date with no paid hours at all is ignored, so an accidental date can't hide money owed */
+function payTo(){const m=metaGet("payto");if(m&&DB.entries.some(e=>e.paid&&isWork(e))){const o=jp(m.notes);if(o.to)return o.to}return payToGuess()}
 /* a guess only (shown as a suggestion, never used on its own): the latest work day among the most recent big payment */
 function payToGuess(){const rs=payRuns().filter(r=>r.d!=="?"&&r.n>=Math.min(2,new Set(DB.entries.map(e=>e.workerId)).size));const last=rs[0];return last?last.es.filter(e=>e.date).map(e=>e.date).sort().pop()||null:null}
 function payDays(){const o=jp((metaGet("payto")||{}).notes);return Array.isArray(o.days)?o.days:[]}
@@ -2706,7 +2707,7 @@ function prPeriodInit(){const td=todayD(),yd=addD(td,-1),pt=payTo();const firstU
 function prEndChips(){const td=todayD(),yd=addD(td,-1),out=[["Yesterday",yd]];payDays().forEach(dm=>{let c=td.slice(0,7)+"-"+String(dm).padStart(2,"0");if(c>td)c=addM(td.slice(0,7),-1)+"-"+String(dm).padStart(2,"0");if(c>=PR.from&&!out.some(x=>x[1]===c))out.push([`Up to the ${dm}${[,"st","nd","rd"][dm%10>3||Math.floor(dm/10)===1?0:dm%10]||"th"}`,c])});
   if(td>=PR.from&&!out.some(x=>x[1]===td))out.push(["Today",td]);return out.filter(x=>x[1]>=PR.from)}
 function prOld(){if(PR.mode!=="period")return [];return DB.entries.filter(e=>!e.paid&&isWork(e)&&e.hours>0&&e.rate>0&&(e.date?e.date<PR.from:mEnd(e.month)<PR.from))}
-function prSmart(){if(payTo()||payToGuess()||DB.entries.some(e=>e.paid)){prPeriodInit();return}const td=todayD(),c=[{mode:"fort",d:addD(td,-14)},{mode:"fort",d:td},{mode:"all",d:td}];for(const x of c){PR={...x,off:new Set()};if(DB.entries.some(prIn))return}PR={mode:"fort",d:addD(td,-14),off:new Set()}}
+function prSmart(){if(true){prPeriodInit();return}const td=todayD(),c=[{mode:"fort",d:addD(td,-14)},{mode:"fort",d:td},{mode:"all",d:td}];for(const x of c){PR={...x,off:new Set()};if(DB.entries.some(prIn))return}PR={mode:"fort",d:addD(td,-14),off:new Set()}}
 function prRange(){if(PR.mode==="range"||PR.mode==="period")return [PR.from,PR.to];const ws=weekStart(PR.d);if(PR.mode==="week")return [ws,addD(ws,6)];if(PR.mode==="fort")return [addD(ws,-7),addD(ws,6)];return null}
 function prIn(e){if(e.paid||!(e.hours>0)||!(e.rate>0))return false;if(PR.mode==="all")return true;if(PR.mode==="period"){if(PR.old&&(e.date?e.date<PR.from:mEnd(e.month)<PR.from))return true;if(!e.date)return e.month+"-01">=PR.from&&mEnd(e.month)<=PR.to;return e.date>=PR.from&&e.date<=PR.to}if(PR.mode==="month")return e.month===PR.d.slice(0,7);const[a,b]=prRange();return !!e.date&&e.date>=a&&e.date<=b}
 function prLabel(){if(PR.mode==="period")return rngLabel(PR.from,PR.to)+(PR.old&&prOld().length?" + earlier":"");if(PR.mode==="all")return "Everything unpaid";if(PR.mode==="month")return mLabel(PR.d.slice(0,7));const[a,b]=prRange();const A=parseD(a),B=parseD(b);return `${A.getDate()} ${MN[A.getMonth()]} – ${B.getDate()} ${MN[B.getMonth()]}`}
@@ -2716,7 +2717,7 @@ function payToEdit(){const pt=payTo();showSheet(`<h3>Paid up to</h3><div class="
   <button class="btn" onclick="const v=$('#ptd').value;if(v)setPayTo(v).then(()=>{closeSheet();prPeriodInit();render()})">Save</button><button class="btn ghost" onclick="clearPayTo()">Not set — ask me again</button><button class="btn ghost" onclick="closeSheet()">Cancel</button>`)}
 async function clearPayTo(){const m=metaGet("payto");if(m)await del("meta",m.id);closeSheet();prPeriodInit();render()}
 function prPeriodUI(){const pt=payTo(),old=prOld(),oldAmt=old.reduce((a,e)=>a+wage(e),0);
-  return `<div class="ppbox">${pt?`<div class="ppokrow"><span class="ppok">✓ Paid up to ${dayLabel(pt)}</span><button class="link" style="font-size:13px;padding:0" onclick="payToEdit()">Change</button></div>`:`<div class="ppset"><b>First time: up to which day has everyone been paid?</b>${payToGuess()?`<button class="btn" style="margin-top:8px" onclick="setPayTo('${payToGuess()}','').then(()=>{prPeriodInit();render()})">Up to ${dayLabel(payToGuess())} <small style="opacity:.7;font-weight:600">· from your last payment</small></button>`:""}<div class="hint" style="margin:8px 0 4px">or pick the day, then tap Save:</div><div style="display:flex;gap:8px"><input class="inp" type="date" id="ptset" style="flex:1"><button class="btn ghost" style="width:auto;padding:0 18px;margin:0" onclick="const v=$('#ptset').value;if(v)setPayTo(v,'').then(()=>{prPeriodInit();render()})">Save</button></div></div>`}
+  return `<div class="ppbox">${pt?`<div class="ppokrow"><span class="ppok">✓ Paid up to ${dayLabel(pt)}</span><button class="link" style="font-size:13px;padding:0" onclick="payToEdit()">Change</button></div>`:`<div class="hint" style="margin:0 0 10px">Starts from the oldest unpaid day. After you tap Mark paid, the next pay starts the day after.</div>`}
     ${PR.from>todayD()?`<div class="hint" style="margin:0 0 10px">Everyone is paid up to ${dayLabel(pt)}. The next pay starts ${dayLabel(PR.from)} — come back after that day's work. Paid too far by mistake? Undo it in Past payments below.</div>`:""}
     <div class="pprow"><div class="ppfrom"><small>From</small><b>${dayLabel(PR.from)}</b></div><span>→</span><div class="ppto"><small>Up to</small><input class="inp" type="date" value="${PR.to}" min="${PR.from}" onchange="if(this.value&&this.value>=PR.from){PR.to=this.value;PR.off=new Set();render()}"></div></div>
     <div class="ppchips">${prEndChips().map(([l,d])=>`<button class="${PR.to===d?"on":""}" onclick="PR.to='${d}';PR.off=new Set();render()">${l}<small>${dayLabel(d).replace(/^\\w+ /,"")}</small></button>`).join("")}</div>
