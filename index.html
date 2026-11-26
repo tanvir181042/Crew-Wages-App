@@ -854,7 +854,7 @@ const JOIN=(()=>{const m=(location.hash||"").match(/join=(CW1\.[A-Za-z0-9_\-]+)/
 if(JOIN&&!IS_APP){const l=document.querySelector('link[rel="manifest"]');if(l)l.remove()}
 let deferredInstall=null;
 addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredInstall=e;setTimeout(showInstallGuide,50)});
-const APP_VERSION="7.11.0";
+const APP_VERSION="7.11.1";
 /* new-version check: on focus and every 5 min; shows an Update bar (never reloads on its own, so nothing unsaved is lost) */
 let UPD_SEEN="";async function updCheck(){try{if(!/^https?:/.test(location.protocol)||document.hidden)return;const r=await fetch(location.pathname.replace(/[^/]*$/,"")+"index.html?v="+Date.now(),{cache:"no-store"});const t=await r.text(),m=t.match(/APP_VERSION="([^"]+)"/);
   if(m&&m[1]!==APP_VERSION&&m[1]!==UPD_SEEN){UPD_SEEN=m[1];let b=document.getElementById("updbar");if(!b){b=document.createElement("div");b.id="updbar";document.body.appendChild(b)}
@@ -1189,6 +1189,7 @@ new MutationObserver(()=>dateFx()).observe(document.documentElement,{childList:t
 const jp=t=>{try{return JSON.parse(t||"{}")||{}}catch(e){return {}}};
 const rInfo=r=>{const o=jp(r.notes);return {d:Array.isArray(o.d)?o.d:[],to:o.to||"",upto:o.upto||"",h:+r.hours||0,from:r.date}};
 const mInfo=m=>m?jp(m.notes):{};
+const covRate=(by,sid,orig)=>rateOf(by,sid)||usualRate(by,sid)||rateOf(orig,sid);
 const doneThru=()=>addD(todayD(),new Date().getHours()>=6?-1:-2);
 const rateOf=(w,sid)=>+((DB.rates.find(x=>x.workerId===w&&x.siteId===sid)||{}).rate)||0;
 const rLines=(w,sid)=>(DB.roster||[]).filter(r=>(!w||r.workerId===w)&&(!sid||r.siteId===sid));
@@ -1205,7 +1206,7 @@ async function rosterTick(force){if(RBUSY||!(DB.roster||[]).length)return;const 
     let d=I.upto&&I.upto>=I.from?addD(I.upto,1):I.from;const end=I.to&&I.to<thru?I.to:thru;if(d>end)continue;
     for(;d<=end;d=addD(d,1)){if(!I.d.includes(parseD(d).getDay()))continue;const M=mInfo(markOf(r.workerId,r.siteId,d)),h=M.h!=null?+M.h:I.h;
       if(M.x)continue;
-      if(M.by){const id="r_"+M.by+"_"+r.siteId+"_"+d;if(!made.has(id)&&!workAt(M.by,r.siteId,d).length&&h>0){made.add(id);rows.push(mkEntry(id,M.by,r.siteId,d,h,rateOf(M.by,r.siteId)||rateOf(r.workerId,r.siteId),"Cover for "+W(r.workerId).name))}continue}
+      if(M.by){const id="r_"+M.by+"_"+r.siteId+"_"+d;if(!made.has(id)&&!workAt(M.by,r.siteId,d).length&&h>0){made.add(id);rows.push(mkEntry(id,M.by,r.siteId,d,h,+M.r>0?+M.r:covRate(M.by,r.siteId,r.workerId),"Cover for "+W(r.workerId).name))}continue}
       const id="r_"+r.workerId+"_"+r.siteId+"_"+d;if(made.has(id)||workAt(r.workerId,r.siteId,d).length||!(h>0))continue;made.add(id);rows.push(mkEntry(id,r.workerId,r.siteId,d,h,rateOf(r.workerId,r.siteId),"Roster"))}
     rupd.push({...r,notes:JSON.stringify({d:I.d,to:I.to,upto:end})})}
   if(rows.length)await putMany("entries",rows);if(rupd.length)await putMany("roster",rupd);if(rows.length)render()}finally{RBUSY=false}}
@@ -1251,7 +1252,7 @@ const fmtH=h=>{h=Math.round(h*100)/100;return String(h)};
 let DT=null;
 function dayTap(w,sid,d){hideToast();const es=workAt(w,sid,d),M=mInfo(markOf(w,sid,d)),rh=rosterH(w,sid,d),paid=es.some(e=>e.paid);
   const cur=es.length?es.reduce((a,e)=>a+ +e.hours,0):M.h!=null?+M.h:rh||3;
-  DT={w,sid,d,opt:M.by?"by":M.x?"x":"w",h:cur,by:M.by||"",paid};drawDay()}
+  DT={w,sid,d,opt:M.by?"by":M.x?"x":"w",h:cur,by:M.by||"",r:+M.r||0,paid};drawDay()}
 function drawDay(){const {w,sid,d}=DT,rh=rosterH(w,sid,d),future=d>doneThru();
   if(DT.paid){showSheet(`<h3>${esc(W(w).name)} · ${dayLabel(d)}</h3><div class="lead">${esc(Sx(sid).name)}</div><div class="hint" style="margin:10px 0 16px">This day is already paid, so it can't be changed here.</div><button class="btn ghost" onclick="closeSheet()">Close</button>`);return}
   const mates=[...new Set([...DB.rates.filter(r=>r.siteId===sid&&r.workerId!==w).map(r=>r.workerId),...DB.workers.filter(x=>x.active!==false&&x.id!==w&&!isSup(x)).map(x=>x.id)])].filter(id=>W(id).active!==false);
@@ -1263,7 +1264,7 @@ function drawDay(){const {w,sid,d}=DT,rh=rosterH(w,sid,d),future=d>doneThru();
     ${o("w","✓","var(--ok-s,#E3F5EA)","Worked","Change hours if different",DT.opt==="w"?step:"")}
     ${o("x","✗","#FDE7E7","Didn't come","Sick, off or no-show — no pay")}
     ${o("by","⇄","#C9F26B","Someone else went",`${esc(W(w).name.split(" ")[0])} gets nothing, they get the hours`)}
-    ${DT.opt==="by"?`<div class="dchips">${chips.map(id=>`<button class="chip ${DT.by===id?"on":""}" onclick="DT.by='${id}';drawDay()">${esc(W(id).name)}</button>`).join("")}<select class="inp" style="height:40px;flex:1;min-width:140px" onchange="if(this.value){DT.by=this.value;drawDay()}"><option value="">Someone else…</option>${mates.filter(id=>!chips.includes(id)).map(id=>`<option value="${id}">${esc(W(id).name)}</option>`).join("")}</select></div><div class="f" style="margin:4px 0 10px"><label>Hours they worked</label>${step}</div>`:""}
+    ${DT.opt==="by"?`<div class="dchips">${chips.map(id=>`<button class="chip ${DT.by===id?"on":""}" onclick="DT.by='${id}';DT.r=0;drawDay()">${esc(W(id).name)}</button>`).join("")}<select class="inp" style="height:40px;flex:1;min-width:140px" onchange="if(this.value){DT.by=this.value;DT.r=0;drawDay()}"><option value="">Someone else…</option>${mates.filter(id=>!chips.includes(id)).map(id=>`<option value="${id}">${esc(W(id).name)}</option>`).join("")}</select></div><div class="two" style="gap:12px;margin:4px 0 10px;align-items:end"><div class="f" style="margin:0"><label>Hours they worked</label>${step}</div>${DT.by?`<div class="f" style="margin:0"><label>Their pay rate ($/hr)</label><input class="inp num" inputmode="decimal" style="height:40px" value="${DT.r||covRate(DT.by,sid,w)||""}" placeholder="rate" oninput="DT.r=parseFloat(this.value)||0"><div class="hint" style="margin-top:4px">${rateOf(DT.by,sid)?"Their rate at this site":usualRate(DT.by,sid)?"Their usual rate":"Not set — type it"}</div></div>`:""}</div>`:""}
     <button class="btn" ${DT.opt==="by"&&!DT.by?"disabled":""} onclick="daySave()">${DT.opt==="w"?`Save · ${fmtH(DT.h)} hrs`:DT.opt==="x"?"Save · didn't come":DT.by?`Save · ${esc(W(DT.by).name)} covers ${fmtH(DT.h)} hrs`:"Pick who went"}</button>
     <button class="btn ghost" onclick="closeSheet()">Cancel</button>`)}
 async function daySave(){const {w,sid,d,opt,by}=DT,h=+DT.h||0,done=d<=doneThru(),name=W(w).name;
@@ -1275,7 +1276,7 @@ async function daySave(){const {w,sid,d,opt,by}=DT,h=+DT.h||0,done=d<=doneThru()
   if(opt==="w"){await clrMark();if(done||mine.length){if(mine.length){await put("entries",{...mine[0],hours:h});if(mine.length>1)await delMany("entries",mine.slice(1).map(e=>e.id))}else if(h>0){const e=mkEntry("r_"+w+"_"+sid+"_"+d,w,sid,d,h,rateOf(w,sid),"");await put("entries",e);added.entries.push(e.id)}}
     else if(h!==rosterH(w,sid,d))await setMark({h})}
   else if(opt==="x"){if(mine.length)await delMany("entries",mine.map(e=>e.id));await setMark({x:1})}
-  else if(opt==="by"&&by){if(mine.length)await delMany("entries",mine.map(e=>e.id));await setMark({by,h});if(done&&!workAt(by,sid,d).length&&h>0){const e=mkEntry("r_"+by+"_"+sid+"_"+d,by,sid,d,h,rateOf(by,sid)||rateOf(w,sid),"Cover for "+name);await put("entries",e);added.entries.push(e.id)}}
+  else if(opt==="by"&&by){if(mine.length)await delMany("entries",mine.map(e=>e.id));const cr=+DT.r>0?+DT.r:covRate(by,sid,w);await setMark({by,h,r:cr});if(done&&!workAt(by,sid,d).length&&h>0){const e=mkEntry("r_"+by+"_"+sid+"_"+d,by,sid,d,h,cr,"Cover for "+name);await put("entries",e);added.entries.push(e.id)}}
   closeSheet();render();toast(opt==="x"?`✓ ${esc(name)} didn't come · ${dayLabel(d)}`:opt==="by"?`✓ ${esc(W(by).name)} covered ${esc(name)}`:`✓ ${esc(name)} · ${fmtH(h)} hrs`,async()=>{if(added.entries.length)await delMany("entries",added.entries);if(added.marks.length)await delMany("marks",added.marks);
     for(const e of before.entries)await put("entries",e);if(before.marks.length)await putMany("marks",before.marks);else if(!added.marks.length){}render()})}
 
