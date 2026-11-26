@@ -272,6 +272,31 @@ input,textarea,select{font-size:max(16px,1em)}
 .dpk input[type=date]{position:absolute;inset:0;width:100%!important;height:100%!important;opacity:0;cursor:pointer;border:0;padding:0;margin:0}
 .dpk.inp{padding:0 14px}
 :root{color-scheme:light}@media (prefers-color-scheme:dark){:root{color-scheme:dark}.dpk svg{color:#C9F26B}}
+
+/* ---- This week (roster) ---- */
+.pwhead{display:flex;align-items:center;justify-content:center;gap:10px;flex-wrap:wrap;margin:2px 0 12px}.pwhead h2{font-size:30px;font-weight:850;letter-spacing:-.8px;margin:0}
+.pwhead .pstep{display:flex;align-items:center;gap:6px;font-weight:700;font-size:14px}.pwhead .pstep button{width:36px;height:36px;border-radius:12px;background:var(--soft);font-size:18px}
+.pwhero{background:#111214;color:#fff;border-radius:22px;padding:14px 18px;display:flex;gap:12px;margin-bottom:12px}.pwhero div{flex:1}.pwhero span{font-size:11px;letter-spacing:.1em;color:#9a9aa0;font-weight:700}.pwhero b{display:block;font-size:24px;margin-top:4px}.pwhero em{font-style:normal;font-size:12px;color:#C9F26B}.pwhero .pl{color:#9a9aa0}
+.pwleg{display:flex;gap:12px;flex-wrap:wrap;font-size:12px;color:var(--mut);font-weight:600;margin:0 2px 10px}.pwleg .lg{display:inline-block;width:14px;height:14px;border-radius:4px;vertical-align:-3px;margin-right:4px}
+.lg.d{background:var(--card);box-shadow:inset 0 0 0 1px var(--line)}.lg.p{border:1.5px dashed #aaa}.lg.x{background:#FDE7E7}.lg.cv{background:#C9F26B}
+.pwgrid{background:var(--soft);border-radius:18px;padding:10px}
+.pwsite{font-size:13px;font-weight:800;margin:12px 2px 4px;color:var(--ink)}.pwsite:first-of-type{margin-top:4px}
+.pwr{display:flex;align-items:center;gap:8px;margin-top:6px}.pwn{width:78px;flex:none;font-weight:750;font-size:13.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pwc{flex:1;display:grid;grid-template-columns:repeat(7,1fr);gap:5px;min-width:0}
+.pwdays .pwc span{text-align:center;font-size:10.5px;font-weight:700;color:var(--mut);padding:3px 0;border-radius:6px}.pwdays .pwc span.t{background:#C9F26B;color:#111}
+.pwc .c{height:36px;border-radius:10px;display:grid;place-items:center;font-weight:800;font-size:14px;padding:0;min-width:0}
+.pwc .c.d{background:var(--card);box-shadow:inset 0 0 0 1px var(--line);color:var(--ink)}.pwc .c.p{background:transparent;border:1.5px dashed #b9b9b2;color:#9a9a93}.pwc .c.cvp{border-color:#8BC216;color:#5d7f0b}
+.pwc .c.x{background:#FDE7E7;color:#C62828}.pwc .c.cv{background:#C9F26B;color:#111}.pwc .c.e{color:#c9c9c4;background:transparent}.pwc .c.today{outline:2.5px solid var(--ink);outline-offset:1px}.pwc .c.paid{opacity:.55}
+.dopt{width:100%;display:flex;align-items:center;gap:12px;border:2px solid var(--line);border-radius:18px;padding:12px 14px;margin-bottom:10px;background:var(--card);text-align:left;color:var(--ink)}.dopt.sel{border-color:var(--ink)}
+.dopt .ic{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;font-size:19px;font-weight:900;flex:none;color:#111}.dopt .tx{flex:1;min-width:0}.dopt b{display:block;font-size:16px}.dopt small{color:var(--mut);font-size:12.5px}
+.dstep{display:inline-flex;align-items:center;gap:6px}.dstep span{width:34px;height:34px;border-radius:10px;background:var(--soft);display:grid;place-items:center;font-weight:800;font-size:18px;cursor:pointer;user-select:none}.dstep input{width:56px;height:36px;text-align:center;border-radius:10px;border:0;background:var(--soft);font-weight:800;font-size:16px;color:var(--ink)}
+.dchips{display:flex;flex-wrap:wrap;gap:7px;margin:-2px 0 10px}.dchips .chip{padding:8px 12px;border-radius:12px;background:var(--soft);font-weight:700;font-size:13.5px;color:var(--ink)}.dchips .chip.on{background:var(--ink);color:var(--bg)}
+.rs{background:var(--soft);border-radius:18px;padding:12px 14px;margin-bottom:10px}.rs .h{display:flex;justify-content:space-between;gap:8px;align-items:baseline}.rs .h small{color:var(--mut);font-weight:600;font-size:12px}
+.rs .wd{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-top:10px}.rs .wd button{height:38px;border-radius:11px;font-weight:800;font-size:13px;background:var(--card);color:var(--mut);box-shadow:inset 0 0 0 1px var(--line)}.rs .wd button.on{background:var(--ink);color:var(--bg);box-shadow:none}
+.rs .hrs{display:flex;align-items:center;gap:10px;margin-top:10px;font-size:13.5px;font-weight:600;color:var(--mut)}
+.ck2{width:24px;height:24px;border-radius:8px;box-shadow:inset 0 0 0 2px var(--line);display:grid;place-items:center;font-size:13px;font-weight:900;flex:none;margin-right:10px}.ck2.on{background:var(--ink);color:var(--bg);box-shadow:none}
+@media (min-width:1100px){.pw{max-width:980px;margin:0 auto}.pwn{width:170px;font-size:14.5px}.pwc .c{height:44px;font-size:15px}.pwc{gap:8px}}
+@media (prefers-color-scheme:dark){.pwhero{box-shadow:inset 0 0 0 1px #2a2b30;background:#17181b}.pwc .c.x{background:#3a1d1d;color:#ff8a80}.dopt .ic{color:#111}}
 .two>.f{min-width:0}.two input[type=date]{min-width:0;width:100%;box-sizing:border-box;padding-left:10px;padding-right:8px;font-size:15px}
 .tag{font-size:12px;font-weight:650;border-radius:8px;padding:3px 8px;white-space:nowrap}
 .tag.ok{background:var(--ok-s);color:var(--ok)} .tag.pay{background:var(--pay-s);color:var(--pay)} .tag.warn{background:var(--warn-s);color:var(--warn)} .tag.mut{background:var(--soft);color:var(--mut)}
@@ -811,7 +836,7 @@ const JOIN=(()=>{const m=(location.hash||"").match(/join=(CW1\.[A-Za-z0-9_\-]+)/
 if(JOIN&&!IS_APP){const l=document.querySelector('link[rel="manifest"]');if(l)l.remove()}
 let deferredInstall=null;
 addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredInstall=e;setTimeout(showInstallGuide,50)});
-const APP_VERSION="7.9.22";
+const APP_VERSION="7.10.0";
 /* new-version check: on focus and every 5 min; shows an Update bar (never reloads on its own, so nothing unsaved is lost) */
 let UPD_SEEN="";async function updCheck(){try{if(!/^https?:/.test(location.protocol)||document.hidden)return;const r=await fetch(location.pathname.replace(/[^/]*$/,"")+"index.html?v="+Date.now(),{cache:"no-store"});const t=await r.text(),m=t.match(/APP_VERSION="([^"]+)"/);
   if(m&&m[1]!==APP_VERSION&&m[1]!==UPD_SEEN){UPD_SEEN=m[1];let b=document.getElementById("updbar");if(!b){b=document.createElement("div");b.id="updbar";document.body.appendChild(b)}
@@ -820,7 +845,12 @@ function updGo(){const go=()=>location.reload();(navigator.serviceWorker&&naviga
 document.addEventListener("visibilitychange",()=>{if(!document.hidden)updCheck()});window.addEventListener("focus",updCheck);setInterval(updCheck,300000);setTimeout(updCheck,4000);
 /* ============ data layer ============ */
 const TABLES=["clients","sites","workers","rates","entries","income"];
-const EMPTY=()=>({clients:[],sites:[],workers:[],rates:[],entries:[],income:[]});
+const EMPTY=()=>({clients:[],sites:[],workers:[],rates:[],entries:[],income:[],roster:[],marks:[]});
+/* roster lines and day marks are stored as special rows (kind "roster" / "mark") in the Sheet's entries tab, so the Sheet script needs no change */
+function splitV(d){if(!d)return d;d.roster=Array.isArray(d.roster)?d.roster:[];d.marks=Array.isArray(d.marks)?d.marks:[];const keep=[],ri=new Set(d.roster.map(r=>r.id)),mi=new Set(d.marks.map(r=>r.id));
+  (d.entries||[]).forEach(e=>{if(e.kind==="roster"){if(!ri.has(e.id)){d.roster.push(e);ri.add(e.id)}}else if(e.kind==="mark"){if(!mi.has(e.id)){d.marks.push(e);mi.add(e.id)}}else keep.push(e)});d.entries=keep;return d}
+function joinV(d){const o={...d,entries:[...(d.entries||[]),...(d.roster||[]),...(d.marks||[])]};delete o.roster;delete o.marks;return o}
+const RT=t=>t==="roster"||t==="marks"?"entries":t;
 let DB=EMPTY();
 const KEY="crewwages_v2", K_CONN="cw_conn", K_CACHE="cw_cache", K_OUT="cw_outbox", K_PIN="cw_pin";
 const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,7);
@@ -838,8 +868,8 @@ async function api(action,payload={}){
   return j.data;
 }
 async function load(){
-  if(online()){DB=ls.get(K_CACHE,null)||EMPTY();return}
-  DB=ls.get(KEY,null)||EMPTY();
+  if(online()){DB=splitV(ls.get(K_CACHE,null)||EMPTY());return}
+  DB=splitV(ls.get(KEY,null)||EMPTY());
 }
 function queue(op){OUT.push(op);ls.set(K_OUT,OUT);flush()}
 let flushing=false;
@@ -862,7 +892,7 @@ async function pull(){
   await flush(); if(OUT.length)return;
   setSync("syncing");if(!DB.workers.length&&!DB.entries.length&&ls.get(K_CACHE,null)===null)render();
   try{const d=await api("getAll"); if(d.sheetUrl){CONN.s=d.sheetUrl;ls.set(K_CONN,CONN)} delete d.sheetUrl;
-      if(!OUT.length){DB=d;saveLocal();render()} setSync("idle");}
+      if(!OUT.length){DB=splitV(d);saveLocal();render();setTimeout(()=>rosterTick(true),50)} setSync("idle");}
   catch(e){setSync(e.server?"error":"offline");if($("#app .skw"))render()}
 }
 function setSync(s){SYNC.state=s;if(s==="idle")SYNC.at=new Date();if(s!=="syncing"&&document.querySelector("#app .skw"))setTimeout(render,0);const el=document.getElementById("sync");if(el)el.outerHTML=syncBadge()}
@@ -873,36 +903,36 @@ function syncBadge(){
   return `<span id="sync" class="syncb" onclick="pull()"><i style="background:${c}"></i>${t}</span>`;
 }
 async function put(table,row){
-  const arr=DB[table]; const i=arr.findIndex(r=>r.id===row.id);
+  const arr=DB[table]||(DB[table]=[]); const i=arr.findIndex(r=>r.id===row.id);
   if(i>=0)arr[i]=row; else arr.push(row);
-  saveLocal(); if(online())queue({action:"upsertMany",table,rows:[row]});
+  saveLocal(); if(online())queue({action:"upsertMany",table:RT(table),rows:[row]});
 }
 async function del(table,id){
-  DB[table]=DB[table].filter(r=>r.id!==id);
-  saveLocal(); if(online())queue({action:"remove",table,id});
+  DB[table]=(DB[table]||[]).filter(r=>r.id!==id);
+  saveLocal(); if(online())queue({action:"remove",table:RT(table),id});
 }
 async function putMany(table,rows){
-  for(const row of rows){const i=DB[table].findIndex(r=>r.id===row.id); if(i>=0)DB[table][i]=row; else DB[table].push(row)}
-  saveLocal(); if(online())queue({action:"upsertMany",table,rows});
+  if(!DB[table])DB[table]=[];for(const row of rows){const i=DB[table].findIndex(r=>r.id===row.id); if(i>=0)DB[table][i]=row; else DB[table].push(row)}
+  saveLocal(); if(online())queue({action:"upsertMany",table:RT(table),rows});
 }
-async function delMany(table,ids){if(!ids.length)return;const set=new Set(ids);DB[table]=DB[table].filter(r=>!set.has(r.id));saveLocal();if(online())queue({action:"removeMany",table,ids})}
+async function delMany(table,ids){if(!ids.length)return;const set=new Set(ids);DB[table]=(DB[table]||[]).filter(r=>!set.has(r.id));saveLocal();if(online())queue({action:"removeMany",table:RT(table),ids})}
 /* delete several things at once, with one Undo for all of it */
 async function cascadeDelete(parts,msg){const old={};for(const[t,rows]of parts){old[t]=rows.map(r=>({...r}));await delMany(t,rows.map(r=>r.id))}
   closeSheet();if(state.person&&!DB.workers.some(w=>w.id===state.person)&&!DB.sites.some(x=>"s:"+x.id===state.person)){state.pstack=state.pstack.filter(p=>DB.workers.some(w=>w.id===p)||DB.sites.some(x=>"s:"+x.id===p));state.person=state.pstack[state.pstack.length-1]||null}render();
   toast(msg,async()=>{for(const t of Object.keys(old))if(old[t].length)await putMany(t,old[t]);render()})}
 function delWorker(id){const w=W(id),es=DB.entries.filter(e=>e.workerId===id),paid=es.filter(e=>e.paid).length;
   if(!confirmBox(`Delete ${w.name}?\n\nThis also deletes ${plural(es.length,"hour entry")}${paid?` (${paid} already paid)`:""}. You can tap Undo right after.`))return;
-  cascadeDelete([["entries",es],["rates",DB.rates.filter(r=>r.workerId===id)],["workers",[w]]],`${esc(w.name)} deleted`)}
+  cascadeDelete([["entries",es],["rates",DB.rates.filter(r=>r.workerId===id)],["roster",(DB.roster||[]).filter(r=>r.workerId===id)],["marks",(DB.marks||[]).filter(r=>r.workerId===id)],["workers",[w]]],`${esc(w.name)} deleted`)}
 function delSiteAll(sid){const x=Sx(sid),es=DB.entries.filter(e=>e.siteId===sid);
   if(!confirmBox(`Delete ${x.name}?\n\nThis also deletes ${plural(es.length,"hour entry")} at this site. You can tap Undo right after.`))return;
-  cascadeDelete([["entries",es],["rates",DB.rates.filter(r=>r.siteId===sid)],["sites",[x]]],`${esc(x.name)} deleted`)}
+  cascadeDelete([["entries",es],["rates",DB.rates.filter(r=>r.siteId===sid)],["roster",(DB.roster||[]).filter(r=>r.siteId===sid)],["marks",(DB.marks||[]).filter(r=>r.siteId===sid)],["sites",[x]]],`${esc(x.name)} deleted`)}
 function delClientAll(cid){const c=C(cid),ss=DB.sites.filter(x=>x.clientId===cid),ids=new Set(ss.map(x=>x.id)),es=DB.entries.filter(e=>ids.has(e.siteId)),inc=DB.income.filter(i=>i.clientId===cid);
   if(!confirmBox(`Delete ${c.name}?\n\nThis also deletes ${plural(ss.length,"site")}, ${plural(es.length,"hour entry")} and ${plural(inc.length,"money-in record")}. You can tap Undo right after.`))return;
   cascadeDelete([["entries",es],["rates",DB.rates.filter(r=>ids.has(r.siteId))],["income",inc],["sites",ss],["clients",[c]]],`${esc(c.name)} deleted`)}
 function wipeAll(){const t=prompt(online()?"This deletes EVERYTHING for every connected phone and laptop, and empties the Google Sheet.\n\nType DELETE to confirm.":"This deletes everything on this device.\n\nType DELETE to confirm.");
   if((t||"").trim().toUpperCase()!=="DELETE")return toast("Nothing deleted");const old=JSON.parse(JSON.stringify(DB));
   replaceAll({clients:[],sites:[],workers:[],rates:[],entries:[],income:[]}).then(()=>{state.person=null;go("home");toast("Everything deleted",async()=>{await replaceAll(old);render()})})}
-async function replaceAll(d){DB=d;saveLocal();if(online()){OUT=[];queue({action:"replaceAll",db:d})}}
+async function replaceAll(d){DB=splitV(d);saveLocal();if(online()){OUT=[];queue({action:"replaceAll",db:joinV(DB)})}}
 document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")pull()});
 window.addEventListener("online",()=>flush());
 
@@ -973,6 +1003,7 @@ const avc=n=>{let h=0;for(const c of n)h=(h*31+c.charCodeAt(0))>>>0;return PAL[h
 const av=(n,extra="")=>{const[b,f]=avc(n);return `<div class="av" style="background:${b};color:${f};${extra}">${esc(initials(n))}</div>`};
 const plural=(n,w)=>n+" "+(n===1?w:(w==="person"?"people":w==="entry"?"entries":w+"s"));
 const ICON={
+  week:'<svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15.5" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4"/><path d="M7.5 14h2M11 14h2M14.5 14h2M7.5 17.5h2M11 17.5h2"/></svg>',
   send:'<svg width="21" height="21" viewBox="0 0 24 24" fill="currentColor"><path d="M3.4 20.4 21.9 12.9a1 1 0 0 0 0-1.8L3.4 3.6a.8.8 0 0 0-1.1.9l2 6.3c.1.4.5.7.9.7l7.6.5-7.6.5c-.4 0-.8.3-.9.7l-2 6.3a.8.8 0 0 0 1.1 1z"/></svg>',
   mic:'<svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0M12 18v3"/></svg>',
   spark:'<svg width="24" height="24" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2.5c.4 4.6 2.9 7.1 7.5 7.5-4.6.4-7.1 2.9-7.5 7.5-.4-4.6-2.9-7.1-7.5-7.5 4.6-.4 7.1-2.9 7.5-7.5z"/><path d="M19 15c.2 2 1.2 3 3 3.2-1.8.2-2.8 1.2-3 3.2-.2-2-1.2-3-3-3.2 1.8-.2 2.8-1.2 3-3.2z" opacity=".7"/></svg>',
@@ -1105,7 +1136,7 @@ let booted=false;setTimeout(()=>{if(document.querySelector("#app .skw")&&SYNC.st
 function render(){TDR=null;TDP=null;
   const a=$("#app");const sk=SYNC.state==="syncing"&&!DB.workers.length&&!DB.entries.length&&!DB.sites.length&&ls.get(K_CACHE,null)===null;
   const first=!sk&&(!booted||a.querySelector(".skw"));if(!sk)booted=true;a.innerHTML=sk?SKEL:buildApp();if(first){a.classList.remove("fadein");void a.offsetWidth;a.classList.add("fadein");setTimeout(()=>a.classList.remove("fadein"),450)}
-  const nv=$("#nav");if(!nv.querySelector(".tabsg"))nv.innerHTML=`<div class="tabsg glass"><i class="pill"></i>${[["home","Home",ICON.home],["today","Hours",ICON.today],["pay","Pay",ICON.pay],["team","Team",ICON.people]].map(navBtn).join("")}</div><button class="fabw" onclick="addMenu()" aria-label="Add">${ICON.plus}</button>`;
+  const nv=$("#nav");if(!nv.querySelector(".tabsg"))nv.innerHTML=`<div class="tabsg glass"><i class="pill"></i>${[["home","Home",ICON.home],["week","Week",ICON.week],["today","Hours",ICON.today],["pay","Pay",ICON.pay],["team","Team",ICON.people]].map(navBtn).join("")}</div><button class="fabw" onclick="addMenu()" aria-label="Add">${ICON.plus}</button>`;
   else nv.querySelectorAll(".tabsg button").forEach(b=>b.classList.toggle("on",b.dataset.k===navKey()));
   movePill();
   const si=$("#q"); if(si&&state.focusSearch){si.focus();si.setSelectionRange(si.value.length,si.value.length)}
@@ -1121,9 +1152,135 @@ function dateFx(root){(root||document).querySelectorAll('input[type=date]:not([d
   const up=()=>{const v=i.value;t.textContent=v&&/^\d{4}-\d{2}-\d{2}$/.test(v)?(()=>{const d=parseD(v);return `${DOW[d.getDay()].slice(0,3)} ${d.getDate()} ${MN[d.getMonth()]}${d.getFullYear()!==new Date().getFullYear()?" "+d.getFullYear():""}`})():"Pick a date"};up();i.addEventListener("input",up);i.addEventListener("change",up);
   w.addEventListener("click",e=>{if(e.target!==i)try{i.showPicker()}catch(_){i.focus()}});i.addEventListener("click",()=>{try{i.showPicker()}catch(_){}})})}
 new MutationObserver(()=>dateFx()).observe(document.documentElement,{childList:true,subtree:true});document.addEventListener("DOMContentLoaded",()=>dateFx());
+
+/* ================= ROSTER =================
+   roster row: {id,workerId,siteId,hours,date:from,kind:"roster",notes:JSON{d:[weekdays 0-6],to,upto}}
+   mark row:   {id:"m_w_s_date",workerId,siteId,date,kind:"mark",notes:JSON{x:1 | h:n | by:workerId,h}}
+   Planned days are never money. After the shift (6 am next day) the app writes a real work entry once. */
+const jp=t=>{try{return JSON.parse(t||"{}")||{}}catch(e){return {}}};
+const rInfo=r=>{const o=jp(r.notes);return {d:Array.isArray(o.d)?o.d:[],to:o.to||"",upto:o.upto||"",h:+r.hours||0,from:r.date}};
+const mInfo=m=>m?jp(m.notes):{};
+const doneThru=()=>addD(todayD(),new Date().getHours()>=6?-1:-2);
+const rateOf=(w,sid)=>+((DB.rates.find(x=>x.workerId===w&&x.siteId===sid)||{}).rate)||0;
+const rLines=(w,sid)=>(DB.roster||[]).filter(r=>(!w||r.workerId===w)&&(!sid||r.siteId===sid));
+function rLineOn(w,sid,d){return rLines(w,sid).find(r=>{const I=rInfo(r);return I.from<=d&&(!I.to||d<=I.to)})}
+function rosterH(w,sid,d){const r=rLineOn(w,sid,d);if(!r)return 0;const I=rInfo(r);return I.d.includes(parseD(d).getDay())?I.h:0}
+const mkId=(w,sid,d)=>"m_"+w+"_"+sid+"_"+d;
+const markOf=(w,sid,d)=>(DB.marks||[]).find(m=>m.workerId===w&&m.siteId===sid&&m.date===d);
+const workAt=(w,sid,d)=>DB.entries.filter(e=>e.workerId===w&&e.siteId===sid&&e.date===d&&isWork(e));
+const mkEntry=(id,w,sid,d,h,rate,notes)=>({id,date:d,month:d.slice(0,7),workerId:w,siteId:sid,hours:h,rate,paid:false,paidAt:"",notes:notes||"",createdAt:new Date().toISOString(),kind:"work"});
+let RTICK=0,RBUSY=false;
+async function rosterTick(force){if(RBUSY||!(DB.roster||[]).length)return;const now=Date.now();if(!force&&now-RTICK<60000)return;RTICK=now;RBUSY=true;
+  try{const thru=doneThru(),rows=[],rupd=[],made=new Set();
+  for(const r of DB.roster){const I=rInfo(r),w=W(r.workerId);if(!w||!w.id||w.active===false)continue;
+    let d=I.upto&&I.upto>=I.from?addD(I.upto,1):I.from;const end=I.to&&I.to<thru?I.to:thru;if(d>end)continue;
+    for(;d<=end;d=addD(d,1)){if(!I.d.includes(parseD(d).getDay()))continue;const M=mInfo(markOf(r.workerId,r.siteId,d)),h=M.h!=null?+M.h:I.h;
+      if(M.x)continue;
+      if(M.by){const id="r_"+M.by+"_"+r.siteId+"_"+d;if(!made.has(id)&&!workAt(M.by,r.siteId,d).length&&h>0){made.add(id);rows.push(mkEntry(id,M.by,r.siteId,d,h,rateOf(M.by,r.siteId)||rateOf(r.workerId,r.siteId),"Cover for "+W(r.workerId).name))}continue}
+      const id="r_"+r.workerId+"_"+r.siteId+"_"+d;if(made.has(id)||workAt(r.workerId,r.siteId,d).length||!(h>0))continue;made.add(id);rows.push(mkEntry(id,r.workerId,r.siteId,d,h,rateOf(r.workerId,r.siteId),"Roster"))}
+    rupd.push({...r,notes:JSON.stringify({d:I.d,to:I.to,upto:end})})}
+  if(rows.length)await putMany("entries",rows);if(rupd.length)await putMany("roster",rupd);if(rows.length)render()}finally{RBUSY=false}}
+setInterval(()=>rosterTick(),5*60*1000);document.addEventListener("visibilitychange",()=>{if(!document.hidden)setTimeout(()=>rosterTick(true),800)});
+
+/* ---- This week page ---- */
+function pwCell(w,sid,d,thru){const es=workAt(w,sid,d);if(es.length)return {t:es.some(e=>/^Cover for/.test(e.notes||""))?"cv":"d",h:es.reduce((a,e)=>a+ +e.hours,0),paid:es.every(e=>e.paid)};
+  const M=mInfo(markOf(w,sid,d));if(M.x||M.by)return {t:"x"};
+  const cov=(DB.marks||[]).find(m=>m.siteId===sid&&m.date===d&&mInfo(m).by===w);if(cov){const CM=mInfo(cov);return {t:"pc",h:CM.h!=null?+CM.h:rosterH(cov.workerId,sid,d)}}
+  const h=rosterH(w,sid,d);if(h>0)return {t:"p",h:M.h!=null?+M.h:h};return {t:"e"}}
+function planWeek(){const ws=state.wkp||weekStart(todayD()),days=[...Array(7)].map((_,i)=>addD(ws,i)),td=todayD(),thru=doneThru(),we=days[6];
+  if(!(DB.roster||[]).length)return `<div class="pw">
+    <div class="card" style="padding:22px;text-align:center"><div style="font-size:40px">🗓️</div><h3 style="margin:8px 0 6px">Set each person's usual days once</h3><p class="hint" style="margin:0 0 16px">Then every week fills itself. You only mark who didn't come or who covered.</p>
+    <button class="btn" onclick="rosterAuto()">Set up from past hours</button><button class="btn ghost" style="margin-top:8px" onclick="go('people')">Do it person by person</button></div></div>`;
+  const keys=new Map(),add=(w,sid)=>{if(sid===SUP)return;const k=w+"|"+sid;if(!keys.has(k))keys.set(k,{w,sid})};
+  (DB.roster||[]).forEach(r=>{const I=rInfo(r);if(I.from<=we&&(!I.to||I.to>=ws)&&W(r.workerId).active!==false)add(r.workerId,r.siteId)});
+  DB.entries.forEach(e=>{if(e.date&&e.date>=ws&&e.date<=we&&isWork(e))add(e.workerId,e.siteId)});
+  (DB.marks||[]).forEach(m=>{if(m.date>=ws&&m.date<=we){const b=mInfo(m).by;if(b)add(b,m.siteId)}});
+  const bySite={};[...keys.values()].forEach(k=>{(bySite[k.sid]=bySite[k.sid]||[]).push(k)});const sites=Object.keys(bySite).sort((a,b)=>Sx(a).name.localeCompare(Sx(b).name));
+  let doneH=0,doneM=0,planH=0;DB.entries.forEach(e=>{if(e.date&&e.date>=ws&&e.date<=we&&isWork(e)){doneH+= +e.hours;doneM+=wage(e)}});
+  const L=["S","M","T","W","T","F","S"];
+  const grid=sites.map(sid=>`<div class="pwsite">${esc(Sx(sid).name)}</div>`+bySite[sid].sort((a,b)=>W(a.w).name.localeCompare(W(b.w).name)).map(k=>`<div class="pwr"><span class="pwn">${esc(W(k.w).name)}</span><div class="pwc">${days.map(d=>{const c=pwCell(k.w,k.sid,d,thru);if(c.t==="p"||c.t==="pc")planH+=c.h;
+      const cls=c.t==="d"?"d":c.t==="cv"?"cv":c.t==="x"?"x":c.t==="p"?"p":c.t==="pc"?"p cvp":"e";return `<button class="c ${cls}${d===td?" today":""}${c.paid?" paid":""}" onclick="dayTap('${k.w}','${k.sid}','${d}')" aria-label="${esc(W(k.w).name)} ${dayLabel(d)}">${c.t==="x"?"✗":c.t==="e"?"–":fmtH(c.h)}</button>`}).join("")}</div></div>`).join("")).join("");
+  return `<div class="pw"><div class="pwhead"><div class="pstep"><button onclick="state.wkp=addD('${ws}',-7);render()" aria-label="Previous week">‹</button><span>${ws===weekStart(td)?"This week · ":ws===weekStart(addD(td,-7))?"Last week · ":""}${weekLabel(ws)}</span><button onclick="state.wkp=addD('${ws}',7);render()" aria-label="Next week">›</button></div></div>
+    <div class="pwhero"><div><span>DONE · COUNTED</span><b>${money(doneM)}</b><em>${fmtH(doneH)} hrs</em></div><div><span>STILL PLANNED</span><b class="pl">${fmtH(planH)} hrs</b><em class="pl">not money yet</em></div></div>
+    <div class="pwleg"><span><i class="lg d"></i>Done</span><span><i class="lg p"></i>Planned</span><span><i class="lg x"></i>Didn't come</span><span><i class="lg cv"></i>Cover</span></div>
+    <div class="pwgrid"><div class="pwr pwdays"><span class="pwn"></span><div class="pwc">${days.map(d=>`<span class="${d===td?"t":""}">${L[parseD(d).getDay()]}${parseD(d).getDate()}</span>`).join("")}</div></div>${grid||`<div class="empty">Nobody is rostered this week</div>`}</div>
+    <div class="tip" style="margin-top:12px"><span>💡</span><div>Tap any day to change it. Planned days turn into money the morning after (6 am).</div></div>
+    <div style="display:flex;gap:10px;margin-top:12px"><button class="btn ghost" style="flex:1" onclick="rosterAuto()">Rosters for everyone</button></div></div>`}
+const fmtH=h=>{h=Math.round(h*100)/100;return String(h)};
+
+/* ---- tap a day ---- */
+let DT=null;
+function dayTap(w,sid,d){hideToast();const es=workAt(w,sid,d),M=mInfo(markOf(w,sid,d)),rh=rosterH(w,sid,d),paid=es.some(e=>e.paid);
+  const cur=es.length?es.reduce((a,e)=>a+ +e.hours,0):M.h!=null?+M.h:rh||3;
+  DT={w,sid,d,opt:M.by?"by":M.x?"x":"w",h:cur,by:M.by||"",paid};drawDay()}
+function drawDay(){const {w,sid,d}=DT,rh=rosterH(w,sid,d),future=d>doneThru();
+  if(DT.paid){showSheet(`<h3>${esc(W(w).name)} · ${dayLabel(d)}</h3><div class="lead">${esc(Sx(sid).name)}</div><div class="hint" style="margin:10px 0 16px">This day is already paid, so it can't be changed here.</div><button class="btn ghost" onclick="closeSheet()">Close</button>`);return}
+  const mates=[...new Set([...DB.rates.filter(r=>r.siteId===sid&&r.workerId!==w).map(r=>r.workerId),...DB.workers.filter(x=>x.active!==false&&x.id!==w&&!isSup(x)).map(x=>x.id)])].filter(id=>W(id).active!==false);
+  const near=DB.rates.filter(r=>r.siteId===sid&&r.workerId!==w).map(r=>r.workerId);
+  const chips=[...new Set([...(DT.by?[DT.by]:[]),...near])].slice(0,8);
+  const o=(k,ic,bg,t,sub,extra="")=>`<button class="dopt ${DT.opt===k?"sel":""}" onclick="DT.opt='${k}';drawDay()"><span class="ic" style="background:${bg}">${ic}</span><span class="tx"><b>${t}</b><small>${sub}</small></span>${extra}</button>`;
+  const step=`<span class="dstep" onclick="event.stopPropagation()"><span onclick="DT.h=Math.max(0,Math.round((DT.h-.5)*2)/2);drawDay()">−</span><input class="num" inputmode="decimal" value="${DT.h}" oninput="DT.h=parseFloat(this.value)||0"><span onclick="DT.h=Math.round((DT.h+.5)*2)/2;drawDay()">+</span></span>`;
+  showSheet(`<h3>${esc(W(w).name)} · ${dayLabel(d)}</h3><div class="lead">${esc(Sx(sid).name)} · ${rh?`roster ${fmtH(rh)} hrs`:"not on the roster this day"}${future?" · planned":""}</div>
+    ${o("w","✓","var(--ok-s,#E3F5EA)","Worked","Change hours if different",DT.opt==="w"?step:"")}
+    ${o("x","✗","#FDE7E7","Didn't come","Sick, off or no-show — no pay")}
+    ${o("by","⇄","#C9F26B","Someone else went",`${esc(W(w).name.split(" ")[0])} gets nothing, they get the hours`)}
+    ${DT.opt==="by"?`<div class="dchips">${chips.map(id=>`<button class="chip ${DT.by===id?"on":""}" onclick="DT.by='${id}';drawDay()">${esc(W(id).name)}</button>`).join("")}<select class="inp" style="height:40px;flex:1;min-width:140px" onchange="if(this.value){DT.by=this.value;drawDay()}"><option value="">Someone else…</option>${mates.filter(id=>!chips.includes(id)).map(id=>`<option value="${id}">${esc(W(id).name)}</option>`).join("")}</select></div><div class="f" style="margin:4px 0 10px"><label>Hours they worked</label>${step}</div>`:""}
+    <button class="btn" ${DT.opt==="by"&&!DT.by?"disabled":""} onclick="daySave()">${DT.opt==="w"?`Save · ${fmtH(DT.h)} hrs`:DT.opt==="x"?"Save · didn't come":DT.by?`Save · ${esc(W(DT.by).name)} covers ${fmtH(DT.h)} hrs`:"Pick who went"}</button>
+    <button class="btn ghost" onclick="closeSheet()">Cancel</button>`)}
+async function daySave(){const {w,sid,d,opt,by}=DT,h=+DT.h||0,done=d<=doneThru(),name=W(w).name;
+  const oldMark=markOf(w,sid,d),oldCov=oldMark&&mInfo(oldMark).by?DB.entries.filter(e=>e.workerId===mInfo(oldMark).by&&e.siteId===sid&&e.date===d&&!e.paid&&(e.notes||"")==="Cover for "+name):[];
+  const mine=workAt(w,sid,d).filter(e=>!e.paid),before={entries:[...mine,...oldCov].map(e=>({...e})),marks:oldMark?[{...oldMark}]:[]},added={entries:[],marks:[]};
+  if(oldCov.length)await delMany("entries",oldCov.map(e=>e.id));
+  const setMark=async o=>{const m={id:mkId(w,sid,d),workerId:w,siteId:sid,date:d,month:d.slice(0,7),hours:0,rate:0,paid:false,paidAt:"",notes:JSON.stringify(o),createdAt:new Date().toISOString(),kind:"mark"};await put("marks",m);added.marks.push(m.id)};
+  const clrMark=async()=>{if(oldMark)await del("marks",oldMark.id)};
+  if(opt==="w"){await clrMark();if(done||mine.length){if(mine.length){await put("entries",{...mine[0],hours:h});if(mine.length>1)await delMany("entries",mine.slice(1).map(e=>e.id))}else if(h>0){const e=mkEntry("r_"+w+"_"+sid+"_"+d,w,sid,d,h,rateOf(w,sid),"");await put("entries",e);added.entries.push(e.id)}}
+    else if(h!==rosterH(w,sid,d))await setMark({h})}
+  else if(opt==="x"){if(mine.length)await delMany("entries",mine.map(e=>e.id));await setMark({x:1})}
+  else if(opt==="by"&&by){if(mine.length)await delMany("entries",mine.map(e=>e.id));await setMark({by,h});if(done&&!workAt(by,sid,d).length&&h>0){const e=mkEntry("r_"+by+"_"+sid+"_"+d,by,sid,d,h,rateOf(by,sid)||rateOf(w,sid),"Cover for "+name);await put("entries",e);added.entries.push(e.id)}}
+  closeSheet();render();toast(opt==="x"?`✓ ${esc(name)} didn't come · ${dayLabel(d)}`:opt==="by"?`✓ ${esc(W(by).name)} covered ${esc(name)}`:`✓ ${esc(name)} · ${fmtH(h)} hrs`,async()=>{if(added.entries.length)await delMany("entries",added.entries);if(added.marks.length)await delMany("marks",added.marks);
+    for(const e of before.entries)await put("entries",e);if(before.marks.length)await putMany("marks",before.marks);else if(!added.marks.length){}render()})}
+
+/* ---- roster editor (per worker) ---- */
+function rosterSuggest(w,sid){const t=todayD(),from=addD(t,-35),es=DB.entries.filter(e=>e.workerId===w&&e.siteId===sid&&isWork(e)&&e.date&&e.date>=from&&e.date<t);if(!es.length)return null;
+  const weeks=new Set(es.map(e=>weekStart(e.date))).size,cnt=[0,0,0,0,0,0,0],hs={};es.forEach(e=>{cnt[parseD(e.date).getDay()]++;hs[e.hours]=(hs[e.hours]||0)+1});
+  const need=Math.max(1,Math.ceil(weeks/2)),d=[0,1,2,3,4,5,6].filter(i=>cnt[i]>=need),h=+Object.entries(hs).sort((a,b)=>b[1]-a[1])[0][0];return d.length?{d,h}:null}
+let RE=null;
+function rosterEdit(w){hideToast();const t=todayD(),rs=DB.rates.filter(r=>r.workerId===w&&r.siteId!==SUP);
+  RE={w,from:t,rows:rs.map(r=>{const cur=rLineOn(w,r.siteId,t),I=cur?rInfo(cur):null,sg=!cur?rosterSuggest(w,r.siteId):null;return {sid:r.siteId,d:I?[...I.d]:sg?sg.d:[],h:I?I.h:sg?sg.h:3,had:!!cur,sug:!!sg}})};drawRE()}
+function drawRE(){const L=["M","T","W","T","F","S","S"],ord=[1,2,3,4,5,6,0];
+  showSheet(`<h3>${esc(W(RE.w).name)} · usual days</h3><div class="lead">Every week fills itself from this. Planned days only become money the morning after.</div>
+  ${RE.rows.length?RE.rows.map((r,i)=>`<div class="rs"><div class="h"><b>${esc(Sx(r.sid).name)}</b><small>${money(rateOf(RE.w,r.sid))}/hr${r.sug?" · picked from past hours":""}</small></div>
+    <div class="wd">${ord.map((k,j)=>`<button class="${r.d.includes(k)?"on":""}" onclick="REd(${i},${k})">${L[j]}</button>`).join("")}</div>
+    <div class="hrs">Hours each day <input class="inp num" inputmode="decimal" style="width:70px;height:40px;text-align:center" value="${r.h}" oninput="RE.rows[${i}].h=parseFloat(this.value)||0"><button class="link" style="margin-left:auto" onclick="RE.rows[${i}].d=[];drawRE()">No regular days</button></div></div>`).join(""):`<div class="empty">Add this person to a site first</div>`}
+  <div class="f"><label>Starts</label><input class="inp" type="date" value="${RE.from}" onchange="if(this.value){RE.from=this.value;drawRE()}"></div>
+  ${RE.from<todayD()?`<div class="hint" style="margin:-6px 0 12px">⚠ Days before today fill in only where there are no hours yet — nothing is doubled.</div>`:""}
+  <button class="btn" onclick="REsave()">Save usual days</button><button class="btn ghost" onclick="closeSheet()">Cancel</button>`)}
+function REd(i,k){const d=RE.rows[i].d,j=d.indexOf(k);j>=0?d.splice(j,1):d.push(k);drawRE()}
+async function rosterSet(w,sid,days,h,from){const cur=rLines(w,sid).filter(r=>{const I=rInfo(r);return !I.to||I.to>=from}),ups=[],dels=[];
+  for(const r of cur){const I=rInfo(r);if(I.from>=from)dels.push(r.id);else ups.push({...r,notes:JSON.stringify({d:I.d,to:addD(from,-1),upto:I.upto&&I.upto>addD(from,-1)?addD(from,-1):I.upto})})}
+  if(dels.length)await delMany("roster",dels);if(ups.length)await putMany("roster",ups);
+  if(days.length&&h>0)await put("roster",{id:uid(),workerId:w,siteId:sid,hours:h,date:from,month:from.slice(0,7),rate:0,paid:false,paidAt:"",notes:JSON.stringify({d:[...days].sort(),to:"",upto:addD(from,-1)}),createdAt:new Date().toISOString(),kind:"roster"})}
+async function REsave(){const old=(DB.roster||[]).filter(r=>r.workerId===RE.w).map(r=>({...r}));for(const r of RE.rows){if(!r.had&&!r.d.length)continue;await rosterSet(RE.w,r.sid,r.d,r.h,RE.from)}
+  closeSheet();await rosterTick(true);render();toast(`✓ Usual days saved for ${esc(W(RE.w).name)}`,async()=>{const now=(DB.roster||[]).filter(r=>r.workerId===RE.w).map(r=>r.id);await delMany("roster",now);await putMany("roster",old);render()})}
+function rosterSummary(w){const t=todayD(),ls2=DB.rates.filter(r=>r.workerId===w&&r.siteId!==SUP).map(r=>{const c=rLineOn(w,r.siteId,t)||rLines(w,r.siteId).find(x=>rInfo(x).from>t);if(!c)return null;const I=rInfo(c),L=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+  const ds=[1,2,3,4,5,6,0].filter(k=>I.d.includes(k)),lab=ds.length===5&&!I.d.includes(0)&&!I.d.includes(6)?"Mon–Fri":ds.length===7?"Every day":ds.map(k=>L[k]).join(", ");return `<div class="row"><div class="main"><div class="t1">${esc(Sx(r.siteId).name)}</div><div class="t2">${lab} · ${fmtH(I.h)} hrs${I.from>t?` · from ${dayLabel(I.from)}`:""}</div></div></div>`}).filter(Boolean);
+  return `<div class="sec"><h2>Usual days</h2><button class="link" onclick="rosterEdit('${w}')">${ls2.length?"Edit":"+ Set up"}</button></div><div class="list">${ls2.length?ls2.join(""):`<div class="empty" style="padding:14px">Not set — <button class="link" onclick="rosterEdit('${w}')">set usual days</button> so each week fills itself</div>`}</div>`}
+
+/* ---- set up everyone from past hours ---- */
+let RA=null;
+function rosterAuto(){hideToast();const t=todayD();RA=[];DB.rates.forEach(r=>{if(r.siteId===SUP||W(r.workerId).active===false||rLineOn(r.workerId,r.siteId,t))return;const sg=rosterSuggest(r.workerId,r.siteId);if(sg)RA.push({w:r.workerId,sid:r.siteId,d:sg.d,h:sg.h,on:true})});
+  RA.sort((a,b)=>W(a.w).name.localeCompare(W(b.w).name));drawRA()}
+function drawRA(){const L=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"],lab=d=>{const ds=[1,2,3,4,5,6,0].filter(k=>d.includes(k));return ds.length===5&&!d.includes(0)&&!d.includes(6)?"Mon–Fri":ds.map(k=>L[k]).join(", ")};
+  const n=RA.filter(x=>x.on).length;
+  showSheet(`<h3>Usual days for everyone</h3><div class="lead">${RA.length?"Picked from the last 5 weeks of hours. Untick anything that's wrong — you can fix each person later.":"Nobody new to set up: either everyone already has usual days, or there are no recent hours to learn from. Set people one by one from their page."}</div>
+  <div class="list" style="margin:12px 0;max-height:52vh;overflow:auto">${RA.map((x,i)=>`<button class="row tap" style="width:100%;text-align:left" onclick="RA[${i}].on=!RA[${i}].on;drawRA()"><span class="ck2 ${x.on?"on":""}">${x.on?"✓":""}</span><div class="main"><div class="t1">${esc(W(x.w).name)}</div><div class="t2">${esc(Sx(x.sid).name)} · ${lab(x.d)} · ${fmtH(x.h)} hrs</div></div></button>`).join("")}</div>
+  ${RA.length?`<button class="btn" ${n?"":"disabled"} onclick="RAsave()">Save ${n} · starts today</button>`:""}<button class="btn ghost" onclick="closeSheet()">${RA.length?"Cancel":"Close"}</button>`)}
+async function RAsave(){const t=todayD(),before=(DB.roster||[]).map(r=>r.id);for(const x of RA.filter(x=>x.on))await rosterSet(x.w,x.sid,x.d,x.h,t);closeSheet();state.tab="week";render();
+  toast(`✓ Usual days saved for ${plural(new Set(RA.filter(x=>x.on).map(x=>x.w)).size,"person")}`,async()=>{const b=new Set(before);await delMany("roster",(DB.roster||[]).filter(r=>!b.has(r.id)).map(r=>r.id));render()})}
+
 const DESKQ=matchMedia("(min-width:1100px)"),DESK=()=>DESKQ.matches;
 try{DESKQ.addEventListener("change",()=>{try{render()}catch(e){}})}catch(e){}
-const TITLES={home:"Home",today:"Hours",people:"Team",sites:"Team",clients:"Team",more:"Settings",pay:"Pay",reports:"Reports"};
+const TITLES={week:"This week",home:"Home",today:"Hours",people:"Team",sites:"Team",clients:"Team",more:"Settings",pay:"Pay",reports:"Reports"};
 function buildApp(){
   const titles=TITLES;
   const showMonth=false;
@@ -1132,7 +1289,7 @@ function buildApp(){
   const top=`<div class="top${bare?" bare":""}${root?" root":""}">
     <div class="brand"><div class="logo" style="background:none;padding:0"><svg viewBox="0 0 100 100" width="100%" height="100%" aria-hidden="true"><rect width="100" height="100" rx="23.5" fill="#C9F26B"/><circle cx="50" cy="50" r="23" fill="none" stroke="#111" stroke-width="6.6"/><path d="M50 50V35.7M50 50l11 8.4" stroke="#111" stroke-width="6.6" stroke-linecap="round" fill="none"/><circle cx="76.5" cy="25.5" r="5.6" fill="#111"/></svg></div><span class="bt">Hourza</span></div>
     <h1 class="ptitle" style="display:flex;align-items:baseline;gap:10px">${state.person||state.tab==="home"?"":titles[state.tab]}</h1>
-    <div class="tabs">${[["home","Home"],["today","Hours"],["pay","Pay"],["people","Team"],["reports","Reports"]].map(([k,l])=>`<button class="${(k==="people"?navKey()==="team":state.tab===k)?"on":""}" onclick="go('${k}')">${l}</button>`).join("")}</div>
+    <div class="tabs">${[["home","Home"],["week","This week"],["today","Hours"],["pay","Pay"],["people","Team"],["reports","Reports"]].map(([k,l])=>`<button class="${(k==="people"?navKey()==="team":state.tab===k)?"on":""}" onclick="go('${k}')">${l}</button>`).join("")}</div>
     <div class="spacer"></div>
     ${online()&&!state.person?syncBadge():""}${showMonth?monthSwitch():""}
     <button class="add-top" onclick="addMenu()">${ICON.plus.replace('width="24" height="24"','width="18" height="18"')}Add</button>
@@ -1144,6 +1301,7 @@ function buildApp(){
     body=`<div class="split"><div class="splitL">${list}</div><div class="splitR">${state.person?(isSiteKey(state.person)?sitePage(state.person):personPage(state.person)):`<div class="splitEmpty"><div class="e">${ICON.people||""}</div><b>Pick someone on the left</b><span>Their hours, pay and sites show here</span></div>`}</div></div>`}
   else if(state.person) body=isSiteKey(state.person)?sitePage(state.person):personPage(state.person);
   else if(state.tab==="home") body=homePage();
+  else if(state.tab==="week") body=planWeek();
   else if(state.tab==="people") body=peoplePage();
   else if(state.tab==="sites") body=sitesPage();
   else if(state.tab==="clients") body=clientsPage();
@@ -2261,6 +2419,7 @@ function personPage(id){
           :`<div class="empty">No hours ${P1.mode==="all"?"yet":"for "+perLabel(P1)}</div>`}</div>
       </div>
       <div>
+        ${isSup(w)?"":rosterSummary(id)}
         <div class="sec"><h2>Works at</h2><button class="link" onclick="openAdd('worker','${id}')">+ Add site</button></div>
         <div class="list">${rates.length?rates.map(r=>{const s=Sx(r.siteId); const mates=DB.rates.filter(x=>x.siteId===r.siteId&&x.workerId!==id).map(x=>W(x.workerId));
           return `<div class="row"><div class="main" onclick="openSite('${s.id}')" style="cursor:pointer"><div class="t1">${esc(s.name)} <span class="tag mut" style="margin-left:6px">${esc(C(s.clientId).name)}</span></div>
@@ -3032,15 +3191,15 @@ async function tryConnect(text){
       showSheet(`<h3>Connected ✓</h3><div class="lead">Your Sheet is empty. Copy what's on this device into it?</div>
       <button class="btn" id="cy">Copy my data to the Sheet</button><button class="btn ghost" id="cn">Start with an empty Sheet</button>`);
       $("#cy").onclick=async()=>{closeSheet();await replaceAll(local);afterConnect()};
-      $("#cn").onclick=()=>{DB=data;saveLocal();closeSheet();afterConnect()};
+      $("#cn").onclick=()=>{DB=splitV(data);saveLocal();closeSheet();afterConnect()};
     } else if(hasLocal){const T=["clients","sites","workers","rates","entries","income"],extra={};let n=0;
       T.forEach(t=>{const ids=new Set((data[t]||[]).map(r=>r.id));extra[t]=(local[t]||[]).filter(r=>!ids.has(r.id));n+=extra[t].length});
-      if(!n){DB=data;saveLocal();closeSheet();afterConnect();return}
+      if(!n){DB=splitV(data);saveLocal();closeSheet();afterConnect();return}
       showSheet(`<h3>Connected ✓</h3><div class="lead">This phone has things the Sheet doesn't: <b>${plural(extra.workers.length,"worker")}</b>, <b>${plural(extra.sites.length,"site")}</b>, <b>${extra.entries.length} hours ${extra.entries.length===1?"entry":"entries"}</b>. Add them to the Sheet so nothing is lost?</div>
       <button class="btn" id="cy">Add this phone's data to the Sheet</button><button class="btn ghost" id="cn">No, use only the Sheet</button><div class="hint" style="margin-top:10px">If the same person was added on both phones, you may see them twice — you can delete one later.</div>`);
-      $("#cy").onclick=async()=>{closeSheet();DB=data;saveLocal();for(const t of T)if(extra[t].length)await putMany(t,extra[t]);render();afterConnect()};
-      $("#cn").onclick=()=>{if(!confirmBox("Use only the Sheet? This phone's own data will be hidden (kept on the phone, not deleted)."))return;DB=data;saveLocal();closeSheet();afterConnect()};
-    } else {DB=data;saveLocal();closeSheet();afterConnect()}
+      $("#cy").onclick=async()=>{closeSheet();DB=splitV(data);saveLocal();for(const t of T)if(extra[t].length)await putMany(t,extra[t]);render();afterConnect()};
+      $("#cn").onclick=()=>{if(!confirmBox("Use only the Sheet? This phone's own data will be hidden (kept on the phone, not deleted)."))return;DB=splitV(data);saveLocal();closeSheet();afterConnect()};
+    } else {DB=splitV(data);saveLocal();closeSheet();afterConnect()}
   });
 }
 function afterConnect(){SYNC.at=new Date();setSync("idle");const ms=DB.entries.map(e=>e.month).sort();state.month=nowM();go("home");toast("✓ Connected to your Google Sheet")}
@@ -3168,6 +3327,7 @@ function resetDemo(sample,quiet){if(sample&&online()){toast("Sample data is off 
 /* ============ start ============ */
 (async()=>{
   $("#app").innerHTML=`<div class="empty" style="padding-top:40vh">Loading…</div>`;
+  setTimeout(()=>rosterTick(true),1500);
   try{await load()}catch(e){$("#app").innerHTML=`<div class="empty" style="padding-top:35vh">Couldn't load your data.<br>Check the internet and refresh.</div>`;return}
   const ms=DB.entries.map(e=>e.month).sort(); state.month=online()?nowM():(ms[ms.length-1]||nowM());state.per.d=state.month===todayD().slice(0,7)?todayD():state.month+"-01";
   render(); if(!autoJoin()){lockIfNeeded(true); if(online()&&!ls.get(K_PIN,null))unlocked=true; if(unlocked)pull();}
