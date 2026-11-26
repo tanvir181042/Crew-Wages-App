@@ -806,7 +806,7 @@ const JOIN=(()=>{const m=(location.hash||"").match(/join=(CW1\.[A-Za-z0-9_\-]+)/
 if(JOIN&&!IS_APP){const l=document.querySelector('link[rel="manifest"]');if(l)l.remove()}
 let deferredInstall=null;
 addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredInstall=e;setTimeout(showInstallGuide,50)});
-const APP_VERSION="7.9.17";
+const APP_VERSION="7.9.19";
 /* new-version check: on focus and every 5 min; shows an Update bar (never reloads on its own, so nothing unsaved is lost) */
 let UPD_SEEN="";async function updCheck(){try{if(!/^https?:/.test(location.protocol)||document.hidden)return;const r=await fetch(location.pathname.replace(/[^/]*$/,"")+"index.html?v="+Date.now(),{cache:"no-store"});const t=await r.text(),m=t.match(/APP_VERSION="([^"]+)"/);
   if(m&&m[1]!==APP_VERSION&&m[1]!==UPD_SEEN){UPD_SEEN=m[1];let b=document.getElementById("updbar");if(!b){b=document.createElement("div");b.id="updbar";document.body.appendChild(b)}
@@ -1323,7 +1323,7 @@ function aiHoursCard(){const p=AI.p,w=W(p.wid),r=DB.rates.find(x=>x.workerId===p
     ex.length?`<div class="aic3">⚠ Already has hours on ${ex.map(dayLabel).join(", ")} — ${nd.length?"those days are skipped":"nothing new to add"}.</div>`:"",
     (nd.length?`<button class="btn" onclick="aiDo()">Save${nd.length>1?" "+plural(nd.length,"day"):""}</button>`:"")+`<button class="btn ghost" onclick="aiEdit()">Edit first</button>`)}
 function aiEdit(){const p=AI.p;closeSheet();setTimeout(()=>{openAdd("hours",p.wid);F.siteId=p.sid;const hh=d=>String(p.hm&&p.hm[d]?p.hm[d]:p.h);if(p.ds.length===1){F.mode="day";F.date=p.ds[0];F.hours=hh(p.ds[0])}else{const a=p.ds[0],b=p.ds[p.ds.length-1];if(weekStart(a)===weekStart(b)){F.mode="week";F.wk=weekStart(a);F.days=Array(7).fill("");p.ds.forEach(d=>F.days[Math.round((parseD(d)-parseD(F.wk))/864e5)]=hh(d));F.dkey=F.wk}else{F.mode="month";F.month=a.slice(0,7);F.days=Array(mDays(F.month+"-01")).fill("");p.ds.filter(d=>d.slice(0,7)===F.month).forEach(d=>F.days[+d.slice(8)-1]=hh(d));F.dkey=F.month+"-01"}}drawAdd()},200)}
-async function aiDo(mode){const p=AI.p;if(!p)return;
+async function aiDo(mode){const p=AI.p;if(!p)return;if(["hours","rate","rateAll","money","del","paid","cover"].includes(p.k)){if(p._run)return;p._run=1}
   if(p.k==="undo"){const m=await aiUndoLast();const box=$("#askres");box&&box.querySelectorAll(".aibtns").forEach(b=>b.remove());box&&box.insertAdjacentHTML("beforeend",`<div class="aiok">${m?"↺ Undone: "+esc(m):"Nothing to undo"}</div>`);return}
   if(p.k==="rename"){const x=DB[p.tbl].find(y=>y.id===p.id),old={...x};await put(p.tbl,{...x,name:p.name});render();aiDone(`✓ Renamed to ${esc(p.name)}`,async()=>{await put(p.tbl,old);render()});return}
   if(p.k==="delete"){aiKeep();closeSheet();setTimeout(()=>{p.kind==="worker"?delWorker(p.id):p.kind==="site"?delSiteAll(p.id):delClientAll(p.id)},250);return}
@@ -1598,10 +1598,16 @@ async function gaiCall(text,onPart,opt){opt=opt||{};let ext=false;const g=GAI.ge
     catch(e){last=e;if(e.name==="AbortError"){last=new Error("Gemini is taking too long — try again");if(Date.now()-t0<40000)break;throw last}if(/readable/.test(e.message))break;throw e}}}
   throw last||new Error("AI unavailable")}
 const okD=d=>/^\d{4}-\d{2}-\d{2}$/.test(d||"")&&!isNaN(parseD(d));
+/* guard: if the model put the wrong worker_id (e.g. Anish when the user said Ankit), use the worker the user actually named */
+function fixWho(a,q,say){try{if(!a||!a.worker_id)return;const tok=t=>String(t||"").toLowerCase().replace(/[^a-z0-9\u0980-\u09ff\u0900-\u097f ]/g," ").split(/\s+/).filter(x=>x.length>=3);
+  const qt=new Set([...tok(q),...tok(say)]),score=w=>{const nt=tok(w.name);if(!nt.length)return 0;const hit=nt.filter(x=>qt.has(x)).length;return hit?hit+(hit===nt.length?1:0):0};
+  const cur=DB.workers.find(w=>w.id===a.worker_id),cs=cur?score(cur):0;const best=DB.workers.filter(w=>w.active!==false).map(w=>[w,score(w)]).filter(x=>x[1]>0).sort((x,y)=>y[1]-x[1]);
+  if(best.length&&best[0][1]>cs&&(best.length===1||best[0][1]>best[1][1]))a.worker_id=best[0][0].id}catch(e){}}
 function gaiRender(o,q){if(Array.isArray(o.actions)&&o.actions.length>1){const say=esc(o.say||"");AI.say=o.say||"";AI.ps=[];let h=say?`<div class="aisay">${say}</div>`:"";
     o.actions.slice(0,8).forEach((x,i)=>{AI.p=null;let c=gaiRender({say:"",action:x},q);AI.ps[i]=AI.p;c=c.replace(/AI\.p\./g,`AI.ps[${i}].`).replace(/aiDo\(\)/g,`aiDoN(${i})`).replace(/aiDo\('save'\)/g,`aiDoN(${i},'save')`);h+=c});
     const doable=AI.ps.filter(p=>p&&["hours","money","paid","edit","rate","charge","left","del"].includes(p.k)).length;if(doable>1)h+=`<div class="aibtns"><button class="btn" onclick="aiDoAll()">Do all ${doable}</button></div>`;AI.p=null;return h}
   if(!o.action&&Array.isArray(o.actions)&&o.actions.length===1)o.action=o.actions[0];
+  if(o.action)fixWho(o.action,q,o.say);
   const a=o.action,say=esc(o.say||"");AI.say=o.say||"";AI.p=null;const td=todayD();const bad=()=>ansHead("Hmm",say||"I didn't get that — try again?");
   const lead=say?`<div class="aisay">${say}</div>`:"";
   if(a&&a.type){const t=a.type;
@@ -2195,6 +2201,13 @@ function peoplePage(){
 function hl(text,q){const t=esc(text); if(!q)return t; const i=text.toLowerCase().indexOf(q); if(i<0)return t; return esc(text.slice(0,i))+`<mark style="background:var(--hl);color:inherit;border-radius:3px">${esc(text.slice(i,i+q.length))}</mark>`+esc(text.slice(i+q.length))}
 
 
+function bulkDel(id){hideToast();const w=W(id),P1=state.pper,all=DB.entries.filter(e=>e.workerId===id&&inPer(e,P1)&&!e.paid),sites=[...new Set(all.map(e=>e.siteId))];let pick=new Set(sites);
+  const draw=()=>{const es=all.filter(e=>pick.has(e.siteId)),h=es.reduce((a,e)=>a+ +e.hours,0);
+    showSheet(`<h3>Delete ${esc(w.name)}'s hours</h3><div class="lead">${esc(perLabel(P1))} · unpaid only — paid hours are kept</div>
+    ${sites.length>1?`<div class="f"><label>Which sites?</label>${sites.map(sid=>`<button class="toggle" style="width:100%;margin-bottom:8px" onclick="BD.t('${sid}')"><span>${esc(Sx(sid).name)} · ${all.filter(e=>e.siteId===sid).reduce((a,e)=>a+ +e.hours,0)} hrs</span><span class="sw ${pick.has(sid)?"on":""}"></span></button>`).join("")}</div>`:""}
+    <div class="hint" style="margin:6px 0 14px">${plural(es.length,"entry")} · ${h} hrs · ${money(es.reduce((a,e)=>a+wage(e),0))}. Change the period at the top of ${esc(w.name.split(" ")[0])}'s page (Month, Custom…) to pick other dates.</div>
+    <button class="btn danger" ${es.length?"":"disabled"} onclick="BD.go()">Delete ${plural(es.length,"entry")}</button><button class="btn ghost" onclick="closeSheet()">Cancel</button>`)};
+  window.BD={t:sid=>{pick.has(sid)?pick.delete(sid):pick.add(sid);draw()},go:async()=>{const es=all.filter(e=>pick.has(e.siteId)),old=es.map(e=>({...e}));if(!es.length)return;await delMany("entries",es.map(e=>e.id));closeSheet();render();toast(`✓ Deleted ${plural(es.length,"entry")}`,async()=>{await putMany("entries",old);render()})}};draw()}
 function personPage(id){
   const w=W(id), all=DB.entries.filter(e=>e.workerId===id), P1=state.pper;
   const es=all.filter(e=>inPer(e,P1)).sort((a,b)=>sortKey(b).localeCompare(sortKey(a)));
@@ -2224,7 +2237,7 @@ function personPage(id){
     ${workerExtras(id,es,P1)}
     <div class="cols">
       <div>
-        <div class="sec"><h2>Hours</h2><button class="link" onclick="openAdd('hours','${id}')">+ Add hours</button></div>
+        <div class="sec"><h2>Hours</h2><span style="display:flex;gap:18px">${es.some(e=>!e.paid)?`<button class="link" style="color:var(--pay)" onclick="bulkDel('${id}')">Delete…</button>`:""}<button class="link" onclick="openAdd('hours','${id}')">+ Add hours</button></span></div>
         <div class="list">${es.length?months.slice(0,cap).map(m=>`<div class="grp" style="background:var(--soft2);display:flex;justify-content:space-between"><span>${mLabel(m)} · ${byM[m].reduce((a,e)=>a+ +e.hours,0)} hrs</span><span class="num">${money(byM[m].reduce((a,e)=>a+wage(e),0))}</span></div>`+byM[m].map(row).join("")).join("")
           +(months.length>cap?`<div class="row tap" style="justify-content:center;color:var(--acc);font-weight:600;font-size:14.5px" onclick="state.allHist=true;render()">Show older (${plural(months.length-cap,"more month")})</div>`:"")
           :`<div class="empty">No hours ${P1.mode==="all"?"yet":"for "+perLabel(P1)}</div>`}</div>
