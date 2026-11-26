@@ -806,7 +806,7 @@ const JOIN=(()=>{const m=(location.hash||"").match(/join=(CW1\.[A-Za-z0-9_\-]+)/
 if(JOIN&&!IS_APP){const l=document.querySelector('link[rel="manifest"]');if(l)l.remove()}
 let deferredInstall=null;
 addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredInstall=e;setTimeout(showInstallGuide,50)});
-const APP_VERSION="7.9.16";
+const APP_VERSION="7.9.17";
 /* new-version check: on focus and every 5 min; shows an Update bar (never reloads on its own, so nothing unsaved is lost) */
 let UPD_SEEN="";async function updCheck(){try{if(!/^https?:/.test(location.protocol)||document.hidden)return;const r=await fetch(location.pathname.replace(/[^/]*$/,"")+"index.html?v="+Date.now(),{cache:"no-store"});const t=await r.text(),m=t.match(/APP_VERSION="([^"]+)"/);
   if(m&&m[1]!==APP_VERSION&&m[1]!==UPD_SEEN){UPD_SEEN=m[1];let b=document.getElementById("updbar");if(!b){b=document.createElement("div");b.id="updbar";document.body.appendChild(b)}
@@ -1332,6 +1332,8 @@ async function aiDo(mode){const p=AI.p;if(!p)return;
   if(p.k==="edit"){const now=todayD(),es=DB.entries.filter(e=>e.workerId===p.wid&&e.siteId===p.sid&&e.date===p.d&&isWork(e)&&!e.paid),old=es.map(e=>({...e})),r=DB.rates.find(x=>x.workerId===p.wid&&x.siteId===p.sid)||{};let add=null;
     if(es.length){for(const e of es.slice(1))await del("entries",e.id);if(p.h>0)await put("entries",{...es[0],hours:p.h});else await del("entries",es[0].id)}else if(p.h>0){add={id:uid(),date:p.d,month:p.d.slice(0,7),workerId:p.wid,siteId:p.sid,hours:p.h,rate:r.rate||0,paid:false,paidAt:"",notes:"",createdAt:now,kind:"work"};await put("entries",add)}
     render();aiDone(`✓ ${esc(W(p.wid).name)} · ${dayLabel(p.d)} · ${p.h} hrs`,async()=>{if(add)await del("entries",add.id);if(old.length)await putMany("entries",old);render()});return}
+  if(p.k==="rateAll"){const olds=DB.rates.filter(r=>r.workerId===p.wid&&p.sids.includes(r.siteId)).map(r=>({...r})),nrs=olds.map(r=>({...r,rate:p.rate}));await putMany("rates",nrs);const fz=await fillZeroRates(nrs);render();
+    aiDone(`✓ ${esc(W(p.wid).name)}: ${money(p.rate)}/hr at ${nrs.length>1?plural(nrs.length,"site"):esc(Sx(nrs[0].siteId).name)}${fz?` · ${fz.n} saved ${fz.n===1?"entry":"entries"} updated`:""}`,async()=>{if(fz)await fz.undo();await putMany("rates",olds);render()});return}
   if(p.k==="rate"){const r=DB.rates.find(x=>x.workerId===p.wid&&x.siteId===p.sid),old=r?{...r}:null;const nr=r?{...r,rate:p.rate}:{id:uid(),workerId:p.wid,siteId:p.sid,rate:p.rate};await put("rates",nr);const fz=await fillZeroRates([nr]);render();aiDone(`✓ ${esc(W(p.wid).name)}: ${money(p.rate)}/hr at ${esc(Sx(p.sid).name)}${fz?` · ${plural(fz.n,"saved entry").replace("entrys","entries")} updated`:""}`,async()=>{if(fz)await fz.undo();if(old)await put("rates",old);else await del("rates",nr.id);render()});return}
   if(p.k==="charge"){const x=DB.sites.find(y=>y.id===p.sid),old={...x};await put("sites",{...x,billType:p.bill,charge:p.bill==="hourly"?p.amt:0,fixed:p.bill==="fixed"?p.amt:0});render();aiDone(`✓ ${esc(x.name)} charge saved`,async()=>{await put("sites",old);render()});return}
   if(p.k==="left"){const w=W(p.wid),old={...w};await put("workers",{...w,active:false});render();aiDone(`✓ ${esc(w.name)} marked as left`,async()=>{await put("workers",old);render()});return}askRemember($("#askq")?.value||"");const now=todayD();
@@ -1510,7 +1512,7 @@ Actions (use ids from the lists; dates are YYYY-MM-DD; never invent ids):
 - {"type":"show_hours","mode":"day|week|month","date":"YYYY-MM-DD"}
 - {"type":"mark_paid","worker_id":".." or null for everyone,"from":"YYYY-MM-DD" or null,"to":"YYYY-MM-DD" or null}  // "I paid Sam", "mark everyone paid for last fortnight"
 - {"type":"edit_hours","worker_id":"..","site_id":".." or null,"date":"..","hours":number}   // change hours already entered on a day (0 = remove)
-- {"type":"set_rate","worker_id":"..","site_id":"..","rate":number}   // worker's pay per hour at a site
+- {"type":"set_rate","worker_id":"..","site_id":".." or null,"rate":number}   // worker's pay per hour at a site; site_id null if the user did not say which site (the app asks)
 - {"type":"set_charge","site_id":"..","bill":"hourly|fixed","amount":number}   // what the client pays for a site
 - {"type":"worker_left","worker_id":".."}  // someone stopped working
 - {"type":"report","title":"short title","from":"YYYY-MM-DD" or null,"to":"YYYY-MM-DD" or null,"worker_ids":[],"site_ids":[],"client_ids":[],"paid":"all|paid|unpaid","group_by":["worker"|"site"|"client"|"date"|"week"|"month"|"status"] (0-2),"metrics":["hours","wages","charged","profit","days","people","received"],"sort_by":"metric or null","sort_dir":"desc|asc","limit":number or null,"offer_pay":true/false,"chart":null|"bar"|"column","chart_metric":"metric or null"}
@@ -1638,7 +1640,10 @@ function gaiRender(o,q){if(Array.isArray(o.actions)&&o.actions.length>1){const s
       if(!sid)return lead+aiCard(`${esc(w.name)} · ${dayLabel(a.date)}`,"Which site?",`<div class="opts" style="margin-top:10px">${rs.map(r=>`<button class="opt" onclick="AI.p={k:'edit',wid:'${w.id}',sid:'${r.siteId}',d:'${a.date}',h:${+a.hours}};aiDo()">${esc(Sx(r.siteId).name)}</button>`).join("")}</div>`,"");
       const cur=es.filter(e=>e.siteId===sid).reduce((x,e)=>x+ +e.hours,0);AI.p={k:"edit",wid:w.id,sid,d:a.date,h:+a.hours};
       return lead+aiCard(`${esc(w.name)} · ${dayLabel(a.date)}`,`${esc(Sx(sid).name)} · ${cur} hrs → <b>${+a.hours} hrs</b>`,"",`<button class="btn" onclick="aiDo()">${+a.hours?"Save":"Remove hours"}</button>`)}
-    if(t==="set_rate"){const w=DB.workers.find(x=>x.id===a.worker_id),x=DB.sites.find(y=>y.id===a.site_id);if(!w||!x||!(+a.rate>0))return lead||bad();const r=DB.rates.find(r=>r.workerId===w.id&&r.siteId===x.id);AI.p={k:"rate",wid:w.id,sid:x.id,rate:+a.rate};
+    if(t==="set_rate"){const w=DB.workers.find(x=>x.id===a.worker_id);let x=DB.sites.find(y=>y.id===a.site_id);if(!w||!(+a.rate>0))return lead||bad();
+      if(!x){const rs=DB.rates.filter(r=>r.workerId===w.id&&r.siteId!==SUP);if(rs.length===1)x=Sx(rs[0].siteId);else if(rs.length>1){AI.p={k:"rateAll",wid:w.id,rate:+a.rate,sids:rs.map(r=>r.siteId)};
+        return lead+aiCard(`${esc(w.name)}: ${money(+a.rate)}/hr`,`${esc(w.name.split(" ")[0])} works at ${rs.length} sites — which one?`,`<div class="opts" style="margin-top:10px">${rs.map(r=>`<button class="opt" onclick="AI.p.sids=['${r.siteId}'];aiDo()">${esc(Sx(r.siteId).name)}<small>${+r.rate?money(r.rate)+"/hr now":"no rate yet"}</small></button>`).join("")}</div>`,`<button class="btn" onclick="aiDo()">All ${rs.length} sites · ${money(+a.rate)}/hr</button>`)}
+        else return lead+aiCard(`${esc(w.name)} has no site yet`,"Add them to a site first, then set the rate","","")}const r=DB.rates.find(r=>r.workerId===w.id&&r.siteId===x.id);AI.p={k:"rate",wid:w.id,sid:x.id,rate:+a.rate};
       return lead+aiCard(`${esc(w.name)} at ${esc(x.name)}`,`${r?money(r.rate)+"/hr → ":""}<b>${money(+a.rate)}/hr</b>`,`<div class="aic3">New hours use the new rate. Hours saved with no rate get it too; other saved hours keep theirs.</div>`,`<button class="btn" onclick="aiDo()">Save rate</button>`)}
     if(t==="set_charge"){const x=DB.sites.find(y=>y.id===a.site_id);if(!x||!(+a.amount>0))return lead||bad();const bill=a.bill==="fixed"?"fixed":"hourly";AI.p={k:"charge",sid:x.id,bill,amt:+a.amount};
       return lead+aiCard(`${esc(x.name)}: client pays`,`<b>${money(+a.amount)}${bill==="fixed"?" per month":"/hr"}</b>`,"",`<button class="btn" onclick="aiDo()">Save</button>`)}
