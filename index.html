@@ -806,7 +806,7 @@ const JOIN=(()=>{const m=(location.hash||"").match(/join=(CW1\.[A-Za-z0-9_\-]+)/
 if(JOIN&&!IS_APP){const l=document.querySelector('link[rel="manifest"]');if(l)l.remove()}
 let deferredInstall=null;
 addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredInstall=e;setTimeout(showInstallGuide,50)});
-const APP_VERSION="7.9.19";
+const APP_VERSION="7.9.20";
 /* new-version check: on focus and every 5 min; shows an Update bar (never reloads on its own, so nothing unsaved is lost) */
 let UPD_SEEN="";async function updCheck(){try{if(!/^https?:/.test(location.protocol)||document.hidden)return;const r=await fetch(location.pathname.replace(/[^/]*$/,"")+"index.html?v="+Date.now(),{cache:"no-store"});const t=await r.text(),m=t.match(/APP_VERSION="([^"]+)"/);
   if(m&&m[1]!==APP_VERSION&&m[1]!==UPD_SEEN){UPD_SEEN=m[1];let b=document.getElementById("updbar");if(!b){b=document.createElement("div");b.id="updbar";document.body.appendChild(b)}
@@ -1102,7 +1102,7 @@ function render(){TDR=null;TDP=null;
 }
 let lastHero=null;
 function countUp(){const el=$("#app .hero .big[data-count]");if(!el)return;const to=+el.dataset.count,from=lastHero===null?0:lastHero;lastHero=to;if(RM||from===to)return;
-  const t0=performance.now(),d=lastHero!==null&&from?520:800;el.textContent=money(from);const st=t=>{const k=Math.min(1,(t-t0)/d),e=1-Math.pow(1-k,4);el.textContent=money(Math.round(from+(to-from)*e));if(k<1&&el.isConnected)requestAnimationFrame(st)};requestAnimationFrame(st)}
+  const t0=performance.now(),d=lastHero!==null&&from?520:800;el.textContent=money(from);const st=t=>{const k=Math.min(1,(t-t0)/d),e=1-Math.pow(1-k,4);el.textContent=money(k<1?Math.round(from+(to-from)*e):to);if(k<1&&el.isConnected)requestAnimationFrame(st)};requestAnimationFrame(st)}
 const DESKQ=matchMedia("(min-width:1100px)"),DESK=()=>DESKQ.matches;
 try{DESKQ.addEventListener("change",()=>{try{render()}catch(e){}})}catch(e){}
 const TITLES={home:"Home",today:"Hours",people:"Team",sites:"Team",clients:"Team",more:"Settings",pay:"Pay",reports:"Reports"};
