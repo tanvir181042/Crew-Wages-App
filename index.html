@@ -773,7 +773,7 @@ const JOIN=(()=>{const m=(location.hash||"").match(/join=(CW1\.[A-Za-z0-9_\-]+)/
 if(JOIN&&!IS_APP){const l=document.querySelector('link[rel="manifest"]');if(l)l.remove()}
 let deferredInstall=null;
 addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredInstall=e;setTimeout(showInstallGuide,50)});
-const APP_VERSION="7.9.6";
+const APP_VERSION="7.9.7";
 /* ============ data layer ============ */
 const TABLES=["clients","sites","workers","rates","entries","income"];
 const EMPTY=()=>({clients:[],sites:[],workers:[],rates:[],entries:[],income:[]});
@@ -2112,14 +2112,14 @@ function clientSheet(cid){const c=C(cid),ss=DB.sites.filter(x=>x.clientId===cid)
   <button class="btn" onclick="closeSheet();setTimeout(()=>moneyList('${cid}'),220)">Money received</button>
   <button class="btn ghost" onclick="closeSheet();setTimeout(()=>editClient('${cid}'),220)">Edit client</button>`)}
 function peoplePage(){
-  const q=state.q.trim().toLowerCase(); const owed=Object.fromEntries(owedByWorker().map(o=>[o.workerId,o.amount])),nrw=noRateByWorker();
+  const q=state.q.trim().toLowerCase(); const owed=Object.fromEntries(owedByWorker().map(o=>[o.workerId,o.amount])),nrw=noRateByWorker(),hasE=new Set(DB.entries.filter(e=>e.hours>0).map(e=>e.workerId));
   let ws=DB.workers.filter(w=>w.active!==false);
   if(q) ws=ws.filter(w=>{
     if(w.name.toLowerCase().includes(q))return true;
     return DB.rates.some(r=>r.workerId===w.id&&(Sx(r.siteId).name.toLowerCase().includes(q)||C(Sx(r.siteId).clientId).name.toLowerCase().includes(q)));
   });
   if(state.filter==="owed") ws=ws.filter(w=>owed[w.id]);
-  if(state.filter==="paid") ws=ws.filter(w=>!owed[w.id]&&!nrw[w.id]);
+  if(state.filter==="paid") ws=ws.filter(w=>!owed[w.id]&&!nrw[w.id]&&hasE.has(w.id));
   ws.sort((a,b)=>(owed[b.id]||0)-(owed[a.id]||0)||a.name.localeCompare(b.name));
   const nOwed=DB.workers.filter(w=>owed[w.id]).length;
   if(!DB.workers.length)return teamEmpty(ICON.people,"No workers yet","Add the people who work for you, and what you pay them.","+ Add a worker","openAdd('worker')");
@@ -2129,7 +2129,7 @@ function peoplePage(){
     <div class="list" style="margin-top:14px">${ws.length?ws.map(w=>{
       const sites=isSup(w)?[w.payType==="fixed"?`Supervisor · ${money(w.salary)} per ${PERW[w.salaryPer]}`:"Supervisor"]:DB.rates.filter(r=>r.workerId===w.id).map(r=>Sx(r.siteId).name);
       return `<div class="row tap" onclick="openPerson('${w.id}')">${av(w.name)}<div class="main"><div class="t1">${hl(w.name,q)}</div><div class="t2">${sites.length?sites.map(s=>hl(s,q)).join(", "):"No site yet"}</div></div>
-        ${owed[w.id]?`<div class="amt num" style="color:var(--pay)">${money(owed[w.id])}<small>to pay</small></div>`:nrw[w.id]?`<span class="tag warn">Set rate</span>`:`<span class="tag ok">Paid</span>`}${ICON.chev}</div>`}).join(""):`<div class="empty"><div class="e" style="color:var(--mut)">${ICON.find}</div>${!DB.workers.length?`No workers yet<br><button class="link" onclick="openAdd('worker')">+ Add your first worker</button>`:state.q?`No one matches “${esc(state.q)}”`:"No one in this list"}</div>`}</div>
+        ${owed[w.id]?`<div class="amt num" style="color:var(--pay)">${money(owed[w.id])}<small>to pay</small></div>`:nrw[w.id]?`<span class="tag warn">Set rate</span>`:hasE.has(w.id)?`<span class="tag ok">Paid</span>`:`<span class="tag mut">No hours yet</span>`}${ICON.chev}</div>`}).join(""):`<div class="empty"><div class="e" style="color:var(--mut)">${ICON.find}</div>${!DB.workers.length?`No workers yet<br><button class="link" onclick="openAdd('worker')">+ Add your first worker</button>`:state.q?`No one matches “${esc(state.q)}”`:"No one in this list"}</div>`}</div>
     ${DB.workers.length?`<button class="btn" style="margin-top:14px" onclick="openAdd('worker')">+ New worker</button>`:""}`;
 }
 function hl(text,q){const t=esc(text); if(!q)return t; const i=text.toLowerCase().indexOf(q); if(i<0)return t; return esc(text.slice(0,i))+`<mark style="background:var(--hl);color:inherit;border-radius:3px">${esc(text.slice(i,i+q.length))}</mark>`+esc(text.slice(i+q.length))}
