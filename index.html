@@ -307,6 +307,7 @@ input,textarea,select{font-size:max(16px,1em)}
 @media (prefers-color-scheme:dark){.hwkbar{background:#23300c;color:#d9f2a0}}
 .warn2{background:#FDECEC;color:#8a1c12;border-radius:16px;padding:12px 14px;margin:14px 0;font-size:13.5px;line-height:1.45}.warn2 b{display:block;font-size:14.5px;margin-bottom:4px}
 @media (prefers-color-scheme:dark){.warn2{background:#3a1d1d;color:#ffb4ab}}
+.calb{display:flex;align-items:center;justify-content:center;gap:10px;margin:0 0 14px}.calb svg{width:20px;height:20px}
 .two>.f{min-width:0}.two input[type=date]{min-width:0;width:100%;box-sizing:border-box;padding-left:10px;padding-right:8px;font-size:15px}
 .tag{font-size:12px;font-weight:650;border-radius:8px;padding:3px 8px;white-space:nowrap}
 .tag.ok{background:var(--ok-s);color:var(--ok)} .tag.pay{background:var(--pay-s);color:var(--pay)} .tag.warn{background:var(--warn-s);color:var(--warn)} .tag.mut{background:var(--soft);color:var(--mut)}
@@ -846,7 +847,7 @@ const JOIN=(()=>{const m=(location.hash||"").match(/join=(CW1\.[A-Za-z0-9_\-]+)/
 if(JOIN&&!IS_APP){const l=document.querySelector('link[rel="manifest"]');if(l)l.remove()}
 let deferredInstall=null;
 addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredInstall=e;setTimeout(showInstallGuide,50)});
-const APP_VERSION="7.10.7";
+const APP_VERSION="7.10.8";
 /* new-version check: on focus and every 5 min; shows an Update bar (never reloads on its own, so nothing unsaved is lost) */
 let UPD_SEEN="";async function updCheck(){try{if(!/^https?:/.test(location.protocol)||document.hidden)return;const r=await fetch(location.pathname.replace(/[^/]*$/,"")+"index.html?v="+Date.now(),{cache:"no-store"});const t=await r.text(),m=t.match(/APP_VERSION="([^"]+)"/);
   if(m&&m[1]!==APP_VERSION&&m[1]!==UPD_SEEN){UPD_SEEN=m[1];let b=document.getElementById("updbar");if(!b){b=document.createElement("div");b.id="updbar";document.body.appendChild(b)}
@@ -869,7 +870,7 @@ let CONN=ls.get(K_CONN,null);            // {u: web app url, k: key, s: sheet ur
 let OUT=ls.get(K_OUT,[]);                // queued changes waiting to reach the Sheet
 let SYNC={state:"idle",at:null};          // idle | syncing | offline | error
 const online=()=>!!CONN;
-function saveLocal(){ if(online()) ls.set(K_CACHE,DB); else ls.set(KEY,DB) }
+let SAVEWARN=0;function saveLocal(){const k=online()?K_CACHE:KEY;try{localStorage.setItem(k,JSON.stringify(DB))}catch(e){if(Date.now()-SAVEWARN>60000){SAVEWARN=Date.now();setTimeout(()=>toast(online()?"Phone storage is full — changes still go to your Sheet":"⚠ Phone storage is full — connect a Google Sheet so nothing is lost"),0)}}}
 
 async function api(action,payload={}){
   const ctl=new AbortController(),tm=setTimeout(()=>ctl.abort(),30000);let r;try{r=await fetch(CONN.u,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({key:CONN.k,action,...payload}),redirect:"follow",signal:ctl.signal})}finally{clearTimeout(tm)}
@@ -881,21 +882,30 @@ async function load(){
   if(online()){DB=splitV(ls.get(K_CACHE,null)||EMPTY());return}
   DB=splitV(ls.get(KEY,null)||EMPTY());
 }
-function queue(op){OUT.push(op);ls.set(K_OUT,OUT);flush()}
+/* outbox: merge small changes into one request, split very big ones, retry with back-off */
+const CHUNK=250;let INFLIGHT=false,RETRY=null,RDELAY=5000;
+function queue(op){if(op.action==="upsertMany"&&op.rows&&op.rows.length>CHUNK){for(let i=0;i<op.rows.length;i+=CHUNK)queue({...op,rows:op.rows.slice(i,i+CHUNK)});return}
+  if(op.action==="removeMany"&&op.ids&&op.ids.length>CHUNK){for(let i=0;i<op.ids.length;i+=CHUNK)queue({...op,ids:op.ids.slice(i,i+CHUNK)});return}
+  const last=OUT[OUT.length-1],canMerge=last&&!(INFLIGHT&&OUT.length===1)&&last.table===op.table&&last.action===op.action;
+  if(canMerge&&op.action==="upsertMany"&&last.rows.length+op.rows.length<=CHUNK){const m=new Map(last.rows.map(r=>[r.id,r]));op.rows.forEach(r=>m.set(r.id,r));last.rows=[...m.values()]}
+  else if(canMerge&&op.action==="removeMany"&&last.ids.length+op.ids.length<=CHUNK){last.ids=[...new Set([...last.ids,...op.ids])]}
+  else OUT.push(op);
+  ls.set(K_OUT,OUT);flush()}
+function retryLater(){if(RETRY)return;RETRY=setTimeout(()=>{RETRY=null;flush()},RDELAY);RDELAY=Math.min(RDELAY*2,120000)}
 let flushing=false;
 async function flush(){
   if(!online()||flushing)return; flushing=true; setSync("syncing");
   try{
     while(OUT.length){
-      const op=OUT[0];
+      const op=OUT[0];INFLIGHT=true;
       await api(op.action,op);
-      OUT.shift(); ls.set(K_OUT,OUT);
+      OUT.shift(); ls.set(K_OUT,OUT);INFLIGHT=false;
     }
-    setSync("idle");
+    RDELAY=5000;setSync("idle");
   }catch(e){
     if(e.server&&/key/i.test(e.message)){setSync("error");toast("This device was disconnected from the Sheet");}
-    else setSync("offline");
-  }finally{flushing=false}
+    else{setSync("offline");retryLater()}
+  }finally{flushing=false;INFLIGHT=false}
 }
 async function pull(){
   if(!online())return;
@@ -943,8 +953,10 @@ function wipeAll(){const t=prompt(online()?"This deletes EVERYTHING for every co
   if((t||"").trim().toUpperCase()!=="DELETE")return toast("Nothing deleted");const old=JSON.parse(JSON.stringify(DB));
   replaceAll({clients:[],sites:[],workers:[],rates:[],entries:[],income:[]}).then(()=>{state.person=null;go("home");toast("Everything deleted",async()=>{await replaceAll(old);render()})})}
 async function replaceAll(d){DB=splitV(d);saveLocal();if(online()){OUT=[];queue({action:"replaceAll",db:joinV(DB)})}}
-document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")pull()});
-window.addEventListener("online",()=>flush());
+let LASTPULL=0;const pullSoon=()=>{if(Date.now()-LASTPULL>15000){LASTPULL=Date.now();pull()}};
+document.addEventListener("visibilitychange",()=>{if(document.visibilityState==="visible")pullSoon()});
+setInterval(()=>{if(online()&&!document.hidden&&!document.querySelector(".sheet.on")&&!(WK&&WK.dirty)&&!(TD&&TD.dirty))pullSoon()},120000);
+window.addEventListener("online",()=>{RDELAY=5000;flush()});
 
 function seed(){
   const d={clients:[],sites:[],workers:[],rates:[],entries:[],income:[]};
@@ -2423,7 +2435,7 @@ function personPage(id){
     <div class="ph">${av(w.name)}<div style="flex:1;min-width:0"><h1>${esc(w.name)}${w.active===false?' <span class="tag mut" style="vertical-align:middle">Left</span>':""}</h1><div class="t2">${(()=>{const last=all.filter(e=>e.date).sort((a,b)=>b.date.localeCompare(a.date))[0];return last?`Last worked ${dayRel(last.date)===dayLabel(last.date)?dayLabel(last.date):dayRel(last.date).toLowerCase()} · ${esc(Sx(last.siteId).name)}`:""})()||(isSup(w)?"Supervisor":rates.length?rates.map(r=>esc(Sx(r.siteId).name)).join(" · "):"No site yet")}</div></div></div>
     ${isSup(w)&&w.payType==="fixed"?(()=>{const d=P1.mode==="all"||P1.mode==="day"?todayD():(P1.mode==="month"?P1.d.slice(0,7)+"-15":P1.d),has=salaryAdded(w,d);return `<div class="card" style="padding:16px;margin:0 0 14px;display:flex;align-items:center;gap:12px"><div style="flex:1;min-width:0"><div class="t2">Supervisor · fixed salary</div><div class="t1" style="font-size:17px">${money(w.salary)} per ${PERW[w.salaryPer]}</div><div class="t2">${salaryLabel(w.salaryPer,d)} · ${has?"added ✓":"not added yet"}</div></div>${has?"":`<button class="opt on" style="flex:none" onclick="addSalary('${id}','${d}')">Add salary</button>`}</div>`})():""}
     <div class="pacts">${w.active!==false?`<button class="btn ${owe?"ghost":""}" onclick="openAdd('hours','${id}')">+ Add hours</button>`:""}${owe?`<button class="btn" onclick="openPay('${id}',state.pper)">Pay ${money(owe)}</button>`:""}</div>
-    ${w.active!==false&&!isSup(w)?rosterBtn(id):""}
+    ${w.active!==false&&!isSup(w)?rosterBtn(id):""}${w.active!==false?`<button class="btn ghost calb" onclick="calEdit('${id}')">${ICON.today}<span>Edit hours as calendar</span></button>`:""}
     ${pr.length?`<div class="problems" style="margin:0 0 14px">${pr.map(p=>{const r=p.type==="rate"&&DB.rates.find(x=>x.workerId===p.e.workerId&&x.siteId===p.e.siteId);return r?`<div class="pi tap" onclick="editRate('${r.id}')"><span>${esc(Sx(p.e.siteId).name)}: no pay rate yet</span><b>Set rate ›</b></div>`:`<div class="pi" style="cursor:default">${esc(p.text)}</div>`}).join("")}</div>`:""}
     <div class="card mcard"><div class="mhead">${perSwitch("person",[["day","Day"],["week","Week"],["fort","Fortnight"],["month","Month"],["range","Custom"],["all","All"]])}</div>
       ${(()=>{const dd=new Set(es.filter(e=>e.date).map(e=>e.date)).size;return `<div class="kpis">
@@ -2437,7 +2449,7 @@ function personPage(id){
     ${workerExtras(id,es,P1)}
     <div class="cols">
       <div>
-        <div class="sec"><h2>Hours</h2><span style="display:flex;gap:18px">${es.some(e=>!e.paid)?`<button class="link" style="color:var(--pay)" onclick="bulkDel('${id}')">Delete…</button>`:""}${w.active!==false?`<button class="link" onclick="calEdit('${id}')">Edit as calendar</button>`:""}</span></div>
+        <div class="sec"><h2>Hours</h2><span style="display:flex;gap:18px">${es.some(e=>!e.paid)?`<button class="link" style="color:var(--pay)" onclick="bulkDel('${id}')">Delete…</button>`:""}</span></div>
         <div class="list">${es.length?months.slice(0,cap).map(m=>`<div class="grp" style="background:var(--soft2);display:flex;justify-content:space-between"><span>${mLabel(m)} · ${byM[m].reduce((a,e)=>a+ +e.hours,0)} hrs</span><span class="num">${money(byM[m].reduce((a,e)=>a+wage(e),0))}</span></div>`+byM[m].map(row).join("")).join("")
           +(months.length>cap?`<div class="row tap" style="justify-content:center;color:var(--acc);font-weight:600;font-size:14.5px" onclick="state.allHist=true;render()">Show older (${plural(months.length-cap,"more month")})</div>`:"")
           :`<div class="empty">No hours ${P1.mode==="all"?"yet":"for "+perLabel(P1)}</div>`}</div>
