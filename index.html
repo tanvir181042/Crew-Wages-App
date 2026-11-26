@@ -297,6 +297,10 @@ input,textarea,select{font-size:max(16px,1em)}
 .ck2{width:24px;height:24px;border-radius:8px;box-shadow:inset 0 0 0 2px var(--line);display:grid;place-items:center;font-size:13px;font-weight:900;flex:none;margin-right:10px}.ck2.on{background:var(--ink);color:var(--bg);box-shadow:none}
 @media (min-width:1100px){.pw{max-width:980px;margin:0 auto}.pwn{width:170px;font-size:14.5px}.pwc .c{height:44px;font-size:15px}.pwc{gap:8px}}
 @media (prefers-color-scheme:dark){.pwhero{box-shadow:inset 0 0 0 1px #2a2b30;background:#17181b}.pwc .c.x{background:#3a1d1d;color:#ff8a80}.dopt .ic{color:#111}}
+.pw .dpk.inp{background:var(--soft)}.pwgrid.wide{overflow-x:auto;-webkit-overflow-scrolling:touch}.pwgrid.wide .pwr{width:max-content;min-width:100%}.pwgrid.wide .pwc{grid-template-columns:repeat(var(--nd),36px);flex:none}
+.pwgrid.wide{padding-left:0}.pwgrid.wide .pwc{position:relative;z-index:1}.pwgrid.wide .pwn{position:sticky;left:0;z-index:5;align-self:stretch;display:flex;align-items:center;background:var(--soft);padding-left:10px;margin-left:0;width:88px;box-shadow:6px 0 6px -6px rgba(0,0,0,.15)}
+.pwgrid.wide .pwsite{position:sticky;left:0;padding-left:10px;margin-left:0}.pwdays .pwc span small{display:block;font-size:9.5px;opacity:.8}.pwdays .pwc span.we{opacity:.6}
+@media (min-width:1100px){.pwgrid.wide .pwc{grid-template-columns:repeat(var(--nd),40px)}.pw:has(.pwgrid.wide){max-width:none}}
 .two>.f{min-width:0}.two input[type=date]{min-width:0;width:100%;box-sizing:border-box;padding-left:10px;padding-right:8px;font-size:15px}
 .tag{font-size:12px;font-weight:650;border-radius:8px;padding:3px 8px;white-space:nowrap}
 .tag.ok{background:var(--ok-s);color:var(--ok)} .tag.pay{background:var(--pay-s);color:var(--pay)} .tag.warn{background:var(--warn-s);color:var(--warn)} .tag.mut{background:var(--soft);color:var(--mut)}
@@ -836,7 +840,7 @@ const JOIN=(()=>{const m=(location.hash||"").match(/join=(CW1\.[A-Za-z0-9_\-]+)/
 if(JOIN&&!IS_APP){const l=document.querySelector('link[rel="manifest"]');if(l)l.remove()}
 let deferredInstall=null;
 addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredInstall=e;setTimeout(showInstallGuide,50)});
-const APP_VERSION="7.10.0";
+const APP_VERSION="7.10.1";
 /* new-version check: on focus and every 5 min; shows an Update bar (never reloads on its own, so nothing unsaved is lost) */
 let UPD_SEEN="";async function updCheck(){try{if(!/^https?:/.test(location.protocol)||document.hidden)return;const r=await fetch(location.pathname.replace(/[^/]*$/,"")+"index.html?v="+Date.now(),{cache:"no-store"});const t=await r.text(),m=t.match(/APP_VERSION="([^"]+)"/);
   if(m&&m[1]!==APP_VERSION&&m[1]!==UPD_SEEN){UPD_SEEN=m[1];let b=document.getElementById("updbar");if(!b){b=document.createElement("div");b.id="updbar";document.body.appendChild(b)}
@@ -1140,7 +1144,7 @@ function render(){TDR=null;TDP=null;
   else nv.querySelectorAll(".tabsg button").forEach(b=>b.classList.toggle("on",b.dataset.k===navKey()));
   movePill();
   const si=$("#q"); if(si&&state.focusSearch){si.focus();si.setSelectionRange(si.value.length,si.value.length)}
-  miniUpdate(true);countUp();
+  miniUpdate(true);countUp();{const g=document.querySelector(".pwgrid.wide");if(g){const t=g.querySelector(".pwdays .t");if(t)g.scrollLeft=Math.max(0,t.offsetLeft-g.clientWidth*0.6);else if((state.pwr&&state.pwr.to||"")>=todayD()||state.pwm==="month")g.scrollLeft=g.scrollWidth}}
 }
 let lastHero=null;
 function countUp(){const el=$("#app .hero .big[data-count]");if(!el)return;const to=+el.dataset.count,from=lastHero===null?0:lastHero;lastHero=to;if(RM||from===to)return;
@@ -1187,11 +1191,16 @@ function pwCell(w,sid,d,thru){const es=workAt(w,sid,d);if(es.length)return {t:es
   const M=mInfo(markOf(w,sid,d));if(M.x||M.by)return {t:"x"};
   const cov=(DB.marks||[]).find(m=>m.siteId===sid&&m.date===d&&mInfo(m).by===w);if(cov){const CM=mInfo(cov);return {t:"pc",h:CM.h!=null?+CM.h:rosterH(cov.workerId,sid,d)}}
   const h=rosterH(w,sid,d);if(h>0)return {t:"p",h:M.h!=null?+M.h:h};return {t:"e"}}
-function planWeek(){const ws=state.wkp||weekStart(todayD()),days=[...Array(7)].map((_,i)=>addD(ws,i)),td=todayD(),thru=doneThru(),we=days[6];
+function pwRange(){const m=state.pwm||"week",td=todayD();if(m==="month"){const mo=state.pwmo||td.slice(0,7);return [mo+"-01",addD(mo+"-01",mDays(mo+"-01")-1)]}
+  if(m==="range"){if(!state.pwr)state.pwr=rngDef();return [state.pwr.from,state.pwr.to]}const ws=state.wkp||weekStart(td);return [ws,addD(ws,6)]}
+function pwStep(n){const m=state.pwm||"week";if(m==="month")state.pwmo=addM(state.pwmo||todayD().slice(0,7),n);else state.wkp=addD(state.wkp||weekStart(todayD()),7*n);render()}
+function pwSet(f,v){if(!v)return;const R=state.pwr||(state.pwr=rngDef());R[f]=v;if(R.from>R.to)R[f==="from"?"to":"from"]=v;if(R.to>addD(R.from,61)){if(f==="from")R.to=addD(R.from,61);else R.from=addD(R.to,-61)}render()}
+function planWeek(){const [ws,we]=pwRange(),days=[];for(let d=ws;d<=we;d=addD(d,1))days.push(d);const td=todayD(),thru=doneThru(),mode=state.pwm||"week",wide=days.length>7;
   if(!(DB.roster||[]).length)return `<div class="pw">
     <div class="card" style="padding:22px;text-align:center"><div style="font-size:40px">🗓️</div><h3 style="margin:8px 0 6px">Set each person's usual days once</h3><p class="hint" style="margin:0 0 16px">Then every week fills itself. You only mark who didn't come or who covered.</p>
     <button class="btn" onclick="rosterAuto()">Set up from past hours</button><button class="btn ghost" style="margin-top:8px" onclick="go('people')">Do it person by person</button></div></div>`;
   const keys=new Map(),add=(w,sid)=>{if(sid===SUP)return;const k=w+"|"+sid;if(!keys.has(k))keys.set(k,{w,sid})};
+  const wkLbl=d=>wide?`<small>${L[parseD(d).getDay()]}</small>${parseD(d).getDate()}`:L[parseD(d).getDay()]+parseD(d).getDate();
   (DB.roster||[]).forEach(r=>{const I=rInfo(r);if(I.from<=we&&(!I.to||I.to>=ws)&&W(r.workerId).active!==false)add(r.workerId,r.siteId)});
   DB.entries.forEach(e=>{if(e.date&&e.date>=ws&&e.date<=we&&isWork(e))add(e.workerId,e.siteId)});
   (DB.marks||[]).forEach(m=>{if(m.date>=ws&&m.date<=we){const b=mInfo(m).by;if(b)add(b,m.siteId)}});
@@ -1200,12 +1209,17 @@ function planWeek(){const ws=state.wkp||weekStart(todayD()),days=[...Array(7)].m
   const L=["S","M","T","W","T","F","S"];
   const grid=sites.map(sid=>`<div class="pwsite">${esc(Sx(sid).name)}</div>`+bySite[sid].sort((a,b)=>W(a.w).name.localeCompare(W(b.w).name)).map(k=>`<div class="pwr"><span class="pwn">${esc(W(k.w).name)}</span><div class="pwc">${days.map(d=>{const c=pwCell(k.w,k.sid,d,thru);if(c.t==="p"||c.t==="pc")planH+=c.h;
       const cls=c.t==="d"?"d":c.t==="cv"?"cv":c.t==="x"?"x":c.t==="p"?"p":c.t==="pc"?"p cvp":"e";return `<button class="c ${cls}${d===td?" today":""}${c.paid?" paid":""}" onclick="dayTap('${k.w}','${k.sid}','${d}')" aria-label="${esc(W(k.w).name)} ${dayLabel(d)}">${c.t==="x"?"✗":c.t==="e"?"–":fmtH(c.h)}</button>`}).join("")}</div></div>`).join("")).join("");
-  return `<div class="pw"><div class="pwhead"><div class="pstep"><button onclick="state.wkp=addD('${ws}',-7);render()" aria-label="Previous week">‹</button><span>${ws===weekStart(td)?"This week · ":ws===weekStart(addD(td,-7))?"Last week · ":""}${weekLabel(ws)}</span><button onclick="state.wkp=addD('${ws}',7);render()" aria-label="Next week">›</button></div></div>
+  const lab=mode==="month"?(ws.slice(0,7)===td.slice(0,7)?"This month · ":"")+mLabel(ws.slice(0,7)):(ws===weekStart(td)?"This week · ":ws===weekStart(addD(td,-7))?"Last week · ":"")+weekLabel(ws);
+  return `<div class="pw"><div class="m8" style="grid-template-columns:repeat(3,1fr);margin-bottom:10px">${[["week","Week"],["month","Month"],["range","Custom"]].map(([k,l])=>`<button class="${mode===k?"on":""}" onclick="state.pwm='${k}';render()">${l}<small>${k==="week"?weekLabel(state.wkp||weekStart(td)):k==="month"?mLabel((state.pwmo||td.slice(0,7))):(state.pwr?rngLabel(state.pwr.from,state.pwr.to):"Pick dates")}</small></button>`).join("")}</div>
+    ${mode==="range"?`<div class="two" style="gap:10px;margin-bottom:12px"><div class="f" style="margin:0"><label>From</label><input class="inp" type="date" value="${ws}" onchange="pwSet('from',this.value)"></div><div class="f" style="margin:0"><label>To</label><input class="inp" type="date" value="${we}" onchange="pwSet('to',this.value)"></div></div>`:`<div class="pwhead"><div class="pstep"><button onclick="pwStep(-1)" aria-label="Previous">‹</button><span>${lab}</span><button onclick="pwStep(1)" aria-label="Next">›</button></div></div>`}
     <div class="pwhero"><div><span>DONE · COUNTED</span><b>${money(doneM)}</b><em>${fmtH(doneH)} hrs</em></div><div><span>STILL PLANNED</span><b class="pl">${fmtH(planH)} hrs</b><em class="pl">not money yet</em></div></div>
     <div class="pwleg"><span><i class="lg d"></i>Done</span><span><i class="lg p"></i>Planned</span><span><i class="lg x"></i>Didn't come</span><span><i class="lg cv"></i>Cover</span></div>
-    <div class="pwgrid"><div class="pwr pwdays"><span class="pwn"></span><div class="pwc">${days.map(d=>`<span class="${d===td?"t":""}">${L[parseD(d).getDay()]}${parseD(d).getDate()}</span>`).join("")}</div></div>${grid||`<div class="empty">Nobody is rostered this week</div>`}</div>
+    <div class="pwgrid${wide?" wide":""}" style="--nd:${days.length}"><div class="pwr pwdays"><span class="pwn"></span><div class="pwc">${days.map(d=>`<span class="${d===td?"t":""}${[0,6].includes(parseD(d).getDay())?" we":""}">${wkLbl(d)}</span>`).join("")}</div></div>${grid||`<div class="empty">Nobody is rostered in these dates</div>`}</div>
+    ${wide?pwExceptions(ws,we):""}
     <div class="tip" style="margin-top:12px"><span>💡</span><div>Tap any day to change it. Planned days turn into money the morning after (6 am).</div></div>
     <div style="display:flex;gap:10px;margin-top:12px"><button class="btn ghost" style="flex:1" onclick="rosterAuto()">Rosters for everyone</button></div></div>`}
+function pwExceptions(a,b){const ms=(DB.marks||[]).filter(m=>m.date>=a&&m.date<=b).sort((x,y)=>x.date.localeCompare(y.date));if(!ms.length)return `<div class="hint" style="margin:12px 4px 0">No one marked as absent or covered in these dates.</div>`;
+  return `<div class="sec" style="margin-top:16px"><h2 style="font-size:16px">Changes in these dates</h2></div><div class="list">${ms.map(m=>{const M=mInfo(m),w=W(m.workerId).name;return `<button class="row tap" style="width:100%;text-align:left" onclick="dayTap('${m.workerId}','${m.siteId}','${m.date}')"><div class="main"><div class="t1">${dayLabel(m.date)} · ${esc(M.by?`${W(M.by).name} covered ${w}`:M.x?`${w} didn't come`:`${w} · ${fmtH(M.h)} hrs`)}</div><div class="t2">${esc(Sx(m.siteId).name)}</div></div>${ICON.chev}</button>`}).join("")}</div>`}
 const fmtH=h=>{h=Math.round(h*100)/100;return String(h)};
 
 /* ---- tap a day ---- */
@@ -1280,7 +1294,7 @@ async function RAsave(){const t=todayD(),before=(DB.roster||[]).map(r=>r.id);for
 
 const DESKQ=matchMedia("(min-width:1100px)"),DESK=()=>DESKQ.matches;
 try{DESKQ.addEventListener("change",()=>{try{render()}catch(e){}})}catch(e){}
-const TITLES={week:"This week",home:"Home",today:"Hours",people:"Team",sites:"Team",clients:"Team",more:"Settings",pay:"Pay",reports:"Reports"};
+const TITLES={week:"Week",home:"Home",today:"Hours",people:"Team",sites:"Team",clients:"Team",more:"Settings",pay:"Pay",reports:"Reports"};
 function buildApp(){
   const titles=TITLES;
   const showMonth=false;
@@ -1289,7 +1303,7 @@ function buildApp(){
   const top=`<div class="top${bare?" bare":""}${root?" root":""}">
     <div class="brand"><div class="logo" style="background:none;padding:0"><svg viewBox="0 0 100 100" width="100%" height="100%" aria-hidden="true"><rect width="100" height="100" rx="23.5" fill="#C9F26B"/><circle cx="50" cy="50" r="23" fill="none" stroke="#111" stroke-width="6.6"/><path d="M50 50V35.7M50 50l11 8.4" stroke="#111" stroke-width="6.6" stroke-linecap="round" fill="none"/><circle cx="76.5" cy="25.5" r="5.6" fill="#111"/></svg></div><span class="bt">Hourza</span></div>
     <h1 class="ptitle" style="display:flex;align-items:baseline;gap:10px">${state.person||state.tab==="home"?"":titles[state.tab]}</h1>
-    <div class="tabs">${[["home","Home"],["week","This week"],["today","Hours"],["pay","Pay"],["people","Team"],["reports","Reports"]].map(([k,l])=>`<button class="${(k==="people"?navKey()==="team":state.tab===k)?"on":""}" onclick="go('${k}')">${l}</button>`).join("")}</div>
+    <div class="tabs">${[["home","Home"],["week","Week"],["today","Hours"],["pay","Pay"],["people","Team"],["reports","Reports"]].map(([k,l])=>`<button class="${(k==="people"?navKey()==="team":state.tab===k)?"on":""}" onclick="go('${k}')">${l}</button>`).join("")}</div>
     <div class="spacer"></div>
     ${online()&&!state.person?syncBadge():""}${showMonth?monthSwitch():""}
     <button class="add-top" onclick="addMenu()">${ICON.plus.replace('width="24" height="24"','width="18" height="18"')}Add</button>
