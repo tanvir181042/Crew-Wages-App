@@ -844,7 +844,7 @@ const JOIN=(()=>{const m=(location.hash||"").match(/join=(CW1\.[A-Za-z0-9_\-]+)/
 if(JOIN&&!IS_APP){const l=document.querySelector('link[rel="manifest"]');if(l)l.remove()}
 let deferredInstall=null;
 addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredInstall=e;setTimeout(showInstallGuide,50)});
-const APP_VERSION="7.10.5";
+const APP_VERSION="7.10.6";
 /* new-version check: on focus and every 5 min; shows an Update bar (never reloads on its own, so nothing unsaved is lost) */
 let UPD_SEEN="";async function updCheck(){try{if(!/^https?:/.test(location.protocol)||document.hidden)return;const r=await fetch(location.pathname.replace(/[^/]*$/,"")+"index.html?v="+Date.now(),{cache:"no-store"});const t=await r.text(),m=t.match(/APP_VERSION="([^"]+)"/);
   if(m&&m[1]!==APP_VERSION&&m[1]!==UPD_SEEN){UPD_SEEN=m[1];let b=document.getElementById("updbar");if(!b){b=document.createElement("div");b.id="updbar";document.body.appendChild(b)}
@@ -2686,8 +2686,21 @@ function payPage(){
       <div class="mfoot">${PR.mode==="week"||PR.mode==="fort"?"Only hours entered by day are included here.":"Untick anyone you're not paying today."}</div></div>
     <div class="sec"><h2>${prLabel()}</h2>${gs.length?`<button class="link" onclick="PR.off=PR.off.size?new Set():new Set(prGroups().map(x=>x.id));render()">${PR.off.size?"Select all":"Select none"}</button>`:""}</div>
     <div class="list">${gs.length?gs.map(x=>`<div class="row"><div class="row tap" style="padding:0;border:0;flex:1;min-width:0" onclick="PR.off.has('${x.id}')?PR.off.delete('${x.id}'):PR.off.add('${x.id}');render()"><div class="box ${PR.off.has(x.id)?"":"on"}">${PR.off.has(x.id)?"":ICON.check}</div>${av(W(x.id).name)}<div class="main"><div class="t1">${esc(W(x.id).name)}</div><div class="t2">${x.h} hrs · ${plural(x.es.length,"entry")}</div></div><div class="amt num">${money(x.amt)}</div></div><button class="link" style="padding:8px 0 8px 8px" onclick="paySlip('${x.id}')">Slip</button></div>`).join(""):`<div class="empty"><div class="e" style="color:var(--ok)">${ICON.party}</div>Nothing to pay for this period</div>`}</div>
+    ${pastPays()}
     ${gs.length?`<div class="tdbar"><button class="btn" ${on.length?"":"disabled"} onclick="doPayRun()">Mark ${plural(on.length,"person")} as paid · ${money(tot)}</button></div>`:""}`;
 }
+/* ---- payment history: paid entries grouped by the day they were marked paid ---- */
+function payRuns(){const g={};DB.entries.forEach(e=>{if(!e.paid)return;const k=(e.paidAt||"").slice(0,10)||"?";(g[k]=g[k]||[]).push(e)});
+  return Object.entries(g).map(([d,es])=>{const ds=es.map(e=>e.date||e.month+"-01").sort(),ws=new Set(es.map(e=>e.workerId));return {d,es,from:ds[0],to:es.some(e=>!e.date)?mEnd(ds[ds.length-1].slice(0,7)):ds[ds.length-1],n:ws.size,h:es.reduce((a,e)=>a+(isWork(e)?+e.hours:0),0),amt:es.reduce((a,e)=>a+wage(e),0)}}).sort((a,b)=>b.d.localeCompare(a.d))}
+function pastPays(){const rs=payRuns();if(!rs.length)return "";const show=state.ppAll?rs:rs.slice(0,6);
+  return `<div class="sec" style="margin-top:22px"><h2>Past payments</h2></div><div class="list">${show.map(r=>`<button class="row tap" style="width:100%;text-align:left" onclick="payRunOpen('${r.d}')"><div class="main"><div class="t1">${r.d==="?"?"Paid (date unknown)":"Paid "+dayLabel(r.d)}</div><div class="t2">Work ${esc(rngLabel(r.from,r.to))} · ${plural(r.n,"person")} · ${fmtH(r.h)} hrs</div></div><div class="amt num">${money(r.amt)}</div>${ICON.chev}</button>`).join("")}</div>
+  ${rs.length>6&&!state.ppAll?`<button class="link" style="margin:10px 4px" onclick="state.ppAll=1;render()">Show all ${rs.length}</button>`:""}`}
+function payRunOpen(d){const r=payRuns().find(x=>x.d===d);if(!r)return;const by={};r.es.forEach(e=>{(by[e.workerId]=by[e.workerId]||[]).push(e)});
+  const rows=Object.entries(by).map(([w,es])=>{const ds=es.filter(e=>e.date).map(e=>e.date).sort();return {w,es,h:es.reduce((a,e)=>a+(isWork(e)?+e.hours:0),0),amt:es.reduce((a,e)=>a+wage(e),0),f:ds[0],t:ds[ds.length-1]}}).sort((a,b)=>b.amt-a.amt);
+  showSheet(`<h3>${d==="?"?"Payment":"Paid "+dayLabel(d)}</h3><div class="lead">Work ${esc(rngLabel(r.from,r.to))} · ${plural(r.n,"person")} · ${fmtH(r.h)} hrs · <b>${money(r.amt)}</b></div>
+  <div class="list" style="margin:12px 0;max-height:55vh;overflow:auto">${rows.map(x=>`<button class="row tap" style="width:100%;text-align:left" onclick="closeSheet();setTimeout(()=>{go('people');openPerson('${x.w}')},200)">${av(W(x.w).name)}<div class="main"><div class="t1">${esc(W(x.w).name)}</div><div class="t2">${fmtH(x.h)} hrs${x.f?" · "+esc(rngLabel(x.f,x.t)):""}</div></div><div class="amt num">${money(x.amt)}</div></button>`).join("")}</div>
+  <button class="btn ghost" onclick="payRunUndo('${d}')">Undo this payment</button><button class="btn ghost" onclick="closeSheet()">Close</button>`)}
+async function payRunUndo(d){const r=payRuns().find(x=>x.d===d);if(!r)return;if(!confirmBox(`Mark ${plural(r.es.length,"entry")} (${money(r.amt)}) as NOT paid again?`))return;const old=r.es.map(e=>({...e}));await putMany("entries",old.map(e=>({...e,paid:false,paidAt:""})));closeSheet();render();toast("Payment undone",async()=>{await putMany("entries",old);render()})}
 async function doPayRun(){const today=todayD(),on=prGroups().filter(x=>!PR.off.has(x.id)),before=on.flatMap(x=>x.es.map(e=>({...e}))),rows=before.map(e=>({...e,paid:true,paidAt:today})),tot=rows.reduce((a,e)=>a+wage(e),0);
   if(!confirmBox(`Mark ${plural(on.length,"person")} as paid — ${money(tot)}?`))return;
   await putMany("entries",rows);PR.off=new Set();render();toast(`✓ ${plural(on.length,"person")} paid · ${money(tot)}`,async()=>{await putMany("entries",before);render()});billNudge(rows)}
