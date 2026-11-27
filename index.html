@@ -855,7 +855,7 @@ const JOIN=(()=>{const m=(location.hash||"").match(/join=(CW1\.[A-Za-z0-9_\-]+)/
 if(JOIN&&!IS_APP){const l=document.querySelector('link[rel="manifest"]');if(l)l.remove()}
 let deferredInstall=null;
 addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredInstall=e;setTimeout(showInstallGuide,50)});
-const APP_VERSION="7.11.6";
+const APP_VERSION="7.11.7";
 /* new-version check: on focus and every 5 min; shows an Update bar (never reloads on its own, so nothing unsaved is lost) */
 let UPD_SEEN="";async function updCheck(){try{if(!/^https?:/.test(location.protocol)||document.hidden)return;const r=await fetch(location.pathname.replace(/[^/]*$/,"")+"index.html?v="+Date.now(),{cache:"no-store"});const t=await r.text(),m=t.match(/APP_VERSION="([^"]+)"/);
   if(m&&m[1]!==APP_VERSION&&m[1]!==UPD_SEEN){UPD_SEEN=m[1];let b=document.getElementById("updbar");if(!b){b=document.createElement("div");b.id="updbar";document.body.appendChild(b)}
@@ -2725,7 +2725,7 @@ function prPeriodUI(){const pt=payTo(),old=prOld(),oldAmt=old.reduce((a,e)=>a+wa
 function payPage(){
   const gs=prGroups(),on=gs.filter(x=>!PR.off.has(x.id)),tot=on.reduce((a,x)=>a+x.amt,0);
   return `<div class="card mcard"><div class="mhead"><div class="m8" style="grid-template-columns:repeat(4,1fr)">${(()=>{const lf=fortRange(addD(todayD(),-14))[1],tf=fortRange(todayD())[1],cur=PR.mode==="fort"?fortRange(PR.d)[1]:null;
-    return [["pp","Pay period",PR.mode==="period",`prPeriodInit()`,payTo()?"after "+dayLabel(payTo()).replace(/^\w+ /,""):"Set it up"],["lf","2 weeks",PR.mode==="fort",`PR.mode='fort';PR.d=addD(todayD(),-14)`,fortLabel(PR.mode==="fort"?PR.d:addD(todayD(),-14))],["rg","Custom",PR.mode==="range",`if(PR.mode!='range'){const r=rngDef();PR.mode='range';PR.from=r.from;PR.to=r.to}`,PR.mode==="range"?rngLabel(PR.from,PR.to):"Pick dates"],["all","All owed",PR.mode==="all",`PR.mode='all'`,"Everything"]].map(([k,l,on,js,sub])=>`<button class="${on?"on":""}" onclick="${js};PR.off=new Set();render()">${l}<small>${sub}</small></button>`).join("")})()}</div>
+    return [["pp","Pay period",PR.mode==="period",`prPeriodInit()`,payTo()?"after "+dayLabel(payTo()).replace(/^\w+ /,""):"Unpaid days"],["lf","2 weeks",PR.mode==="fort",`PR.mode='fort';PR.d=addD(todayD(),-14)`,fortLabel(PR.mode==="fort"?PR.d:addD(todayD(),-14))],["rg","Custom",PR.mode==="range",`if(PR.mode!='range'){const r=rngDef();PR.mode='range';PR.from=r.from;PR.to=r.to}`,PR.mode==="range"?rngLabel(PR.from,PR.to):"Pick dates"],["all","All owed",PR.mode==="all",`PR.mode='all'`,"Everything"]].map(([k,l,on,js,sub])=>`<button class="${on?"on":""}" onclick="${js};PR.off=new Set();render()">${l}<small>${sub}</small></button>`).join("")})()}</div>
       ${PR.mode==="range"?`<div class="two" style="margin-top:10px;gap:10px"><div class="f" style="margin:0"><label>From</label><input class="inp" type="date" value="${PR.from}" onchange="if(this.value){PR.from=this.value;if(PR.from>PR.to)PR.to=PR.from;PR.off=new Set();render()}"></div><div class="f" style="margin:0"><label>To</label><input class="inp" type="date" value="${PR.to}" onchange="if(this.value){PR.to=this.value;if(PR.from>PR.to)PR.from=PR.to;PR.off=new Set();render()}"></div></div>`:""}
       ${PR.mode==="period"?prPeriodUI():""}
       ${PR.mode==="all"||PR.mode==="range"||PR.mode==="period"?"":`<div class="mstep2"><button onclick="prStep(-1)" aria-label="Previous">‹</button><b>${prLabel()}</b><button onclick="prStep(1)" aria-label="Next">›</button></div>`}</div>
