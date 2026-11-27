@@ -335,6 +335,7 @@ button.pwn{text-decoration:none!important;font-weight:600!important;font-size:13
 @media (min-width:1100px){.pwn{width:170px!important}}
 .pwmini{margin-top:2px!important}.pwmini .pwc span{font-size:9.5px!important;padding:1px 0!important}
 .pwgrid:not(.wide)>.pwdays:not(.pwmini){position:sticky;top:calc(env(safe-area-inset-top) + 52px);z-index:6;background:var(--soft);margin:0 -10px;padding:6px 10px;border-radius:12px 12px 0 0}
+.qrep{width:100%;display:flex;align-items:center;gap:10px;margin-top:12px;padding:10px 12px;border-radius:14px;background:var(--card);box-shadow:inset 0 0 0 1px var(--line);text-align:left;color:var(--ink)}.qrep svg{width:22px;height:22px;flex:none}.qrep b{display:block;font-size:14.5px}.qrep small{display:block;color:var(--mut);font-size:12px;line-height:1.35}.qrep.on{box-shadow:inset 0 0 0 2px #8BC216}
 .two>.f{min-width:0}.two input[type=date]{min-width:0;width:100%;box-sizing:border-box;padding-left:10px;padding-right:8px;font-size:15px}
 .tag{font-size:12px;font-weight:650;border-radius:8px;padding:3px 8px;white-space:nowrap}
 .tag.ok{background:var(--ok-s);color:var(--ok)} .tag.pay{background:var(--pay-s);color:var(--pay)} .tag.warn{background:var(--warn-s);color:var(--warn)} .tag.mut{background:var(--soft);color:var(--mut)}
@@ -874,7 +875,7 @@ const JOIN=(()=>{const m=(location.hash||"").match(/join=(CW1\.[A-Za-z0-9_\-]+)/
 if(JOIN&&!IS_APP){const l=document.querySelector('link[rel="manifest"]');if(l)l.remove()}
 let deferredInstall=null;
 addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredInstall=e;setTimeout(showInstallGuide,50)});
-const APP_VERSION="7.13.2";
+const APP_VERSION="7.13.4";
 /* new-version check: on focus and every 5 min; shows an Update bar (never reloads on its own, so nothing unsaved is lost) */
 let UPD_SEEN="";async function updCheck(){try{if(!/^https?:/.test(location.protocol)||document.hidden)return;const r=await fetch(location.pathname.replace(/[^/]*$/,"")+"index.html?v="+Date.now(),{cache:"no-store"});const t=await r.text(),m=t.match(/APP_VERSION="([^"]+)"/);
   if(m&&m[1]!==APP_VERSION&&m[1]!==UPD_SEEN){UPD_SEEN=m[1];let b=document.getElementById("updbar");if(!b){b=document.createElement("div");b.id="updbar";document.body.appendChild(b)}
@@ -1243,7 +1244,7 @@ function pwStep(n){const m=state.pwm||"week";if(m==="month")state.pwmo=addM(stat
 function pwSet(f,v){if(!v)return;const R=state.pwr||(state.pwr=rngDef());R[f]=v;if(R.from>R.to)R[f==="from"?"to":"from"]=v;if(R.to>addD(R.from,61)){if(f==="from")R.to=addD(R.from,61);else R.from=addD(R.to,-61)}render()}
 function planWeek(){const [ws,we]=pwRange(),days=[];for(let d=ws;d<=we;d=addD(d,1))days.push(d);const td=todayD(),thru=doneThru(),mode=state.pwm||"week",wide=days.length>7;
   if(!(DB.roster||[]).length&&!DB.rates.length)return `<div class="pw">
-    <div class="card" style="padding:22px;text-align:center"><div style="font-size:40px">🗓️</div><h3 style="margin:8px 0 6px">Set each person's usual days once</h3><p class="hint" style="margin:0 0 16px">Then every week fills itself. You only mark who didn't come or who covered.</p>
+    <div class="card" style="padding:22px;text-align:center"><div style="font-size:40px">🗓️</div><h3 style="margin:8px 0 6px">Set each person's roster once</h3><p class="hint" style="margin:0 0 16px">Then every week fills itself. You only mark who didn't come or who covered.</p>
     <button class="btn" onclick="rosterAuto()">Set up from past hours</button><button class="btn ghost" style="margin-top:8px" onclick="go('people')">Do it person by person</button></div></div>`;
   const keys=new Map(),add=(w,sid)=>{if(sid===SUP)return;const k=w+"|"+sid;if(!keys.has(k))keys.set(k,{w,sid})};
   const wkLbl=d=>wide?`<small>${L[parseD(d).getDay()]}</small>${parseD(d).getDate()}`:L[parseD(d).getDay()]+parseD(d).getDate();
@@ -1261,14 +1262,14 @@ function planWeek(){const [ws,we]=pwRange(),days=[];for(let d=ws;d<=we;d=addD(d,
   const lab=mode==="month"?(ws.slice(0,7)===td.slice(0,7)?"This month · ":"")+mLabel(ws.slice(0,7)):(ws===weekStart(td)?"This week · ":ws===weekStart(addD(td,-7))?"Last week · ":"")+weekLabel(ws);
   return `<div class="pw"><div class="m8" style="grid-template-columns:repeat(3,1fr);margin-bottom:10px">${[["week","Week"],["month","Month"],["range","Custom"]].map(([k,l])=>`<button class="${mode===k?"on":""}" onclick="state.pwm='${k}';render()">${l}<small>${k==="week"?weekLabel(state.wkp||weekStart(td)):k==="month"?mLabel((state.pwmo||td.slice(0,7))):(state.pwr?rngLabel(state.pwr.from,state.pwr.to):"Pick dates")}</small></button>`).join("")}</div>
     ${mode==="range"?`<div class="two" style="gap:10px;margin-bottom:12px"><div class="f" style="margin:0"><label>From</label><input class="inp" type="date" value="${ws}" onchange="pwSet('from',this.value)"></div><div class="f" style="margin:0"><label>To</label><input class="inp" type="date" value="${we}" onchange="pwSet('to',this.value)"></div></div>`:`<div class="pwhead"><div class="pstep"><button onclick="pwStep(-1)" aria-label="Previous">‹</button><span>${lab}</span><button onclick="pwStep(1)" aria-label="Next">›</button></div></div>`}
-    ${(DB.roster||[]).length?"":`<div class="pwtools"><span class="hint" style="margin:0">Tip: tap a name to fill a whole row</span><button class="link" onclick="rosterAuto()">Set usual days for everyone</button></div>`}
+    ${(DB.roster||[]).length?"":`<div class="pwtools"><span class="hint" style="margin:0">Tip: tap a name to fill a whole row</span><button class="link" onclick="rosterAuto()">Set rosters for everyone</button></div>`}
     <div class="pwhero"><div><span>DONE · COUNTED</span><b>${money(doneM)}</b><em>${fmtH(doneH)} hrs</em></div><div><span>STILL PLANNED</span><b class="pl">${fmtH(planH)} hrs</b><em class="pl">not money yet</em></div></div>
     <div class="pwleg"><span><i class="lg d"></i>Done</span><span><i class="lg p"></i>Planned</span><span><i class="lg x"></i>Didn't come</span><span><i class="lg cv"></i>Cover</span></div>
     <div class="pwgrid${wide?" wide":""}" style="--nd:${days.length}"><div class="pwr pwdays"><span class="pwn"></span><div class="pwc">${days.map(d=>`<span class="${d===td?"t":""}${[0,6].includes(parseD(d).getDay())?" we":""}">${wkLbl(d)}</span>`).join("")}</div></div>${grid||`<div class="empty">Nobody is rostered in these dates</div>`}</div>
     ${hid||state.pwAll?`<button class="btn ghost" style="margin-top:10px" onclick="state.pwAll=!state.pwAll;render()">${state.pwAll?"Hide people with no hours":`Show everyone (+${hid} with no hours) — to add hours for them`}</button>`:""}
     ${wide?pwExceptions(ws,we):""}
-    <div class="tip" style="margin-top:12px"><span>💡</span><div>Tap any day to add or change hours. Dashed days come from the usual days and turn into money the morning after (6 am).</div></div>
-    <div style="display:flex;gap:10px;margin-top:12px"><button class="btn ghost" style="flex:1" onclick="rosterAuto()">Usual days for everyone</button></div></div>`}
+    <div class="tip" style="margin-top:12px"><span>💡</span><div>Tap any day to add or change hours. Dashed days come from the roster and turn into money the morning after (6 am).</div></div>
+    <div style="display:flex;gap:10px;margin-top:12px"><button class="btn ghost" style="flex:1" onclick="rosterAuto()">Rosters for everyone</button></div></div>`}
 function pwExceptions(a,b){const ms=(DB.marks||[]).filter(m=>m.date>=a&&m.date<=b).sort((x,y)=>x.date.localeCompare(y.date));if(!ms.length)return `<div class="hint" style="margin:12px 4px 0">No one marked as absent or covered in these dates.</div>`;
   return `<div class="sec" style="margin-top:16px"><h2 style="font-size:16px">Changes in these dates</h2></div><div class="list">${ms.map(m=>{const M=mInfo(m),w=W(m.workerId).name;return `<button class="row tap" style="width:100%;text-align:left" onclick="dayTap('${m.workerId}','${m.siteId}','${m.date}')"><div class="main"><div class="t1">${dayLabel(m.date)} · ${esc(M.by?`${W(M.by).name} covered ${w}`:M.x?`${w} didn't come`:`${w} · ${fmtH(M.h)} hrs`)}</div><div class="t2">${esc(Sx(m.siteId).name)}</div></div>${ICON.chev}</button>`}).join("")}</div>`}
 const fmtH=h=>{h=Math.round(h*100)/100;return String(h)};
@@ -1282,8 +1283,8 @@ function drawRow(){const L=["M","T","W","T","F","S","S"],ord=[1,2,3,4,5,6,0],{w,
   showSheet(`<h3>${esc(W(w).name)} · ${esc(Sx(sid).name)}</h3><div class="lead">${esc(rngLabel(a,b))}</div>
   <div class="rs"><div class="wd">${ord.map((k,j)=>`<button class="${RW.d.includes(k)?"on":""}" onclick="const d=RW.d,i=d.indexOf(${k});i>=0?d.splice(i,1):d.push(${k});drawRow()">${L[j]}</button>`).join("")}</div>
   <div class="hrs">Hours each day <input class="inp num" inputmode="decimal" style="width:70px;height:40px;text-align:center" value="${RW.h}" oninput="RW.h=parseFloat(this.value)||0"></div></div>
-  <button class="btn" ${n.length?"":"disabled"} onclick="rowFill()">${n.length?`Fill ${plural(n.length,"day")} · ${esc(rngLabel(a,fb))}`:"These days haven't happened yet"}</button>${b>td?`<div class="hint" style="margin:-4px 2px 10px">Days after today aren't filled (no pay before the work is done). For future weeks use “Make this their usual week”.</div>`:""}
-  <button class="btn ghost" onclick="rowUsual()">Make this their usual week</button>
+  <button class="btn" ${n.length?"":"disabled"} onclick="rowFill()">${n.length?`Fill ${plural(n.length,"day")} · ${esc(rngLabel(a,fb))}`:"These days haven't happened yet"}</button>${b>td?`<div class="hint" style="margin:-4px 2px 10px">Days after today aren't filled (no pay before the work is done). For future weeks use “Make this their roster”.</div>`:""}
+  <button class="btn ghost" onclick="rowUsual()">Make this their roster</button>
   ${un.length?`<button class="btn ghost" style="color:var(--pay)" onclick="rowClear()">Clear ${plural(un.length,"day")} in these dates</button>`:""}
   <button class="btn ghost" onclick="closeSheet()">Cancel</button>`)}
 async function rowFill(){const {w,sid,a,b}=RW,h=+RW.h||0,rows=[],ups=[],olds=[];if(!(h>0))return toast("Type the hours first");
@@ -1294,7 +1295,7 @@ async function rowFill(){const {w,sid,a,b}=RW,h=+RW.h||0,rows=[],ups=[],olds=[];
 async function rowClear(){const {w,sid,a,b}=RW,un=DB.entries.filter(e=>e.workerId===w&&e.siteId===sid&&isWork(e)&&e.date>=a&&e.date<=b&&!e.paid),old=un.map(e=>({...e}));if(!confirmBox(`Clear ${plural(un.length,"day")} for ${W(w).name}? Paid days stay.`))return;
   await delMany("entries",un.map(e=>e.id));closeSheet();render();toast(`✓ Cleared ${plural(un.length,"day")}`,async()=>{await putMany("entries",old);render()})}
 async function rowUsual(){const {w,sid}=RW,h=+RW.h||0,old=(DB.roster||[]).filter(r=>r.workerId===w).map(r=>({...r}));await rosterSet(w,sid,RW.d,h,todayD());closeSheet();await rosterTick(true);render();
-  toast(`✓ Usual days saved for ${esc(W(w).name)}`,async()=>{await delMany("roster",(DB.roster||[]).filter(r=>r.workerId===w).map(r=>r.id));await putMany("roster",old);render()})}
+  toast(`✓ Roster saved for ${esc(W(w).name)}`,async()=>{await delMany("roster",(DB.roster||[]).filter(r=>r.workerId===w).map(r=>r.id));await putMany("roster",old);render()})}
 let DT=null;
 function dayTap(w,sid,d){hideToast();const es=workAt(w,sid,d),M=mInfo(markOf(w,sid,d)),rh=rosterH(w,sid,d),paid=es.some(e=>e.paid);
   const cur=es.length?es.reduce((a,e)=>a+ +e.hours,0):M.h!=null?+M.h:rh||3;
@@ -1334,20 +1335,20 @@ let RE=null;
 function rosterEdit(w){hideToast();const t=todayD(),rs=DB.rates.filter(r=>r.workerId===w&&r.siteId!==SUP);
   RE={w,from:t,rows:rs.map(r=>{const cur=rLineOn(w,r.siteId,t),I=cur?rInfo(cur):null,sg=!cur?rosterSuggest(w,r.siteId):null;return {sid:r.siteId,d:I?[...I.d]:sg?sg.d:[],h:I?I.h:sg?sg.h:3,had:!!cur,sug:!!sg}})};drawRE()}
 function drawRE(){const L=["M","T","W","T","F","S","S"],ord=[1,2,3,4,5,6,0];
-  showSheet(`<h3>${esc(W(RE.w).name)} · usual days</h3><div class="lead">Every week fills itself from this. Planned days only become money the morning after.</div>
+  showSheet(`<h3>${esc(W(RE.w).name)} · roster</h3><div class="lead">Every week fills itself from this. Planned days only become money the morning after.</div>
   ${RE.rows.length?RE.rows.map((r,i)=>`<div class="rs"><div class="h"><b>${esc(Sx(r.sid).name)}</b><small>${money(rateOf(RE.w,r.sid))}/hr${r.sug?" · picked from past hours":""}</small></div>
     <div class="wd">${ord.map((k,j)=>`<button class="${r.d.includes(k)?"on":""}" onclick="REd(${i},${k})">${L[j]}</button>`).join("")}</div>
     <div class="hrs">Hours each day <input class="inp num" inputmode="decimal" style="width:70px;height:40px;text-align:center" value="${r.h}" oninput="RE.rows[${i}].h=parseFloat(this.value)||0"><button class="link" style="margin-left:auto" onclick="RE.rows[${i}].d=[];drawRE()">No regular days</button></div></div>`).join(""):`<div class="empty">Add this person to a site first</div>`}
   <div class="f"><label>Starts</label><input class="inp" type="date" value="${RE.from}" onchange="if(this.value){RE.from=this.value;drawRE()}"></div>
   ${RE.from<todayD()?`<div class="hint" style="margin:-6px 0 12px">⚠ Days before today fill in only where there are no hours yet — nothing is doubled.</div>`:""}
-  <button class="btn" onclick="REsave()">Save usual days</button><button class="btn ghost" onclick="closeSheet()">Cancel</button>`)}
+  <button class="btn" onclick="REsave()">Save roster</button><button class="btn ghost" onclick="closeSheet()">Cancel</button>`)}
 function REd(i,k){const d=RE.rows[i].d,j=d.indexOf(k);j>=0?d.splice(j,1):d.push(k);drawRE()}
 async function rosterSet(w,sid,days,h,from){const cur=rLines(w,sid).filter(r=>{const I=rInfo(r);return !I.to||I.to>=from}),ups=[],dels=[];
   for(const r of cur){const I=rInfo(r);if(I.from>=from)dels.push(r.id);else ups.push({...r,notes:JSON.stringify({d:I.d,to:addD(from,-1),upto:I.upto&&I.upto>addD(from,-1)?addD(from,-1):I.upto})})}
   if(dels.length)await delMany("roster",dels);if(ups.length)await putMany("roster",ups);
   if(days.length&&h>0)await put("roster",{id:uid(),workerId:w,siteId:sid,hours:h,date:from,month:from.slice(0,7),rate:0,paid:false,paidAt:"",notes:JSON.stringify({d:[...days].sort(),to:"",upto:addD(from,-1)}),createdAt:new Date().toISOString(),kind:"roster"})}
 async function REsave(){const old=(DB.roster||[]).filter(r=>r.workerId===RE.w).map(r=>({...r}));for(const r of RE.rows){if(!r.had&&!r.d.length)continue;await rosterSet(RE.w,r.sid,r.d,r.h,RE.from)}
-  closeSheet();await rosterTick(true);render();toast(`✓ Usual days saved for ${esc(W(RE.w).name)}`,async()=>{const now=(DB.roster||[]).filter(r=>r.workerId===RE.w).map(r=>r.id);await delMany("roster",now);await putMany("roster",old);render()})}
+  closeSheet();await rosterTick(true);render();toast(`✓ Roster saved for ${esc(W(RE.w).name)}`,async()=>{const now=(DB.roster||[]).filter(r=>r.workerId===RE.w).map(r=>r.id);await delMany("roster",now);await putMany("roster",old);render()})}
 function rosterBtn(w){const t=todayD(),L=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"],parts=DB.rates.filter(r=>r.workerId===w&&r.siteId!==SUP).map(r=>{const c=rLineOn(w,r.siteId,t)||rLines(w,r.siteId).find(x=>rInfo(x).from>t);if(!c)return null;const I=rInfo(c),ds=[1,2,3,4,5,6,0].filter(k=>I.d.includes(k));
     const lab=ds.length===5&&!I.d.includes(0)&&!I.d.includes(6)?"Mon–Fri":ds.length===7?"Every day":ds.map(k=>L[k]).join(", ");return `${Sx(r.siteId).name.replace(/^Childcare\s+/i,"")}: ${lab} ${fmtH(I.h)}h`}).filter(Boolean);
   return `<button class="rosterb" onclick="rosterEdit('${w}')"><span class="ic">${ICON.week}</span><span class="tx"><b>Roster</b><small>${parts.length?esc(parts.join(" · ")):"Not set — tap to set usual days"}</small></span>${ICON.chev}</button>`}
@@ -1361,11 +1362,11 @@ function rosterAuto(){hideToast();const t=todayD();RA=[];DB.rates.forEach(r=>{if
   RA.sort((a,b)=>W(a.w).name.localeCompare(W(b.w).name));drawRA()}
 function drawRA(){const L=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"],lab=d=>{const ds=[1,2,3,4,5,6,0].filter(k=>d.includes(k));return ds.length===5&&!d.includes(0)&&!d.includes(6)?"Mon–Fri":ds.map(k=>L[k]).join(", ")};
   const n=RA.filter(x=>x.on).length;
-  showSheet(`<h3>Usual days for everyone</h3><div class="lead">${RA.length?"Picked from the last 5 weeks of hours. Untick anything that's wrong — you can fix each person later.":"Nobody new to set up: either everyone already has usual days, or there are no recent hours to learn from. Set people one by one from their page."}</div>
+  showSheet(`<h3>Rosters for everyone</h3><div class="lead">${RA.length?"Picked from the last 5 weeks of hours. Untick anything that's wrong — you can fix each person later.":"Nobody new to set up: either everyone already has usual days, or there are no recent hours to learn from. Set people one by one from their page."}</div>
   <div class="list" style="margin:12px 0;max-height:52vh;overflow:auto">${RA.map((x,i)=>`<button class="row tap" style="width:100%;text-align:left" onclick="RA[${i}].on=!RA[${i}].on;drawRA()"><span class="ck2 ${x.on?"on":""}">${x.on?"✓":""}</span><div class="main"><div class="t1">${esc(W(x.w).name)}</div><div class="t2">${esc(Sx(x.sid).name)} · ${lab(x.d)} · ${fmtH(x.h)} hrs</div></div></button>`).join("")}</div>
   ${RA.length?`<button class="btn" ${n?"":"disabled"} onclick="RAsave()">Save ${n} · starts today</button>`:""}<button class="btn ghost" onclick="closeSheet()">${RA.length?"Cancel":"Close"}</button>`)}
 async function RAsave(){const t=todayD(),before=(DB.roster||[]).map(r=>r.id);for(const x of RA.filter(x=>x.on))await rosterSet(x.w,x.sid,x.d,x.h,t);closeSheet();state.tab="week";render();
-  toast(`✓ Usual days saved for ${plural(new Set(RA.filter(x=>x.on).map(x=>x.w)).size,"person")}`,async()=>{const b=new Set(before);await delMany("roster",(DB.roster||[]).filter(r=>!b.has(r.id)).map(r=>r.id));render()})}
+  toast(`✓ Roster saved for ${plural(new Set(RA.filter(x=>x.on).map(x=>x.w)).size,"person")}`,async()=>{const b=new Set(before);await delMany("roster",(DB.roster||[]).filter(r=>!b.has(r.id)).map(r=>r.id));render()})}
 
 const DESKQ=matchMedia("(min-width:1100px)"),DESK=()=>DESKQ.matches;
 try{DESKQ.addEventListener("change",()=>{try{render()}catch(e){}})}catch(e){}
@@ -2510,7 +2511,7 @@ function personPage(id){
         <div class="sec"><h2>Works at</h2><button class="link" onclick="openAdd('worker','${id}')">+ Add site</button></div>
         <div class="list">${rates.length?rates.map(r=>{const s=Sx(r.siteId); const mates=DB.rates.filter(x=>x.siteId===r.siteId&&x.workerId!==id).map(x=>W(x.workerId));
           return `<div class="row"><div class="main" onclick="openSite('${s.id}')" style="cursor:pointer"><div class="t1">${esc(s.name)} <span class="tag mut" style="margin-left:6px">${esc(C(s.clientId).name)}</span></div>
-          <div class="t2" onclick="event.stopPropagation();rosterEdit('${id}')" style="cursor:pointer">${(()=>{const c=rLineOn(id,r.siteId,todayD());if(!c)return `Usual days: <u>not set</u>`;const I=rInfo(c),L=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"],ds=[1,2,3,4,5,6,0].filter(k=>I.d.includes(k));return "Usual days: <u>"+(ds.length===5&&!I.d.includes(0)&&!I.d.includes(6)?"Mon–Fri":ds.map(k=>L[k]).join(", "))+" · "+fmtH(I.h)+" hrs</u>"})()}</div></div>
+          <div class="t2" onclick="event.stopPropagation();rosterEdit('${id}')" style="cursor:pointer">${(()=>{const c=rLineOn(id,r.siteId,todayD());if(!c)return `Roster: <u>not set</u>`;const I=rInfo(c),L=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"],ds=[1,2,3,4,5,6,0].filter(k=>I.d.includes(k));return "Roster: <u>"+(ds.length===5&&!I.d.includes(0)&&!I.d.includes(6)?"Mon–Fri":ds.map(k=>L[k]).join(", "))+" · "+fmtH(I.h)+" hrs</u>"})()}</div></div>
           <button class="amt num" style="text-align:right" onclick="editRate('${r.id}')">${money(r.rate)}<small style="color:var(--acc)">per hour · edit</small></button></div>`}).join(""):`<div class="empty">Not linked to a site yet</div>`}</div>
       </div>
     </div>
@@ -2987,7 +2988,11 @@ function fQuick(){if(!F.wd){/* start from how this person usually works (last 5 
   <div class="qwd">${order.map(d=>`<button class="${F.wd[d]?"on":""}" onclick="F.wd[${d}]=!F.wd[${d}];drawAdd()" aria-label="${DOW[d]}">${L[d]}</button>`).join("")}</div>
   <div class="qrow"><input class="inp num" inputmode="decimal" value="${esc(F.fillH)}" onfocus="const t=this;setTimeout(()=>t.select(),30)" oninput="F.fillH=this.value.replace(/[^0-9.]/g,'');this.value=F.fillH" aria-label="Hours each day"><span>hrs a day</span>
   <button class="btn" onclick="fFill()">Fill ${F.mode==="month"?"month":F.mode==="range"?"dates":"week"}</button></div>
-  <div class="qhint"><span>Then tap any day below to change it</span><button class="link" onclick="F.days=Array(fN()).fill('');drawAdd()">Clear all</button></div></div>`}
+  <div class="qhint"><span>Then tap any day below to change it</span><button class="link" onclick="F.days=Array(fN()).fill('');drawAdd()">Clear all</button></div>
+  ${F.workerId&&F.siteId?`<button class="qrep ${rLineOn(F.workerId,F.siteId,todayD())?"on":""}" onclick="fRepeat()">${ICON.week}<span><b>${rLineOn(F.workerId,F.siteId,todayD())?"Update their roster":"Repeat every week (roster)"}</b><small>${esc(W(F.workerId).name.split(" ")[0])} at ${esc(Sx(F.siteId).name)} on these days, ${esc(F.fillH||"0")} hrs — future weeks fill themselves</small></span></button>`:""}</div>`}
+async function fRepeat(){const days=[0,1,2,3,4,5,6].filter(d=>F.wd[d]),h=parseFloat(F.fillH)||0;if(!days.length||!(h>0))return toast("Pick the days and hours first");
+  const w=F.workerId,sid=F.siteId,old=(DB.roster||[]).filter(r=>r.workerId===w).map(r=>({...r}));await rosterSet(w,sid,days,h,todayD());await rosterTick(true);drawAdd();
+  toast(`✓ Roster saved: ${esc(W(w).name)} · ${esc(Sx(sid).name)}`,async()=>{await delMany("roster",(DB.roster||[]).filter(r=>r.workerId===w).map(r=>r.id));await putMany("roster",old);render()})}
 function fFill(){const h=parseFloat(F.fillH);if(!(h>0))return toast("Type the hours first");if(!F.wd.some(Boolean))return toast("Pick at least one day");
   F.days=fIdx().map(i=>F.wd[parseD(addD(fStart(),i)).getDay()]?String(h):"");drawAdd();haptic&&haptic();const n=F.days.filter(Boolean).length;toast(`✓ ${n} days × ${h} hrs = ${n*h} hrs — check, then Save`)}
 function fIdx(){return Array.from({length:fN()},(_,i)=>i)}
