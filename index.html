@@ -880,7 +880,7 @@ const JOIN=(()=>{const m=(location.hash||"").match(/join=(CW1\.[A-Za-z0-9_\-]+)/
 if(JOIN&&!IS_APP){const l=document.querySelector('link[rel="manifest"]');if(l)l.remove()}
 let deferredInstall=null;
 addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredInstall=e;setTimeout(showInstallGuide,50)});
-const APP_VERSION="7.14.5";
+const APP_VERSION="7.14.6";
 /* new-version check: on focus and every 5 min; shows an Update bar (never reloads on its own, so nothing unsaved is lost) */
 let UPD_SEEN="";async function updCheck(){try{if(!/^https?:/.test(location.protocol)||document.hidden)return;const r=await fetch(location.pathname.replace(/[^/]*$/,"")+"index.html?v="+Date.now(),{cache:"no-store"});const t=await r.text(),m=t.match(/APP_VERSION="([^"]+)"/);
   if(m&&m[1]!==APP_VERSION&&m[1]!==UPD_SEEN){UPD_SEEN=m[1];let b=document.getElementById("updbar");if(!b){b=document.createElement("div");b.id="updbar";document.body.appendChild(b)}
@@ -1048,7 +1048,7 @@ async function addSalary(wid,d){const w=W(wid);if(!(+w.salary>0))return;const[a,
   if(salaryAdded(w,b))return toast("Salary already added for "+salaryLabel(w.salaryPer,b));
   const e={id:uid(),workerId:wid,siteId:SUP,date:b,month:b.slice(0,7),hours:1,rate:+w.salary,paid:false,paidAt:"",notes:"Salary · "+salaryLabel(w.salaryPer,b),createdAt:new Date().toISOString(),kind:"salary"};
   await put("entries",e);render();toast(`✓ Salary added · ${money(w.salary)} · ${salaryLabel(w.salaryPer,b)}`,async()=>{await del("entries",e.id);render()})}
-const kindLbl=k=>k==="salary"?"Salary":KIND[k];
+const kindLbl=k=>k==="salary"?"Salary":k==="extra"?"Extra pay":KIND[k];
 const C=id=>id==="_co"?{id:"_co",name:"Company cost"}:(DB.clients.find(x=>x.id===id)||{name:"—"});
 const wage=e=>e.hours*e.rate;
 const initials=n=>n.split(/\s+/).filter(Boolean).slice(0,2).map(x=>x[0]).join("").toUpperCase();
@@ -2189,7 +2189,7 @@ function aiPayslip(a){const w=DB.workers.find(x=>x.id===a.worker_id);if(!w)retur
   const es=DB.entries.filter(e=>e.workerId===w.id&&e.hours>0&&inR(e,R)).sort((x,y)=>String(x.date||x.month).localeCompare(String(y.date||y.month)));if(!es.length)return {empty:true,w,from,to};
   const tot=es.reduce((t,e)=>t+wage(e),0),paidAmt=es.filter(e=>e.paid).reduce((t,e)=>t+wage(e),0),h=es.filter(isWork).reduce((t,e)=>t+ +e.hours,0);
   const blob=pdfDoc("Payslip",w.name,[["Period",rngLabel(from,to)],["Issued",dayLabel(td)],["Hours",String(Math.round(h*100)/100)]],["Date","Site","Hours","Rate","Amount"],
-    es.map(e=>[e.date?dayLabel(e.date):mLabel(e.month),Sx(e.siteId).name+(e.kind==="salary"?" (salary)":""),String(+e.hours),pm(+e.rate),pm(wage(e))]),
+    es.map(e=>[e.date?dayLabel(e.date):mLabel(e.month),Sx(e.siteId).name+(e.kind==="salary"?" (salary)":e.kind==="extra"?" (extra pay)":""),String(+e.hours),pm(+e.rate),pm(wage(e))]),
     [["Total earned",pm(tot)],["Already paid",pm(paidAmt)],["To pay",pm(tot-paidAmt),1]],["Made with Hourza"]);
   return {blob,fname:`Payslip ${w.name} ${from} to ${to}.pdf`,w,from,to,tot,due:tot-paidAmt}}
 function aiInvoice(a){const c=DB.clients.find(x=>x.id===a.client_id)||(DB.sites.find(x=>x.id===a.site_id)?C(Sx(a.site_id).clientId):null);if(!c)return null;const td=todayD(),from=okD(a.from)?a.from:td.slice(0,8)+"01",to=okD(a.to)?a.to:td,R=RR(from,to,"");
@@ -2391,7 +2391,7 @@ function dayDetail(id){const P=state.hper,[a,b]=perRange(P),w=W(id);
   const es=DB.entries.filter(e=>e.workerId===id&&e.date&&e.date>=a&&e.date<=b&&e.hours>0).sort((p,q)=>p.date.localeCompare(q.date));
   const h=es.filter(isWork).reduce((s,e)=>s+ +e.hours,0),tot=es.reduce((s,e)=>s+wage(e),0),unp=es.filter(e=>!e.paid).reduce((s,e)=>s+wage(e),0);
   showSheet(`<div style="display:flex;gap:14px;align-items:center;margin-bottom:6px">${av(w.name)}<div><h3 style="margin:0">${esc(w.name)}</h3><div class="t2">${rngLabel(a,b)} · ${h.toLocaleString()} hrs · ${money(tot)}</div></div></div>
-  <div class="list" style="margin:12px 0 14px">${es.map(e=>`<div class="row tap" onclick="openEntry('${e.id}')"><div class="main"><div class="t1">${dayLabel(e.date)}</div><div class="t2">${e.kind==="salary"?"Salary":esc(Sx(e.siteId).name)+" · "+e.hours+" hrs"}</div></div><span class="tag ${isNoRate(e)?"warn":e.paid?"ok":"pay"}">${isNoRate(e)?"No rate":e.paid?"Paid":"To pay"}</span><div class="amt num" style="min-width:66px">${money(wage(e))}</div></div>`).join("")}</div>
+  <div class="list" style="margin:12px 0 14px">${es.map(e=>`<div class="row tap" onclick="openEntry('${e.id}')"><div class="main"><div class="t1">${dayLabel(e.date)}</div><div class="t2">${e.kind==="salary"?"Salary":e.kind==="extra"?"Extra · "+esc(e.notes||""):esc(Sx(e.siteId).name)+" · "+e.hours+" hrs"}</div></div><span class="tag ${isNoRate(e)?"warn":e.paid?"ok":"pay"}">${isNoRate(e)?"No rate":e.paid?"Paid":"To pay"}</span><div class="amt num" style="min-width:66px">${money(wage(e))}</div></div>`).join("")}</div>
   ${unp>0?`<button class="btn" onclick="closeSheet();setTimeout(()=>openPay('${id}',state.hper),220)">Pay ${money(unp)}</button>`:`<div class="hint" style="text-align:center;margin-bottom:8px">✓ All paid for these dates</div>`}
   <button class="btn ghost" onclick="closeSheet();setTimeout(()=>{state.pper=JSON.parse(JSON.stringify(state.hper));openPerson('${id}')},220)">Open ${esc(w.name.split(" ")[0])}'s page</button>`)}
 function addMenu(){hideToast();const it=[["Tell Hourza AI","Say or type it — “Sam 8 hours Mon to Fri”",ICON.spark,"closeSheet();setTimeout(()=>openAsk(),200)"],["Hours","For everyone, or for one worker",ICON.clockq,"hoursChoice()"],["Money received","A payment from a client",ICON.wallet,"openAdd('money')"],["Worker","Someone new on the team, or a supervisor",ICON.useradd,"openAdd('worker')"],["Site","A new place where work happens",ICON.sites,"openAdd('site')"]];
@@ -2499,14 +2499,14 @@ function personPage(id){
   const byM={}; es.forEach(e=>(byM[e.month]=byM[e.month]||[]).push(e));
   const months=Object.keys(byM), cap=P1.mode==="all"&&!state.allHist?3:99;
   const hidden=(P1.mode==="day"||P1.mode==="week"||P1.mode==="fort")&&all.some(e=>!e.date&&e.month===P1.d.slice(0,7));
-  const row=e=>`<div class="row tap" onclick="openEntry('${e.id}')"><div class="main"><div class="t1">${e.date?dayLabel(e.date):"Whole month"} · ${isWork(e)?esc(Sx(e.siteId).name):kindLbl(e.kind)}</div><div class="t2">${e.kind==="salary"?esc(e.notes||"Fixed salary"):`${e.hours} hrs × ${money(e.rate)}${e.notes?" · "+esc(e.notes):""}`}</div></div>
+  const row=e=>`<div class="row tap" onclick="openEntry('${e.id}')"><div class="main"><div class="t1">${e.date?dayLabel(e.date):"Whole month"} · ${isWork(e)?esc(Sx(e.siteId).name):kindLbl(e.kind)}</div><div class="t2">${e.kind==="salary"?esc(e.notes||"Fixed salary"):e.kind==="extra"?esc(e.notes||"Extra pay"):`${e.hours} hrs × ${money(e.rate)}${e.notes?" · "+esc(e.notes):""}`}</div></div>
           <span class="tag ${isNoRate(e)?"warn":e.paid?"ok":"pay"}">${isNoRate(e)?"No rate":e.paid?"Paid":"To pay"}</span><div class="amt num" style="min-width:72px">${money(wage(e))}</div></div>`;
   return `
     <div style="display:flex;justify-content:space-between;align-items:center"><button class="back" onclick="goBack()">${ICON.back}Back</button><button class="link" style="display:flex;gap:6px;align-items:center;padding:6px 2px 14px" onclick="editWorker('${id}')">${ICON.edit}Edit</button></div>
     <div class="ph">${av(w.name)}<div style="flex:1;min-width:0"><h1>${esc(w.name)}${w.active===false?' <span class="tag mut" style="vertical-align:middle">Left</span>':""}</h1><div class="t2">${(()=>{const last=all.filter(e=>e.date).sort((a,b)=>b.date.localeCompare(a.date))[0];return last?`Last worked ${dayRel(last.date)===dayLabel(last.date)?dayLabel(last.date):dayRel(last.date).toLowerCase()} · ${esc(Sx(last.siteId).name)}`:""})()||(isSup(w)?"Supervisor":rates.length?rates.map(r=>esc(Sx(r.siteId).name)).join(" · "):"No site yet")}</div></div></div>
     ${isSup(w)&&w.payType==="fixed"?(()=>{const d=P1.mode==="all"||P1.mode==="day"?todayD():(P1.mode==="month"?P1.d.slice(0,7)+"-15":P1.d),has=salaryAdded(w,d);return `<div class="card" style="padding:16px;margin:0 0 14px;display:flex;align-items:center;gap:12px"><div style="flex:1;min-width:0"><div class="t2">Supervisor · fixed salary</div><div class="t1" style="font-size:17px">${money(w.salary)} per ${PERW[w.salaryPer]}</div><div class="t2">${salaryLabel(w.salaryPer,d)} · ${has?"added ✓":"not added yet"}</div></div>${has?"":`<button class="opt on" style="flex:none" onclick="addSalary('${id}','${d}')">Add salary</button>`}</div>`})():""}
     <div class="pacts">${w.active!==false?`<button class="btn ${owe?"ghost":""}" onclick="openAdd('hours','${id}')">+ Add hours</button>`:""}${owe?`<button class="btn" onclick="openPay('${id}',state.pper)">Pay ${money(owe)}</button>`:""}</div>
-    ${w.active!==false?`<button class="btn ghost calb" onclick="calEdit('${id}')">${ICON.today}<span>Edit hours as calendar</span></button><button class="btn ghost calb" onclick="payRates('${id}')"><span style="font-size:18px">$</span><span>Pay rates${rates.some(r=>!(+r.rate>0))?' <span class="tag warn" style="margin-left:6px">not set</span>':""}</span></button>`:""}
+    ${w.active!==false?`<button class="btn ghost calb" onclick="calEdit('${id}')">${ICON.today}<span>Edit hours as calendar</span></button><div style="display:flex;gap:10px"><button class="btn ghost calb" style="flex:1" onclick="payRates('${id}')"><span style="font-size:18px">$</span><span>Pay rates${rates.some(r=>!(+r.rate>0))?' <span class="tag warn" style="margin-left:6px">not set</span>':""}</span></button><button class="btn ghost calb" style="flex:1" onclick="addExtra('${id}')"><span style="font-size:18px">+</span><span>Extra pay</span></button></div>`:""}
     ${pr.length?`<div class="problems" style="margin:0 0 14px">${pr.map(p=>{const r=p.type==="rate"&&DB.rates.find(x=>x.workerId===p.e.workerId&&x.siteId===p.e.siteId);return p.type==="rate"&&!r?`<div class="pi tap" onclick="fixRate('${p.e.workerId}','${p.e.siteId}')"><span>${esc(Sx(p.e.siteId).name)}: no pay rate yet</span><b>Set rate ›</b></div>`:r?`<div class="pi tap" onclick="editRate('${r.id}')"><span>${esc(Sx(p.e.siteId).name)}: no pay rate yet</span><b>Set rate ›</b></div>`:`<div class="pi" style="cursor:default">${esc(p.text)}</div>`}).join("")}</div>`:""}
     ${(()=>{const tm=todayD().slice(0,7),me=all.filter(e=>(e.date?e.date.slice(0,7):e.month)===tm),mh=me.reduce((a,e)=>a+(isWork(e)?+e.hours:0),0);return `<div class="ptiles"><div><span>This month</span><b class="num">${money(me.reduce((a,e)=>a+wage(e),0))}</b><em>${fmtH(mh)} hrs</em></div><div><span>Owed now</span><b class="num" style="color:${owe?"var(--pay)":"var(--ok)"}">${money(owe)}</b><em>${all.some(isNoRate)?`<span style="color:var(--warn)">+ ${fmtH(all.filter(isNoRate).reduce((a,e)=>a+ +e.hours,0))} hrs with no rate</span>`:owe?"not paid yet":"all paid"}</em></div></div>`})()}
     <div class="cols">
@@ -2768,7 +2768,7 @@ function prEndChips(){const td=todayD(),yd=addD(td,-1),out=[["Yesterday",yd]];pa
 function prOld(){if(PR.mode!=="period")return [];return DB.entries.filter(e=>!e.paid&&isWork(e)&&e.hours>0&&e.rate>0&&(e.date?e.date<PR.from:mEnd(e.month)<PR.from))}
 function prSmart(){if(true){prPeriodInit();return}const td=todayD(),c=[{mode:"fort",d:addD(td,-14)},{mode:"fort",d:td},{mode:"all",d:td}];for(const x of c){PR={...x,off:new Set()};if(DB.entries.some(prIn))return}PR={mode:"fort",d:addD(td,-14),off:new Set()}}
 function prRange(){if(PR.mode==="range"||PR.mode==="period")return [PR.from,PR.to];const ws=weekStart(PR.d);if(PR.mode==="week")return [ws,addD(ws,6)];if(PR.mode==="fort")return [addD(ws,-7),addD(ws,6)];return null}
-function prIn(e){if(e.paid||!(e.hours>0)||!(e.rate>0))return false;if(PR.mode==="all")return true;if(PR.mode==="period"){if(PR.old&&(e.date?e.date<PR.from:mEnd(e.month)<PR.from))return true;if(!e.date)return e.month+"-01"<=PR.to&&mEnd(e.month)>=PR.from;return e.date>=PR.from&&e.date<=PR.to}if(PR.mode==="month")return e.month===PR.d.slice(0,7);const[a,b]=prRange();return !!e.date&&e.date>=a&&e.date<=b}
+function prIn(e){if(e.paid||!(e.hours>0)||!(e.rate>0))return false;if(PR.mode==="all")return true;if(PR.mode==="period"){if(PR.old&&(e.date?e.date<PR.from:mEnd(e.month)<PR.from))return true;if(!e.date)return e.month+"-01"<=PR.to&&mEnd(e.month)>=PR.from;if(e.kind==="extra"&&e.date>=PR.from&&e.date<=(PR.to>todayD()?PR.to:todayD()))return true;return e.date>=PR.from&&e.date<=PR.to}if(PR.mode==="month")return e.month===PR.d.slice(0,7);const[a,b]=prRange();return !!e.date&&e.date>=a&&e.date<=b}
 function prLabel(){if(PR.mode==="period")return rngLabel(PR.from,PR.to)+(PR.old&&prOld().length?" + earlier":"");if(PR.mode==="all")return "Everything unpaid";if(PR.mode==="month")return mLabel(PR.d.slice(0,7));const[a,b]=prRange();const A=parseD(a),B=parseD(b);return `${A.getDate()} ${MN[A.getMonth()]} – ${B.getDate()} ${MN[B.getMonth()]}`}
 function prStep(n){if(PR.mode==="week")PR.d=addD(PR.d,7*n);else if(PR.mode==="fort")PR.d=addD(PR.d,14*n);else if(PR.mode==="month")PR.d=addM(PR.d.slice(0,7),n)+"-15";render()}
 function prGroups(){const g={};DB.entries.filter(prIn).forEach(e=>{const x=g[e.workerId]||(g[e.workerId]={id:e.workerId,es:[],amt:0,h:0});x.es.push(e);x.amt+=wage(e);x.h+= +e.hours});return Object.values(g).sort((a,b)=>W(a.id).name.localeCompare(W(b.id).name))}
@@ -3249,13 +3249,37 @@ function openEntry(id){hideToast();
 
 /* ---- edit worker / rate / client / site / money ---- */
 function showSheet(html){$("#sheet").classList.remove("chatmode");$("#sheet").innerHTML=`<div class="grab"></div>`+html;void $("#sheet").offsetHeight;$("#sheet").classList.add("on");$("#scrim").classList.add("on");sheetClose=null;$("#sheet").scrollTop=0;window.__chk&&window.__chk()}
+function addExtra(id){hideToast();const w=W(id),td=todayD();const X={why:"",typ:"fixed",amt:"",rate:"",hrs:"",when:"day",d:td,a:addD(td,-6),b:td};
+  const rng=()=>X.when==="day"?[X.d,X.d]:X.when==="week"?[weekStart(X.d),addD(weekStart(X.d),6)]:[X.a,X.b<X.a?X.a:X.b];
+  const tot=()=>X.typ==="fixed"?(+X.amt||0):(+X.rate||0)*(+X.hrs||0);
+  const lbl=()=>{const[a,b]=rng();return a===b?dayLabel(a):rngLabel(a,b)};
+  const draw=()=>{const[a,b]=rng();showSheet(`<h3>Extra pay · ${esc(w.name)}</h3><div class="lead">On top of their normal pay.</div>
+    <div class="f"><label>What is it for?</label><div class="opts" style="margin-bottom:8px">${["Supervisor","Bonus","Training","Travel","Other"].map(k=>`<button class="opt ${X.why===k?"on":""}" data-why="${k}">${k}</button>`).join("")}</div><input class="inp" id="xw" placeholder="Write the reason, e.g. Supervising Tempe" value="${esc(X.why)}"></div>
+    <div class="f"><label>How much?</label><div class="pseg" style="margin:0 0 10px">${[["fixed","Fixed amount"],["hourly","By the hour"]].map(([k,l])=>`<button class="${X.typ===k?"on":""}" data-typ="${k}">${l}</button>`).join("")}</div>
+    ${X.typ==="fixed"?`<input class="inp num" inputmode="decimal" id="xa" placeholder="$ amount, e.g. 300" value="${esc(X.amt)}">`:`<div class="two" style="gap:10px"><input class="inp num" inputmode="decimal" id="xr" placeholder="$ per hour" value="${esc(X.rate)}"><input class="inp num" inputmode="decimal" id="xh" placeholder="Total hours" value="${esc(X.hrs)}"></div>`}</div>
+    <div class="f"><label>For when?</label><div class="pseg" style="margin:0 0 10px">${[["day","One day"],["week","A week"],["range","From – to"]].map(([k,l])=>`<button class="${X.when===k?"on":""}" data-when="${k}">${l}</button>`).join("")}</div>
+    ${X.when==="range"?`<div class="two" style="gap:10px"><div><label style="font-size:12px;color:var(--mut)">From</label><input class="inp" type="date" id="xfa" value="${X.a}"></div><div><label style="font-size:12px;color:var(--mut)">To</label><input class="inp" type="date" id="xfb" value="${X.b}"></div></div>`:`<input class="inp" type="date" id="xd" value="${X.d}">`}
+    <div class="hint" id="xl" style="margin-top:6px">${X.when==="week"?"Week: ":""}${lbl()}</div></div>
+    <button class="btn" id="xs">${tot()>0?`Add ${money(tot())} extra pay`:"Add extra pay"}</button><button class="btn ghost" onclick="closeSheet()">Cancel</button>`);
+    const upd=()=>{const t=tot();$("#xs").textContent=t>0?`Add ${money(t)} extra pay`:"Add extra pay"};
+    document.querySelectorAll(".sheet.on [data-why]").forEach(b=>b.onclick=()=>{X.why=b.dataset.why;draw()});
+    document.querySelectorAll(".sheet.on [data-typ]").forEach(b=>b.onclick=()=>{X.typ=b.dataset.typ;draw()});
+    document.querySelectorAll(".sheet.on [data-when]").forEach(b=>b.onclick=()=>{X.when=b.dataset.when;draw()});
+    $("#xw").oninput=e=>X.why=e.target.value;
+    [["#xa","amt"],["#xr","rate"],["#xh","hrs"]].forEach(([q,k])=>{const i=$(q);if(i)i.oninput=e=>{X[k]=e.target.value.replace(/[^0-9.]/g,"");upd()}});
+    [["#xd","d"],["#xfa","a"],["#xfb","b"]].forEach(([q,k])=>{const i=$(q);if(i)i.onchange=e=>{if(e.target.value){X[k]=e.target.value;draw()}}});
+    $("#xs").onclick=async()=>{const why=X.why.trim();if(!why)return toast("Write what it's for");if(!(tot()>0))return toast(X.typ==="fixed"?"Type the amount":"Type the rate and hours");
+      const[a,b]=rng(),dt=a<=todayD()?a:a;
+      const e={id:uid(),workerId:id,siteId:SUP,date:dt,month:dt.slice(0,7),hours:X.typ==="fixed"?1:+X.hrs,rate:X.typ==="fixed"?+X.amt:+X.rate,paid:false,paidAt:"",notes:`${why} · ${lbl()}${X.typ==="hourly"?` · ${fmtH(+X.hrs)} hrs × ${money(+X.rate)}`:""}`,createdAt:new Date().toISOString(),kind:"extra"};
+      await put("entries",e);closeSheet();render();toast(`✓ ${money(wage(e))} extra pay · ${esc(why)}`,async()=>{await del("entries",e.id);render()})}};
+  draw()}
 function payRates(id){hideToast();const w=W(id),rs=DB.rates.filter(r=>r.workerId===id&&r.siteId!==SUP&&!r.cover).sort((a,b)=>Sx(a.siteId).name.localeCompare(Sx(b.siteId).name)),sr=DB.rates.find(r=>r.workerId===id&&r.siteId===SUP);
   showSheet(`<h3>${esc(w.name)} · pay</h3><div class="lead">Tap a line to set or change it.</div><div class="list" style="margin-bottom:12px">
   ${rs.map(r=>`<button class="row tap" style="width:100%;text-align:left" onclick="closeSheet();setTimeout(()=>editRate('${r.id}'),200)"><div class="main"><div class="t1">${esc(Sx(r.siteId).name)}</div><div class="t2">Cleaning · per hour</div></div><div class="amt num">${+r.rate>0?money(r.rate):`<span style="color:var(--warn)">Set rate</span>`}</div>${ICON.chev}</button>`).join("")}
   ${isSup(w)?`<button class="row tap" style="width:100%;text-align:left" onclick="closeSheet();setTimeout(()=>editWorker('${id}'),200)"><div class="main"><div class="t1">Supervisor pay</div><div class="t2">${w.payType==="fixed"?"Fixed salary":"Per hour"}</div></div><div class="amt num">${w.payType==="fixed"?`${money(w.salary)}<small>per ${PERW[w.salaryPer]}</small>`:sr&&+sr.rate>0?money(sr.rate):"Set"}</div>${ICON.chev}</button>`:""}
   ${!rs.length&&!isSup(w)?`<div class="empty">No site yet</div>`:""}</div>
   <button class="btn ghost" onclick="closeSheet();setTimeout(()=>openAdd('worker','${id}'),200)">+ Add a site</button>
-  ${isSup(w)?"":`<button class="btn ghost" onclick="closeSheet();setTimeout(()=>editWorker('${id}',1),200)">+ Also pays as supervisor</button>`}
+  <button class="btn ghost" onclick="closeSheet();setTimeout(()=>addExtra('${id}'),200)">+ Add extra pay</button>
   <button class="btn ghost" onclick="closeSheet()">Close</button>`)}
 function editWorker(id,openSup){hideToast();const w=W(id);let name=w.name,active=w.active!==false;const sr0=DB.rates.find(r=>r.workerId===id&&r.siteId===SUP);let sup=isSup(w)||!!openSup,pt=w.payType||"hourly",sal=w.salary||"",per=w.salaryPer||"fort",shr=sr0?sr0.rate:"";
   const draw=()=>{showSheet(`<h3>Edit worker</h3><div class="lead">Change the name, or mark them as left.</div>
