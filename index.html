@@ -880,7 +880,7 @@ const JOIN=(()=>{const m=(location.hash||"").match(/join=(CW1\.[A-Za-z0-9_\-]+)/
 if(JOIN&&!IS_APP){const l=document.querySelector('link[rel="manifest"]');if(l)l.remove()}
 let deferredInstall=null;
 addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredInstall=e;setTimeout(showInstallGuide,50)});
-const APP_VERSION="7.14.9";
+const APP_VERSION="7.14.10";
 /* new-version check: on focus and every 5 min; shows an Update bar (never reloads on its own, so nothing unsaved is lost) */
 let UPD_SEEN="";async function updCheck(){try{if(!/^https?:/.test(location.protocol)||document.hidden)return;const r=await fetch(location.pathname.replace(/[^/]*$/,"")+"index.html?v="+Date.now(),{cache:"no-store"});const t=await r.text(),m=t.match(/APP_VERSION="([^"]+)"/);
   if(m&&m[1]!==APP_VERSION&&m[1]!==UPD_SEEN){UPD_SEEN=m[1];let b=document.getElementById("updbar");if(!b){b=document.createElement("div");b.id="updbar";document.body.appendChild(b)}
@@ -2637,12 +2637,17 @@ function coverPick(sid,q=""){hideToast();const ql=q.trim().toLowerCase(),here=ne
   <input class="inp" id="cvq" placeholder="Search a name" autocomplete="off" value="${esc(q)}" oninput="const v=this.value,p=this.selectionStart;coverPick('${sid}',v);const i=$('#cvq');i.focus();i.setSelectionRange(p,p)" style="margin-bottom:10px">
   <div class="list" style="margin-bottom:12px">${list||`<div class="empty" style="padding:18px">No one found</div>`}</div>
   <button class="btn ghost" onclick="closeSheet();openAdd('worker')">Someone new</button>`)}
-async function coverAdd(sid,wid){let rate=usualRate(wid,sid);
-  if(!(rate>0)){const t=prompt(`Pay rate for ${W(wid).name} at ${Sx(sid).name} ($ per hour)`);rate=parseFloat(t);if(!(rate>0))return}
-  const ex=DB.rates.find(r=>r.workerId===wid&&r.siteId===sid);
-  if(ex){if(ex.cover)await put("rates",{...ex,addedAt:TD.date||todayD()})}else await put("rates",{id:uid(),workerId:wid,siteId:sid,rate,cover:true,addedAt:TD.date||todayD()});
-  closeSheet();render();toast(`✓ ${esc(W(wid).name)} covering · ${money(rate)}/hr`);
-  setTimeout(()=>{const i=document.querySelector(`input.tdin[aria-label="Hours for ${W(wid).name.replace(/"/g,'')}"]`);if(i){i.scrollIntoView({block:"center"});i.focus()}},350)}
+function coverAdd(sid,wid){hideToast();let rate=usualRate(wid,sid)||"";const nm=W(wid).name,sn=Sx(sid).name;
+  showSheet(`<h3>Add ${esc(nm)} to ${esc(sn)}?</h3><div class="lead">${esc(nm.split(" ")[0])} gets an empty line at ${esc(sn)} so you can type their hours. Nothing is paid until you type hours.</div>
+  <div class="f"><label>Their pay rate here ($ per hour)</label><input class="inp num" inputmode="decimal" id="cvr" value="${rate}" placeholder="e.g. 28"></div>
+  <div class="hint">Only covering for someone on a day? Cancel, then tap that <b>date number</b> → Someone else went.</div>
+  <button class="btn" id="cvs">Yes, add ${esc(nm.split(" ")[0])}</button><button class="btn ghost" onclick="closeSheet()">Cancel</button>`);
+  $("#cvr").oninput=e=>rate=e.target.value;
+  $("#cvs").onclick=async()=>{const r=parseFloat(rate);if(!(r>0))return toast("Type the pay rate");
+    const ex=DB.rates.find(x=>x.workerId===wid&&x.siteId===sid),before=ex?{...ex}:null;let nr;
+    if(ex){if(ex.cover)await put("rates",nr={...ex,addedAt:TD.date||todayD()})}else await put("rates",nr={id:uid(),workerId:wid,siteId:sid,rate:r,cover:true,addedAt:TD.date||todayD()});
+    closeSheet();TDR=null;render();toast(`✓ ${esc(nm)} added to ${esc(sn)} · ${money(r)}/hr`,async()=>{if(before)await put("rates",before);else if(nr)await del("rates",nr.id);TDR=null;render()});
+    setTimeout(()=>{const i=document.querySelector(`input.tdin[aria-label="Hours for ${nm.replace(/"/g,'')}"]`);if(i){i.scrollIntoView({block:"center"});i.focus()}},350)}}
 let TDP=null;function tdPaid(k,date){const d=date||TD.date;if(!TDP||TDP.d!==d||TDP.n!==DB.entries.length){const m=new Map();DB.entries.forEach(e=>{if(e.date===d&&e.paid&&isWork(e)){const kk=e.workerId+"|"+e.siteId;m.set(kk,(m.get(kk)||0)+ +e.hours)}});TDP={d,n:DB.entries.length,m}}return TDP.m.get(k)||0}
 function tdTotals(){let h=0,w=0;const ppl=new Set();tdRates().forEach(r=>{const v=parseFloat(TD.vals[r.workerId+"|"+r.siteId])||0;if(v>0){h+=v;w+=v*r.rate;ppl.add(r.workerId)}});return {h,w,p:ppl.size}}
 let WK={wk:null,n:7,vals:{},dirty:false};
