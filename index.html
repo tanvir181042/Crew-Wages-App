@@ -879,7 +879,7 @@ const JOIN=(()=>{const m=(location.hash||"").match(/join=(CW1\.[A-Za-z0-9_\-]+)/
 if(JOIN&&!IS_APP){const l=document.querySelector('link[rel="manifest"]');if(l)l.remove()}
 let deferredInstall=null;
 addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredInstall=e;setTimeout(showInstallGuide,50)});
-const APP_VERSION="7.14.1";
+const APP_VERSION="7.14.2";
 /* new-version check: on focus and every 5 min; shows an Update bar (never reloads on its own, so nothing unsaved is lost) */
 let UPD_SEEN="";async function updCheck(){try{if(!/^https?:/.test(location.protocol)||document.hidden)return;const r=await fetch(location.pathname.replace(/[^/]*$/,"")+"index.html?v="+Date.now(),{cache:"no-store"});const t=await r.text(),m=t.match(/APP_VERSION="([^"]+)"/);
   if(m&&m[1]!==APP_VERSION&&m[1]!==UPD_SEEN){UPD_SEEN=m[1];let b=document.getElementById("updbar");if(!b){b=document.createElement("div");b.id="updbar";document.body.appendChild(b)}
@@ -1183,7 +1183,7 @@ function problems(){
 /* ============ state & router ============ */
 let state={tab:"home",month:null,person:null,pstack:[],q:"",filter:"all",siteFocus:null,per:{mode:"month",d:todayD()},pper:{mode:"all",d:todayD()},sper:{mode:"month",d:todayD()},slper:{mode:"month",d:todayD()}};
 const scrolls=[];let navAnim=false;
-function go(tab,extra={}){hideToast();if(tab!=="today"&&state.hwk){state.hwk=null;TDR=null}if(tab==="pay"&&state.tab!=="pay")prSmart();const ch=tab!==state.tab||state.person;state={...state,tab,person:null,pstack:[],...extra};scrolls.length=0;render();window.scrollTo({top:0,behavior:"instant"});
+function go(tab,extra={}){hideToast();if(tab!=="week")state.pwW=null;if(tab!=="today"&&state.hwk){state.hwk=null;TDR=null}if(tab==="pay"&&state.tab!=="pay")prSmart();const ch=tab!==state.tab||state.person;state={...state,tab,person:null,pstack:[],...extra};scrolls.length=0;render();window.scrollTo({top:0,behavior:"instant"});
   const a=$("#app");if(ch&&!RM&&a.animate)a.animate([{opacity:0,transform:"translateY(8px)"},{opacity:1,transform:"none"}],{duration:260,easing:"cubic-bezier(.32,.72,0,1)"})}
 
 const SKEL=`<div class="skw"><div class="row1"><div class="sk" style="width:44px;height:44px;border-radius:14px"></div><div style="flex:1;display:grid;gap:8px"><div class="sk" style="width:46%;height:20px"></div><div class="sk" style="width:30%;height:13px"></div></div></div><div class="sk skhero"></div><div class="sk3"><div class="sk"></div><div class="sk"></div><div class="sk"></div></div><div class="sk" style="width:38%;height:18px;margin:0 0 14px"></div><div class="skcard"><div class="sk" style="width:42px;height:42px;border-radius:50%"></div><div class="c"><div class="sk" style="width:55%;height:15px"></div><div class="sk" style="width:35%;height:12px"></div></div><div class="sk" style="width:56px;height:26px;border-radius:99px"></div></div><div class="skcard"><div class="sk" style="width:42px;height:42px;border-radius:50%"></div><div class="c"><div class="sk" style="width:48%;height:15px"></div><div class="sk" style="width:40%;height:12px"></div></div><div class="sk" style="width:56px;height:26px;border-radius:99px"></div></div><div class="skcard"><div class="sk" style="width:42px;height:42px;border-radius:50%"></div><div class="c"><div class="sk" style="width:60%;height:15px"></div><div class="sk" style="width:28%;height:12px"></div></div><div class="sk" style="width:56px;height:26px;border-radius:99px"></div></div><div class="skmsg">Getting your data…</div></div>`;
@@ -1257,15 +1257,16 @@ function planWeek(){const [ws,we]=pwRange(),days=[];for(let d=ws;d<=we;d=addD(d,
   DB.rates.forEach(r=>{const w=W(r.workerId);if(!r.cover&&w&&w.id&&w.active!==false&&!isSup(w))add(r.workerId,r.siteId)});
   DB.entries.forEach(e=>{if(e.date&&e.date>=ws&&e.date<=we&&isWork(e))add(e.workerId,e.siteId)});
   (DB.marks||[]).forEach(m=>{if(m.date>=ws&&m.date<=we){const b=mInfo(m).by;if(b)add(b,m.siteId)}});
-  const busy=k=>days.some(d=>pwCell(k.w,k.sid,d,thru).t!=="e");let hid=0;const hidW=new Set();
+  const FW=state.pwW&&W(state.pwW).id?state.pwW:null;if(FW)[...keys.keys()].forEach(k=>{if(keys.get(k).w!==FW)keys.delete(k)});
+  const busy=k=>FW||days.some(d=>pwCell(k.w,k.sid,d,thru).t!=="e");let hid=0;const hidW=new Set();
   const bySite={};[...keys.values()].forEach(k=>{if(!state.pwAll&&!busy(k)){hid++;hidW.add(k.w);return}(bySite[k.sid]=bySite[k.sid]||[]).push(k)});const sites=Object.keys(bySite).sort((a,b)=>Sx(a).name.localeCompare(Sx(b).name));
-  let doneH=0,doneM=0,planH=0;DB.entries.forEach(e=>{if(e.date&&e.date>=ws&&e.date<=we&&isWork(e)){doneH+= +e.hours;doneM+=wage(e)}});
+  let doneH=0,doneM=0,planH=0;DB.entries.forEach(e=>{if(e.date&&e.date>=ws&&e.date<=we&&isWork(e)&&(!FW||e.workerId===FW)){doneH+= +e.hours;doneM+=wage(e)}});
   const L=["S","M","T","W","T","F","S"];
   const dayRow=`<div class="pwr pwdays pwmini"><span class="pwn"></span><div class="pwc">${days.map(d=>`<span class="${d===td?"t":""}${[0,6].includes(parseD(d).getDay())?" we":""}">${wkLbl(d)}</span>`).join("")}</div></div>`;
   const grid=sites.map(sid=>`<div class="pwsite"><span class="pin">📍</span><b>${esc(Sx(sid).name)}</b><small>${bySite[sid].length}</small></div>${dayRow}`+bySite[sid].sort((a,b)=>W(a.w).name.localeCompare(W(b.w).name)).map(k=>`<div class="pwr"><button class="pwn" onclick="rowTap('${k.w}','${k.sid}','${days[0]}','${days[days.length-1]}')">${esc(W(k.w).name)}</button><div class="pwc">${days.map(d=>{const c=pwCell(k.w,k.sid,d,thru);if(c.t==="p"||c.t==="pc")planH+=c.h;
       const cls=c.t==="d"?"d":c.t==="cv"?"cv":c.t==="x"?"x":c.t==="p"?"p":c.t==="pc"?"p cvp":"e";return `<button class="c ${cls}${d===td?" today":""}${c.paid?" paid":""}" onclick="dayTap('${k.w}','${k.sid}','${d}')" aria-label="${esc(W(k.w).name)} ${dayLabel(d)}">${c.t==="x"?"✗":c.t==="e"?"–":fmtH(c.h)}</button>`}).join("")}</div></div>`).join("")).join("");
   const lab=mode==="month"?(ws.slice(0,7)===td.slice(0,7)?"This month · ":"")+mLabel(ws.slice(0,7)):(ws===weekStart(td)?"This week · ":ws===weekStart(addD(td,-7))?"Last week · ":"")+weekLabel(ws);
-  return `<div class="pw"><div class="m8" style="grid-template-columns:repeat(3,1fr);margin-bottom:10px">${[["week","Week"],["month","Month"],["range","Custom"]].map(([k,l])=>`<button class="${mode===k?"on":""}" onclick="state.pwm='${k}';render()">${l}<small>${k==="week"?weekLabel(state.wkp||weekStart(td)):k==="month"?mLabel((state.pwmo||td.slice(0,7))):(state.pwr?rngLabel(state.pwr.from,state.pwr.to):"Pick dates")}</small></button>`).join("")}</div>
+  return `<div class="pw">${FW?`<div class="hwkbar"><button class="link" onclick="pwBack()">‹ ${esc(W(FW).name)}</button><span>Only ${esc(W(FW).name.split(" ")[0])}</span><button class="link" onclick="state.pwW=null;render()">Show everyone</button></div>`:""}<div class="m8" style="grid-template-columns:repeat(3,1fr);margin-bottom:10px">${[["week","Week"],["month","Month"],["range","Custom"]].map(([k,l])=>`<button class="${mode===k?"on":""}" onclick="state.pwm='${k}';render()">${l}<small>${k==="week"?weekLabel(state.wkp||weekStart(td)):k==="month"?mLabel((state.pwmo||td.slice(0,7))):(state.pwr?rngLabel(state.pwr.from,state.pwr.to):"Pick dates")}</small></button>`).join("")}</div>
     ${mode==="range"?`<div class="two" style="gap:10px;margin-bottom:12px"><div class="f" style="margin:0"><label>From</label><input class="inp" type="date" value="${ws}" onchange="pwSet('from',this.value)"></div><div class="f" style="margin:0"><label>To</label><input class="inp" type="date" value="${we}" onchange="pwSet('to',this.value)"></div></div>`:`<div class="pwhead"><div class="pstep"><button onclick="pwStep(-1)" aria-label="Previous">‹</button><span>${lab}</span><button onclick="pwStep(1)" aria-label="Next">›</button></div></div>`}
     ${(DB.roster||[]).length?"":`<div class="pwtools"><span></span><button class="link" onclick="rosterAuto()">Set rosters for everyone</button></div>`}
     <div class="pwhero"><div><span>DONE · COUNTED</span><b>${money(doneM)}</b><em>${fmtH(doneH)} hrs</em></div><div><span>STILL PLANNED</span><b class="pl">${fmtH(planH)} hrs</b><em class="pl">not money yet</em></div></div>
@@ -2655,6 +2656,10 @@ function hoursModeBar(){const m=state.hmode||"day",d=parseD(todayD());return `<d
 function setHMode(m){const c=state.hmode||"day";if(c===m)return;if((c==="day"?TD.dirty:WK.dirty)&&!confirmBox("Leave without saving?"))return;state.hmode=m;const base=TD.date||todayD();
   if(m==="range"){if(!state.hrng)state.hrng=rngDef();wkLoad(state.hrng.from,hrN(state.hrng));WK.r=1}else if(m==="week")wkLoad(weekStart(base));else if(m==="month"){const ms=base.slice(0,7)+"-01";wkLoad(ms,mDays(ms))}else TD.dirty=false;render()}
 function calEdit(id){const P=state.pper||{mode:"month",d:todayD()},[a,b]=(perRange(P)||[null,null]).map(x=>x||todayD());hideToast();
+  if(P.mode==="week"){state.pwm="week";state.wkp=weekStart(P.d||todayD())}else if((P.mode==="range"||P.mode==="fort"||P.mode==="l7")&&a&&b){state.pwm="range";state.pwr={from:a,to:b<a?a:b}}else{state.pwm="month";state.pwmo=(P.d||todayD()).slice(0,7)}
+  state.pwW=id;state.tab="week";state.person=null;state.pstack=[];render();window.scrollTo({top:0,behavior:"instant"})}
+function pwBack(){const id=state.pwW;state.pwW=null;go('people');openPerson(id)}
+function calType(id){const P=state.pper||{mode:"month",d:todayD()},[a,b]=(perRange(P)||[null,null]).map(x=>x||todayD());hideToast();
   state.hwk=id;state.hwkFrom=id;TDR=null;
   if(P.mode==="month"){state.hmode="month";const ms=(P.d||todayD()).slice(0,7)+"-01";wkLoad(ms,mDays(ms));WK.r=0}
   else if(P.mode==="week"){state.hmode="week";wkLoad(weekStart(P.d||todayD()));WK.r=0}
