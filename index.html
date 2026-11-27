@@ -857,6 +857,7 @@ html,body{overscroll-behavior-y:none}
 .aich{margin:8px 0 10px;padding:12px;border-radius:14px;background:var(--soft)}.aichh{font-size:12.5px;font-weight:750;opacity:.7;margin-bottom:8px}.aichr{display:grid;grid-template-columns:minmax(60px,34%) 1fr auto;gap:8px;align-items:center;font-size:13px;margin:5px 0}.aichl{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.aichb{height:12px;border-radius:6px;background:rgba(127,127,127,.15);overflow:hidden}.aichb i{display:block;height:100%;border-radius:6px;background:#9BCB3C;animation:aichg .6s cubic-bezier(.32,.72,0,1) both;transform-origin:left}.aichv{font-variant-numeric:tabular-nums;font-weight:700;font-size:12.5px}@keyframes aichg{from{transform:scaleX(0)}}
 .aiu-voice .adots i{background:#fff;opacity:.6}.adots.light i{background:#fff}
 .askw.vlevel .aiwave i{animation:none;transition:transform .08s}
+.mgrid b.num{font-size:clamp(15px,4.6vw,22px);overflow-wrap:anywhere}.mgrid>div{min-width:0}
 </style>
 </head>
 <body>
@@ -878,7 +879,7 @@ const JOIN=(()=>{const m=(location.hash||"").match(/join=(CW1\.[A-Za-z0-9_\-]+)/
 if(JOIN&&!IS_APP){const l=document.querySelector('link[rel="manifest"]');if(l)l.remove()}
 let deferredInstall=null;
 addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredInstall=e;setTimeout(showInstallGuide,50)});
-const APP_VERSION="7.14.0";
+const APP_VERSION="7.14.1";
 /* new-version check: on focus and every 5 min; shows an Update bar (never reloads on its own, so nothing unsaved is lost) */
 let UPD_SEEN="";async function updCheck(){try{if(!/^https?:/.test(location.protocol)||document.hidden)return;const r=await fetch(location.pathname.replace(/[^/]*$/,"")+"index.html?v="+Date.now(),{cache:"no-store"});const t=await r.text(),m=t.match(/APP_VERSION="([^"]+)"/);
   if(m&&m[1]!==APP_VERSION&&m[1]!==UPD_SEEN){UPD_SEEN=m[1];let b=document.getElementById("updbar");if(!b){b=document.createElement("div");b.id="updbar";document.body.appendChild(b)}
@@ -1194,7 +1195,7 @@ function render(){TDR=null;TDP=null;
   else nv.querySelectorAll(".tabsg button").forEach(b=>b.classList.toggle("on",b.dataset.k===navKey()));
   movePill();
   const si=$("#q"); if(si&&state.focusSearch){si.focus();si.setSelectionRange(si.value.length,si.value.length)}
-  miniUpdate(true);countUp();{const g=document.querySelector(".pwgrid.wide");if(g){const t=g.querySelector(".pwdays .t");if(t)g.scrollLeft=Math.max(0,t.offsetLeft-g.clientWidth*0.6);else if((state.pwr&&state.pwr.to||"")>=todayD()||state.pwm==="month")g.scrollLeft=g.scrollWidth}}
+  miniUpdate(true);countUp();{const g=document.querySelector(".pwgrid.wide");if(g){const t=g.querySelector(".pwdays .t");if(t)g.scrollLeft=Math.max(0,t.offsetLeft+t.offsetWidth+60-g.clientWidth);else if((state.pwr&&state.pwr.to||"")>=todayD())g.scrollLeft=g.scrollWidth}}
 }
 let lastHero=null;
 function countUp(){const el=$("#app .hero .big[data-count]");if(!el)return;const to=+el.dataset.count,from=lastHero===null?0:lastHero;lastHero=to;if(RM||from===to)return;
@@ -2394,13 +2395,14 @@ function dayDetail(id){const P=state.hper,[a,b]=perRange(P),w=W(id);
 function addMenu(){hideToast();const it=[["Tell Hourza AI","Say or type it — “Sam 8 hours Mon to Fri”",ICON.spark,"closeSheet();setTimeout(()=>openAsk(),200)"],["Hours","For everyone, or for one worker",ICON.clockq,"hoursChoice()"],["Money received","A payment from a client",ICON.wallet,"openAdd('money')"],["Worker","Someone new on the team, or a supervisor",ICON.useradd,"openAdd('worker')"],["Site","A new place where work happens",ICON.sites,"openAdd('site')"]];
   showSheet(`<h3>What do you want to add?</h3><div class="addmenu">${it.map(([t,d,ic,js])=>`<button onclick="${js}"><i>${ic}</i><span><b>${t}</b><small>${d}</small></span>${ICON.chev}</button>`).join("")}</div>`)}
 function hoursChoice(){showSheet(`<h3>Add hours</h3><div class="addmenu"><button onclick="closeSheet();go('today')"><i>${ICON.people}</i><span><b>Everyone</b><small>The whole team, for a day, week or month</small></span>${ICON.chev}</button><button onclick="openAdd('hours')"><i>${ICON.today}</i><span><b>One worker</b><small>Pick someone, then a day, a week or a month</small></span>${ICON.chev}</button></div>`)}
-function showProblems(){const pr=problems();showSheet(`<h3>Things to check</h3><div class="lead">Tap one to fix it.</div>${pr.some(p=>p.type==="dup")&&dupExtras().length?`<button class="btn" style="margin-bottom:12px" onclick="dupFix()">Remove all ${cpy(dupExtras().length)}</button>`:""}<div class="list" style="margin-bottom:12px">${pr.map(p=>`<div class="row tap" onclick="closeSheet();setTimeout(()=>{${p.type==="bill"?`editSite('${p.site.id}')`:`openPerson('${p.e.workerId}')`}},200)"><div class="av" style="background:var(--warn-s);color:var(--warn)">!</div><div class="main"><div class="t1" style="white-space:normal">${esc(p.text)}</div>${p.type==="dup"&&dupExtras(p.g).length?`<button class="link" style="color:var(--pay);padding:6px 0 0" onclick="event.stopPropagation();dupFix('${p.g}')">Remove ${cpy(dupExtras(p.g).length)}</button>`:""}</div>${ICON.chev}</div>`).join("")}</div><button class="btn ghost" onclick="closeSheet()">Close</button>`)}
+function showProblems(){const pr=problems();showSheet(`<h3>Things to check</h3><div class="lead">Tap one to fix it.</div>${pr.some(p=>p.type==="dup")&&dupExtras().length?`<button class="btn" style="margin-bottom:12px" onclick="dupFix()">Remove all ${cpy(dupExtras().length)}</button>`:""}<div class="list" style="margin-bottom:12px">${pr.map(p=>`<div class="row tap" onclick="closeSheet();setTimeout(()=>{${p.type==="bill"?`editSite('${p.site.id}')`:`openPerson('${p.e.workerId}')`}},200)"><div class="av" style="background:var(--warn-s);color:var(--warn)">!</div><div class="main"><div class="t1" style="white-space:normal">${esc(p.text)}</div>${p.type==="dup"&&dupExtras(p.g).length?`<button class="link" style="color:var(--pay);padding:6px 0 0" onclick="event.stopPropagation();dupFix('${p.g}')">Remove ${cpy(dupExtras(p.g).length)}</button>`:""}${p.type==="mix"?`<button class="link" style="color:var(--pay);padding:6px 0 0" onclick="event.stopPropagation();mixFix('${p.e.id}')">Remove month total</button>`:""}</div>${ICON.chev}</div>`).join("")}</div><button class="btn ghost" onclick="closeSheet()">Close</button>`)}
 function tipHtml(k,txt){const d=ls.get("cw_tips",{});if(d[k])return "";return `<div class="tip"><span>💡</span><div>${txt}</div><button onclick="const d=ls.get('cw_tips',{});d['${k}']=1;ls.set('cw_tips',d);this.parentNode.remove()" aria-label="Got it">Got it</button></div>`}
 async function fixRate(w,sid){let r=DB.rates.find(x=>x.workerId===w&&x.siteId===sid);if(!r){r={id:uid(),workerId:w,siteId:sid,rate:0};await put("rates",r)}editRate(r.id)}
+async function mixFix(id){const e=DB.entries.find(x=>x.id===id);if(!e)return;if(!confirm(`Remove ${W(e.workerId).name}'s whole-month total for ${mLabel(e.month)} (${+e.hours} hrs)? Their daily hours stay.`))return;await del('entries',id);closeSheet();render();toast('✓ Whole-month total removed')}
 function homeLook(pr){if(!pr.length)return "";const PO={dup:0,rate:1,future:2,bill:3};pr=[...pr].sort((a,b)=>(PO[a.type]??2)-(PO[b.type]??2));const ic=p=>p.type==="dup"?"r":p.type==="future"?"y":"y";
-  const act=p=>p.type==="bill"?`editSite('${p.site.id}')`:p.type==="dup"&&p.g?`dupFix('${p.g}')`:p.type==="rate"?`fixRate('${p.e.workerId}','${p.e.siteId}')`:p.type==="setrates"?`go('people')`:`openPerson('${p.e.workerId}')`;
+  const act=p=>p.type==="bill"?`editSite('${p.site.id}')`:p.type==="dup"&&p.g?`dupFix('${p.g}')`:p.type==="rate"?`fixRate('${p.e.workerId}','${p.e.siteId}')`:p.type==="setrates"?`go('people')`:p.type==="mix"?`mixFix('${p.e.id}')`:`openPerson('${p.e.workerId}')`;
   return `<div class="sec" style="margin-top:18px"><h2>Needs a look</h2>${pr.length>3?`<button class="link" onclick="showProblems()">See all ${pr.length}</button>`:""}</div>
-  <div class="list">${pr.slice(0,3).map(p=>`<button class="row tap" style="width:100%;text-align:left" onclick="${p.type==="bill"||p.type==="dup"||p.type==="rate"||p.type==="setrates"?"":"go('people');"}${act(p)}"><span class="hdot ${ic(p)}">${p.type==="dup"?"2×":"!"}</span><div class="main"><div class="t1" style="white-space:normal">${esc(p.text)}</div>${p.type==="dup"?`<div class="t2">Tap to remove the extra copies</div>`:""}</div>${ICON.chev}</button>`).join("")}</div>`}
+  <div class="list">${pr.slice(0,3).map(p=>`<button class="row tap" style="width:100%;text-align:left" onclick="${p.type==="bill"||p.type==="dup"||p.type==="rate"||p.type==="setrates"||p.type==="mix"?"":"go('people');"}${act(p)}"><span class="hdot ${ic(p)}">${p.type==="dup"?"2×":"!"}</span><div class="main"><div class="t1" style="white-space:normal">${esc(p.text)}</div>${p.type==="dup"?`<div class="t2">Tap to remove the extra copies</div>`:p.type==="mix"?`<div class="t2">Tap to remove the month total</div>`:""}</div>${ICON.chev}</button>`).join("")}</div>`}
 function homeToday(){const td=todayD(),rows=new Map(),add=(w,sid,o)=>{if(sid===SUP)return;const k=w;const r=rows.get(k)||{w,parts:[]};r.parts.push({sid,...o});rows.set(k,r)};
   DB.entries.forEach(e=>{if(e.date===td&&isWork(e)&&e.hours>0)add(e.workerId,e.siteId,{h:+e.hours,cv:/^Cover for/.test(e.notes||"")})});
   (DB.roster||[]).forEach(r=>{const h=rosterH(r.workerId,r.siteId,td);if(!h||W(r.workerId).active===false||workAt(r.workerId,r.siteId,td).length)return;const M=mInfo(markOf(r.workerId,r.siteId,td));
@@ -3121,7 +3123,7 @@ async function saveWorker(){
   await put("rates",{id:ex?ex.id:uid(),workerId:w.id,siteId:F.siteId,rate});
   const msg=`✓ ${esc(w.name)} · ${esc(Sx(F.siteId).name)} · ${money(rate)}/hr`;
   if(FBACK.length&&FBACK[FBACK.length-1].kind==="hours"){const sid=F.siteId;backSub({workerId:w.id,q:w.name,siteId:sid});render();toast(msg);setTimeout(()=>$("#hrs")?.focus(),60);return}
-  closeSheet(); render(); toast(msg);
+  const isNew=!F.workerId&&!DB.entries.some(e=>e.workerId===w.id);closeSheet();toast(msg);if(isNew){go('people');setTimeout(()=>openPerson(w.id),60)}else render();
 }
 function clientField(label){
   if(F.clientId&&F.cq==null)F.cq=C(F.clientId).name;
