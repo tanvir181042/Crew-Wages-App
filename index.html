@@ -325,6 +325,14 @@ input,textarea,select{font-size:max(16px,1em)}
 button.pwn{background:none;border:0;text-align:left;padding:0;color:var(--ink);text-decoration:underline dotted var(--mut);text-underline-offset:3px;cursor:pointer;font:inherit;font-weight:750}
 @media (prefers-color-scheme:dark){.hdot.y{background:#3a2f12;color:#f3c969}.hdot.r{background:#3a1d1d;color:#ff8a80}.hdot.g{background:#16351f;color:#7ee2a8}}
 .ptiles{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:4px 0 14px}.ptiles div{background:var(--soft);border-radius:18px;padding:14px}.ptiles span{font-size:11.5px;font-weight:750;letter-spacing:.06em;text-transform:uppercase;color:var(--mut)}.ptiles b{display:block;font-size:24px;margin:4px 0 2px}.ptiles em{font-style:normal;font-size:12.5px;color:var(--mut)}
+.pwgrid{padding:6px 10px 10px}
+.pwsite{display:flex;align-items:center;gap:8px;margin:14px -4px 6px;padding:8px 10px;background:var(--card);border-radius:12px;box-shadow:inset 0 0 0 1px var(--line);font-size:13.5px}.pwsite:first-of-type{margin-top:8px}
+.pwsite b{font-weight:850;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.pwsite small{font-size:11.5px;font-weight:800;color:var(--mut);background:var(--soft);border-radius:8px;padding:2px 7px}.pwsite .pin{font-size:12px}
+button.pwn{text-decoration:none!important;font-weight:600!important;font-size:13px!important;color:var(--ink);padding-left:6px!important}
+.pwgrid.wide .pwsite{margin-left:0;margin-right:0;width:max-content;min-width:calc(100% - 10px)}
+.pwn{width:96px!important}.pwc{gap:4px!important}.pwc .c.today{outline:0!important;box-shadow:inset 0 0 0 1.5px var(--ink)!important}.pwc .c.e.today{background:var(--card)}
+
+@media (min-width:1100px){.pwn{width:170px!important}}
 .two>.f{min-width:0}.two input[type=date]{min-width:0;width:100%;box-sizing:border-box;padding-left:10px;padding-right:8px;font-size:15px}
 .tag{font-size:12px;font-weight:650;border-radius:8px;padding:3px 8px;white-space:nowrap}
 .tag.ok{background:var(--ok-s);color:var(--ok)} .tag.pay{background:var(--pay-s);color:var(--pay)} .tag.warn{background:var(--warn-s);color:var(--warn)} .tag.mut{background:var(--soft);color:var(--mut)}
@@ -864,7 +872,7 @@ const JOIN=(()=>{const m=(location.hash||"").match(/join=(CW1\.[A-Za-z0-9_\-]+)/
 if(JOIN&&!IS_APP){const l=document.querySelector('link[rel="manifest"]');if(l)l.remove()}
 let deferredInstall=null;
 addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredInstall=e;setTimeout(showInstallGuide,50)});
-const APP_VERSION="7.13.0";
+const APP_VERSION="7.13.1";
 /* new-version check: on focus and every 5 min; shows an Update bar (never reloads on its own, so nothing unsaved is lost) */
 let UPD_SEEN="";async function updCheck(){try{if(!/^https?:/.test(location.protocol)||document.hidden)return;const r=await fetch(location.pathname.replace(/[^/]*$/,"")+"index.html?v="+Date.now(),{cache:"no-store"});const t=await r.text(),m=t.match(/APP_VERSION="([^"]+)"/);
   if(m&&m[1]!==APP_VERSION&&m[1]!==UPD_SEEN){UPD_SEEN=m[1];let b=document.getElementById("updbar");if(!b){b=document.createElement("div");b.id="updbar";document.body.appendChild(b)}
@@ -1241,10 +1249,11 @@ function planWeek(){const [ws,we]=pwRange(),days=[];for(let d=ws;d<=we;d=addD(d,
   DB.rates.forEach(r=>{const w=W(r.workerId);if(!r.cover&&w&&w.id&&w.active!==false&&!isSup(w))add(r.workerId,r.siteId)});
   DB.entries.forEach(e=>{if(e.date&&e.date>=ws&&e.date<=we&&isWork(e))add(e.workerId,e.siteId)});
   (DB.marks||[]).forEach(m=>{if(m.date>=ws&&m.date<=we){const b=mInfo(m).by;if(b)add(b,m.siteId)}});
-  const bySite={};[...keys.values()].forEach(k=>{(bySite[k.sid]=bySite[k.sid]||[]).push(k)});const sites=Object.keys(bySite).sort((a,b)=>Sx(a).name.localeCompare(Sx(b).name));
+  const busy=k=>days.some(d=>pwCell(k.w,k.sid,d,thru).t!=="e");let hid=0;
+  const bySite={};[...keys.values()].forEach(k=>{if(!state.pwAll&&!busy(k)){hid++;return}(bySite[k.sid]=bySite[k.sid]||[]).push(k)});const sites=Object.keys(bySite).sort((a,b)=>Sx(a).name.localeCompare(Sx(b).name));
   let doneH=0,doneM=0,planH=0;DB.entries.forEach(e=>{if(e.date&&e.date>=ws&&e.date<=we&&isWork(e)){doneH+= +e.hours;doneM+=wage(e)}});
   const L=["S","M","T","W","T","F","S"];
-  const grid=sites.map(sid=>`<div class="pwsite">${esc(Sx(sid).name)}</div>`+bySite[sid].sort((a,b)=>W(a.w).name.localeCompare(W(b.w).name)).map(k=>`<div class="pwr"><button class="pwn" onclick="rowTap('${k.w}','${k.sid}','${days[0]}','${days[days.length-1]}')">${esc(W(k.w).name)}</button><div class="pwc">${days.map(d=>{const c=pwCell(k.w,k.sid,d,thru);if(c.t==="p"||c.t==="pc")planH+=c.h;
+  const grid=sites.map(sid=>`<div class="pwsite"><span class="pin">📍</span><b>${esc(Sx(sid).name)}</b><small>${bySite[sid].length}</small></div>`+bySite[sid].sort((a,b)=>W(a.w).name.localeCompare(W(b.w).name)).map(k=>`<div class="pwr"><button class="pwn" onclick="rowTap('${k.w}','${k.sid}','${days[0]}','${days[days.length-1]}')">${esc(W(k.w).name)}</button><div class="pwc">${days.map(d=>{const c=pwCell(k.w,k.sid,d,thru);if(c.t==="p"||c.t==="pc")planH+=c.h;
       const cls=c.t==="d"?"d":c.t==="cv"?"cv":c.t==="x"?"x":c.t==="p"?"p":c.t==="pc"?"p cvp":"e";return `<button class="c ${cls}${d===td?" today":""}${c.paid?" paid":""}" onclick="dayTap('${k.w}','${k.sid}','${d}')" aria-label="${esc(W(k.w).name)} ${dayLabel(d)}">${c.t==="x"?"✗":c.t==="e"?"–":fmtH(c.h)}</button>`}).join("")}</div></div>`).join("")).join("");
   const lab=mode==="month"?(ws.slice(0,7)===td.slice(0,7)?"This month · ":"")+mLabel(ws.slice(0,7)):(ws===weekStart(td)?"This week · ":ws===weekStart(addD(td,-7))?"Last week · ":"")+weekLabel(ws);
   return `<div class="pw"><div class="m8" style="grid-template-columns:repeat(3,1fr);margin-bottom:10px">${[["week","Week"],["month","Month"],["range","Custom"]].map(([k,l])=>`<button class="${mode===k?"on":""}" onclick="state.pwm='${k}';render()">${l}<small>${k==="week"?weekLabel(state.wkp||weekStart(td)):k==="month"?mLabel((state.pwmo||td.slice(0,7))):(state.pwr?rngLabel(state.pwr.from,state.pwr.to):"Pick dates")}</small></button>`).join("")}</div>
@@ -1253,6 +1262,7 @@ function planWeek(){const [ws,we]=pwRange(),days=[];for(let d=ws;d<=we;d=addD(d,
     <div class="pwhero"><div><span>DONE · COUNTED</span><b>${money(doneM)}</b><em>${fmtH(doneH)} hrs</em></div><div><span>STILL PLANNED</span><b class="pl">${fmtH(planH)} hrs</b><em class="pl">not money yet</em></div></div>
     <div class="pwleg"><span><i class="lg d"></i>Done</span><span><i class="lg p"></i>Planned</span><span><i class="lg x"></i>Didn't come</span><span><i class="lg cv"></i>Cover</span></div>
     <div class="pwgrid${wide?" wide":""}" style="--nd:${days.length}"><div class="pwr pwdays"><span class="pwn"></span><div class="pwc">${days.map(d=>`<span class="${d===td?"t":""}${[0,6].includes(parseD(d).getDay())?" we":""}">${wkLbl(d)}</span>`).join("")}</div></div>${grid||`<div class="empty">Nobody is rostered in these dates</div>`}</div>
+    ${hid||state.pwAll?`<button class="btn ghost" style="margin-top:10px" onclick="state.pwAll=!state.pwAll;render()">${state.pwAll?"Hide people with no hours":`Show everyone (+${hid} with no hours) — to add hours for them`}</button>`:""}
     ${wide?pwExceptions(ws,we):""}
     <div class="tip" style="margin-top:12px"><span>💡</span><div>Tap any day to add or change hours. Dashed days come from the usual days and turn into money the morning after (6 am).</div></div>
     <div style="display:flex;gap:10px;margin-top:12px"><button class="btn ghost" style="flex:1" onclick="rosterAuto()">Usual days for everyone</button></div></div>`}
