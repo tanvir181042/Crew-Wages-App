@@ -333,6 +333,8 @@ button.pwn{text-decoration:none!important;font-weight:600!important;font-size:13
 .pwn{width:96px!important}.pwc{gap:4px!important}.pwc .c.today{outline:0!important;box-shadow:inset 0 0 0 1.5px var(--ink)!important}.pwc .c.e.today{background:var(--card)}
 
 @media (min-width:1100px){.pwn{width:170px!important}}
+.pwmini{margin-top:2px!important}.pwmini .pwc span{font-size:9.5px!important;padding:1px 0!important}
+.pwgrid:not(.wide)>.pwdays:not(.pwmini){position:sticky;top:calc(env(safe-area-inset-top) + 52px);z-index:6;background:var(--soft);margin:0 -10px;padding:6px 10px;border-radius:12px 12px 0 0}
 .two>.f{min-width:0}.two input[type=date]{min-width:0;width:100%;box-sizing:border-box;padding-left:10px;padding-right:8px;font-size:15px}
 .tag{font-size:12px;font-weight:650;border-radius:8px;padding:3px 8px;white-space:nowrap}
 .tag.ok{background:var(--ok-s);color:var(--ok)} .tag.pay{background:var(--pay-s);color:var(--pay)} .tag.warn{background:var(--warn-s);color:var(--warn)} .tag.mut{background:var(--soft);color:var(--mut)}
@@ -872,7 +874,7 @@ const JOIN=(()=>{const m=(location.hash||"").match(/join=(CW1\.[A-Za-z0-9_\-]+)/
 if(JOIN&&!IS_APP){const l=document.querySelector('link[rel="manifest"]');if(l)l.remove()}
 let deferredInstall=null;
 addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredInstall=e;setTimeout(showInstallGuide,50)});
-const APP_VERSION="7.13.1";
+const APP_VERSION="7.13.2";
 /* new-version check: on focus and every 5 min; shows an Update bar (never reloads on its own, so nothing unsaved is lost) */
 let UPD_SEEN="";async function updCheck(){try{if(!/^https?:/.test(location.protocol)||document.hidden)return;const r=await fetch(location.pathname.replace(/[^/]*$/,"")+"index.html?v="+Date.now(),{cache:"no-store"});const t=await r.text(),m=t.match(/APP_VERSION="([^"]+)"/);
   if(m&&m[1]!==APP_VERSION&&m[1]!==UPD_SEEN){UPD_SEEN=m[1];let b=document.getElementById("updbar");if(!b){b=document.createElement("div");b.id="updbar";document.body.appendChild(b)}
@@ -1253,7 +1255,8 @@ function planWeek(){const [ws,we]=pwRange(),days=[];for(let d=ws;d<=we;d=addD(d,
   const bySite={};[...keys.values()].forEach(k=>{if(!state.pwAll&&!busy(k)){hid++;return}(bySite[k.sid]=bySite[k.sid]||[]).push(k)});const sites=Object.keys(bySite).sort((a,b)=>Sx(a).name.localeCompare(Sx(b).name));
   let doneH=0,doneM=0,planH=0;DB.entries.forEach(e=>{if(e.date&&e.date>=ws&&e.date<=we&&isWork(e)){doneH+= +e.hours;doneM+=wage(e)}});
   const L=["S","M","T","W","T","F","S"];
-  const grid=sites.map(sid=>`<div class="pwsite"><span class="pin">📍</span><b>${esc(Sx(sid).name)}</b><small>${bySite[sid].length}</small></div>`+bySite[sid].sort((a,b)=>W(a.w).name.localeCompare(W(b.w).name)).map(k=>`<div class="pwr"><button class="pwn" onclick="rowTap('${k.w}','${k.sid}','${days[0]}','${days[days.length-1]}')">${esc(W(k.w).name)}</button><div class="pwc">${days.map(d=>{const c=pwCell(k.w,k.sid,d,thru);if(c.t==="p"||c.t==="pc")planH+=c.h;
+  const dayRow=`<div class="pwr pwdays pwmini"><span class="pwn"></span><div class="pwc">${days.map(d=>`<span class="${d===td?"t":""}${[0,6].includes(parseD(d).getDay())?" we":""}">${wkLbl(d)}</span>`).join("")}</div></div>`;
+  const grid=sites.map(sid=>`<div class="pwsite"><span class="pin">📍</span><b>${esc(Sx(sid).name)}</b><small>${bySite[sid].length}</small></div>${dayRow}`+bySite[sid].sort((a,b)=>W(a.w).name.localeCompare(W(b.w).name)).map(k=>`<div class="pwr"><button class="pwn" onclick="rowTap('${k.w}','${k.sid}','${days[0]}','${days[days.length-1]}')">${esc(W(k.w).name)}</button><div class="pwc">${days.map(d=>{const c=pwCell(k.w,k.sid,d,thru);if(c.t==="p"||c.t==="pc")planH+=c.h;
       const cls=c.t==="d"?"d":c.t==="cv"?"cv":c.t==="x"?"x":c.t==="p"?"p":c.t==="pc"?"p cvp":"e";return `<button class="c ${cls}${d===td?" today":""}${c.paid?" paid":""}" onclick="dayTap('${k.w}','${k.sid}','${d}')" aria-label="${esc(W(k.w).name)} ${dayLabel(d)}">${c.t==="x"?"✗":c.t==="e"?"–":fmtH(c.h)}</button>`}).join("")}</div></div>`).join("")).join("");
   const lab=mode==="month"?(ws.slice(0,7)===td.slice(0,7)?"This month · ":"")+mLabel(ws.slice(0,7)):(ws===weekStart(td)?"This week · ":ws===weekStart(addD(td,-7))?"Last week · ":"")+weekLabel(ws);
   return `<div class="pw"><div class="m8" style="grid-template-columns:repeat(3,1fr);margin-bottom:10px">${[["week","Week"],["month","Month"],["range","Custom"]].map(([k,l])=>`<button class="${mode===k?"on":""}" onclick="state.pwm='${k}';render()">${l}<small>${k==="week"?weekLabel(state.wkp||weekStart(td)):k==="month"?mLabel((state.pwmo||td.slice(0,7))):(state.pwr?rngLabel(state.pwr.from,state.pwr.to):"Pick dates")}</small></button>`).join("")}</div>
