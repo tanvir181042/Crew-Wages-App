@@ -336,6 +336,8 @@ button.pwn{text-decoration:none!important;font-weight:600!important;font-size:13
 .pwmini{margin-top:2px!important}.pwmini .pwc span{font-size:9.5px!important;padding:1px 0!important}
 .pwgrid:not(.wide)>.pwdays:not(.pwmini){position:sticky;top:calc(env(safe-area-inset-top) + 52px);z-index:6;background:var(--soft);margin:0 -10px;padding:6px 10px;border-radius:12px 12px 0 0}
 .qrep{width:100%;display:flex;align-items:center;gap:10px;margin-top:12px;padding:10px 12px;border-radius:14px;background:var(--card);box-shadow:inset 0 0 0 1px var(--line);text-align:left;color:var(--ink)}.qrep svg{width:22px;height:22px;flex:none}.qrep b{display:block;font-size:14.5px}.qrep small{display:block;color:var(--mut);font-size:12px;line-height:1.35}.qrep.on{box-shadow:inset 0 0 0 2px #8BC216}
+.qrep>svg:last-child{width:18px;height:18px;color:var(--mut);margin-left:auto}.qrep span{flex:1;min-width:0}
+.qrepbox .dpk.inp{background:var(--soft);height:48px;box-shadow:none}.qrepbox .btn{position:relative;z-index:1;height:48px;box-shadow:none}.qrepbox .btn.ghost{background:var(--soft)}.sheet.scrolly .qrepbox .btn:not(.ghost),.sheet.scrolly .ppchips .btn:not(.ghost){position:relative;bottom:auto;box-shadow:none}.qrepbox{margin-top:12px;padding:12px 14px;border-radius:14px;background:var(--card);box-shadow:inset 0 0 0 2px var(--ink)}.qrepbox>b{display:block;font-size:15px}.qsum{font-size:13.5px;font-weight:650;margin-top:6px;line-height:1.45}
 .two>.f{min-width:0}.two input[type=date]{min-width:0;width:100%;box-sizing:border-box;padding-left:10px;padding-right:8px;font-size:15px}
 .tag{font-size:12px;font-weight:650;border-radius:8px;padding:3px 8px;white-space:nowrap}
 .tag.ok{background:var(--ok-s);color:var(--ok)} .tag.pay{background:var(--pay-s);color:var(--pay)} .tag.warn{background:var(--warn-s);color:var(--warn)} .tag.mut{background:var(--soft);color:var(--mut)}
@@ -875,7 +877,7 @@ const JOIN=(()=>{const m=(location.hash||"").match(/join=(CW1\.[A-Za-z0-9_\-]+)/
 if(JOIN&&!IS_APP){const l=document.querySelector('link[rel="manifest"]');if(l)l.remove()}
 let deferredInstall=null;
 addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredInstall=e;setTimeout(showInstallGuide,50)});
-const APP_VERSION="7.13.4";
+const APP_VERSION="7.13.5";
 /* new-version check: on focus and every 5 min; shows an Update bar (never reloads on its own, so nothing unsaved is lost) */
 let UPD_SEEN="";async function updCheck(){try{if(!/^https?:/.test(location.protocol)||document.hidden)return;const r=await fetch(location.pathname.replace(/[^/]*$/,"")+"index.html?v="+Date.now(),{cache:"no-store"});const t=await r.text(),m=t.match(/APP_VERSION="([^"]+)"/);
   if(m&&m[1]!==APP_VERSION&&m[1]!==UPD_SEEN){UPD_SEEN=m[1];let b=document.getElementById("updbar");if(!b){b=document.createElement("div");b.id="updbar";document.body.appendChild(b)}
@@ -2989,10 +2991,21 @@ function fQuick(){if(!F.wd){/* start from how this person usually works (last 5 
   <div class="qrow"><input class="inp num" inputmode="decimal" value="${esc(F.fillH)}" onfocus="const t=this;setTimeout(()=>t.select(),30)" oninput="F.fillH=this.value.replace(/[^0-9.]/g,'');this.value=F.fillH" aria-label="Hours each day"><span>hrs a day</span>
   <button class="btn" onclick="fFill()">Fill ${F.mode==="month"?"month":F.mode==="range"?"dates":"week"}</button></div>
   <div class="qhint"><span>Then tap any day below to change it</span><button class="link" onclick="F.days=Array(fN()).fill('');drawAdd()">Clear all</button></div>
-  ${F.workerId&&F.siteId?`<button class="qrep ${rLineOn(F.workerId,F.siteId,todayD())?"on":""}" onclick="fRepeat()">${ICON.week}<span><b>${rLineOn(F.workerId,F.siteId,todayD())?"Update their roster":"Repeat every week (roster)"}</b><small>${esc(W(F.workerId).name.split(" ")[0])} at ${esc(Sx(F.siteId).name)} on these days, ${esc(F.fillH||"0")} hrs — future weeks fill themselves</small></span></button>`:""}</div>`}
+  ${F.workerId&&F.siteId?fRepUI():""}</div>`}
+function fRepUI(){const w=F.workerId,sid=F.siteId,td=todayD(),cur=rLineOn(w,sid,td)||rLines(w,sid).find(r=>rInfo(r).from>td),L=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"],lab=d=>{const ds=[1,2,3,4,5,6,0].filter(k=>d.includes(k));return ds.length===5&&!d.includes(0)&&!d.includes(6)?"Mon–Fri":ds.length===7?"Every day":ds.map(k=>L[k]).join(", ")};
+  const CI=cur?rInfo(cur):null,picked=[0,1,2,3,4,5,6].filter(d=>F.wd[d]),fn=W(w).name.split(" ")[0];
+  if(!F.rep)return `<button class="qrep ${cur?"on":""}" onclick="F.rep={from:todayD()};drawAdd()">${ICON.week}<span><b>${cur?"Roster: "+lab(CI.d)+" · "+fmtH(CI.h)+" hrs":"Repeat every week (roster)"}</b><small>${cur?(CI.from>td?"Starts "+dayLabel(CI.from)+" · ":"")+"Tap to change or stop":`Save these days as ${esc(fn)}'s roster so future weeks fill themselves`}</small></span>${ICON.chev}</button>`;
+  return `<div class="qrepbox"><b>${cur?"Change":"Set"} ${esc(fn)}'s roster at ${esc(Sx(sid).name)}</b>
+    <div class="qsum">${picked.length?`${lab(picked)} · ${esc(F.fillH||"0")} hrs a day`:"Pick the days above first"}${cur?`<br><span style="color:var(--mut)">Now: ${lab(CI.d)} · ${fmtH(CI.h)} hrs</span>`:""}</div>
+    <div class="f" style="margin:8px 0 6px"><label>Starts from</label><input class="inp" type="date" value="${F.rep.from}" onchange="if(this.value){F.rep.from=this.value;drawAdd()}"></div>
+    <div class="hint" style="margin:0 0 10px">${F.rep.from<td?"Days before today are filled only where there are no hours yet — nothing is doubled.":F.rep.from===td?"From today. Days before stay as they are.":`From ${dayLabel(F.rep.from)}. Days before stay as they are.`}</div>
+    <div style="display:flex;gap:8px"><button class="btn" style="flex:1;margin:0" ${picked.length&&parseFloat(F.fillH)>0?"":"disabled"} onclick="fRepeat()">Save roster</button><button class="btn ghost" style="flex:1;margin:0" onclick="F.rep=null;drawAdd()">Cancel</button></div>
+    ${cur?`<button class="link" style="color:var(--pay);margin-top:10px;padding:0" onclick="fRepStop()">Stop this roster from ${dayLabel(F.rep.from)}</button>`:""}</div>`}
+async function fRepStop(){const w=F.workerId,sid=F.siteId,from=F.rep.from,old=(DB.roster||[]).filter(r=>r.workerId===w).map(r=>({...r}));await rosterSet(w,sid,[],0,from);F.rep=null;drawAdd();
+  toast(`Roster stopped from ${dayLabel(from)}`,async()=>{await delMany("roster",(DB.roster||[]).filter(r=>r.workerId===w).map(r=>r.id));await putMany("roster",old);render();drawAdd()})}
 async function fRepeat(){const days=[0,1,2,3,4,5,6].filter(d=>F.wd[d]),h=parseFloat(F.fillH)||0;if(!days.length||!(h>0))return toast("Pick the days and hours first");
-  const w=F.workerId,sid=F.siteId,old=(DB.roster||[]).filter(r=>r.workerId===w).map(r=>({...r}));await rosterSet(w,sid,days,h,todayD());await rosterTick(true);drawAdd();
-  toast(`✓ Roster saved: ${esc(W(w).name)} · ${esc(Sx(sid).name)}`,async()=>{await delMany("roster",(DB.roster||[]).filter(r=>r.workerId===w).map(r=>r.id));await putMany("roster",old);render()})}
+  const w=F.workerId,sid=F.siteId,from=(F.rep&&F.rep.from)||todayD(),old=(DB.roster||[]).filter(r=>r.workerId===w).map(r=>({...r}));await rosterSet(w,sid,days,h,from);await rosterTick(true);F.rep=null;drawAdd();
+  toast(`✓ Roster saved from ${dayLabel(from)}`,async()=>{await delMany("roster",(DB.roster||[]).filter(r=>r.workerId===w).map(r=>r.id));await putMany("roster",old);render();drawAdd()})}
 function fFill(){const h=parseFloat(F.fillH);if(!(h>0))return toast("Type the hours first");if(!F.wd.some(Boolean))return toast("Pick at least one day");
   F.days=fIdx().map(i=>F.wd[parseD(addD(fStart(),i)).getDay()]?String(h):"");drawAdd();haptic&&haptic();const n=F.days.filter(Boolean).length;toast(`✓ ${n} days × ${h} hrs = ${n*h} hrs — check, then Save`)}
 function fIdx(){return Array.from({length:fN()},(_,i)=>i)}
