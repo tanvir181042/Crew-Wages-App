@@ -880,7 +880,7 @@ const JOIN=(()=>{const m=(location.hash||"").match(/join=(CW1\.[A-Za-z0-9_\-]+)/
 if(JOIN&&!IS_APP){const l=document.querySelector('link[rel="manifest"]');if(l)l.remove()}
 let deferredInstall=null;
 addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredInstall=e;setTimeout(showInstallGuide,50)});
-const APP_VERSION="7.14.3";
+const APP_VERSION="7.14.4";
 /* new-version check: on focus and every 5 min; shows an Update bar (never reloads on its own, so nothing unsaved is lost) */
 let UPD_SEEN="";async function updCheck(){try{if(!/^https?:/.test(location.protocol)||document.hidden)return;const r=await fetch(location.pathname.replace(/[^/]*$/,"")+"index.html?v="+Date.now(),{cache:"no-store"});const t=await r.text(),m=t.match(/APP_VERSION="([^"]+)"/);
   if(m&&m[1]!==APP_VERSION&&m[1]!==UPD_SEEN){UPD_SEEN=m[1];let b=document.getElementById("updbar");if(!b){b=document.createElement("div");b.id="updbar";document.body.appendChild(b)}
@@ -1039,7 +1039,7 @@ const nowM=()=>{const d=new Date();return d.getFullYear()+"-"+String(d.getMonth(
 const W=id=>DB.workers.find(x=>x.id===id)||{name:"Unknown"};
 const SUP="_sup", SUPSITE={id:"_sup",name:"Supervision",clientId:"_co",virtual:true};
 const Sx=id=>id===SUP?SUPSITE:(DB.sites.find(x=>x.id===id)||{name:"Unknown site"});
-const isSup=w=>w&&w.role==="supervisor";
+const isSup=w=>w&&w.role==="supervisor";const hasSite=id=>DB.rates.some(r=>r.workerId===id&&r.siteId!==SUP);const fixSup=w=>isSup(w)&&w.payType==="fixed";
 const PERW={week:"week",fort:"fortnight",month:"month"};
 function salaryRange(per,d){if(per==="week"){const ws=weekStart(d);return [ws,addD(ws,6)]}if(per==="fort")return fortRange(d);const m=d.slice(0,7);return [m+"-01",mEnd(m)]}
 function salaryLabel(per,d){const[a,b]=salaryRange(per,d);if(per==="month")return mLabel(a.slice(0,7));const A=parseD(a),B=parseD(b);return A.getMonth()===B.getMonth()?`${A.getDate()}–${B.getDate()} ${MN[B.getMonth()]}`:`${A.getDate()} ${MN[A.getMonth()]} – ${B.getDate()} ${MN[B.getMonth()]}`}
@@ -1255,7 +1255,7 @@ function planWeek(){const [ws,we]=pwRange(),days=[];for(let d=ws;d<=we;d=addD(d,
   const keys=new Map(),add=(w,sid)=>{if(sid===SUP)return;const k=w+"|"+sid;if(!keys.has(k))keys.set(k,{w,sid})};
   const wkLbl=d=>wide?`<small>${L[parseD(d).getDay()]}</small>${parseD(d).getDate()}`:L[parseD(d).getDay()]+parseD(d).getDate();
   (DB.roster||[]).forEach(r=>{const I=rInfo(r);if(I.from<=we&&(!I.to||I.to>=ws)&&W(r.workerId).active!==false)add(r.workerId,r.siteId)});
-  DB.rates.forEach(r=>{const w=W(r.workerId);if(!r.cover&&w&&w.id&&w.active!==false&&!isSup(w))add(r.workerId,r.siteId)});
+  DB.rates.forEach(r=>{const w=W(r.workerId);if(!r.cover&&w&&w.id&&w.active!==false&&r.siteId!==SUP)add(r.workerId,r.siteId)});
   DB.entries.forEach(e=>{if(e.date&&e.date>=ws&&e.date<=we&&isWork(e))add(e.workerId,e.siteId)});
   (DB.marks||[]).forEach(m=>{if(m.date>=ws&&m.date<=we){const b=mInfo(m).by;if(b)add(b,m.siteId)}});
   const FW=state.pwW&&W(state.pwW).id?state.pwW:null;if(FW)[...keys.keys()].forEach(k=>{if(keys.get(k).w!==FW)keys.delete(k)});
@@ -1309,7 +1309,7 @@ function dayTap(w,sid,d){hideToast();const es=workAt(w,sid,d),M=mInfo(markOf(w,s
   DT={w,sid,d,opt:M.by?"by":M.x?"x":"w",h:cur,by:M.by||"",r:+M.r||0,paid};drawDay()}
 function drawDay(){const {w,sid,d}=DT,rh=rosterH(w,sid,d),future=d>doneThru();
   if(DT.paid){showSheet(`<h3>${esc(W(w).name)} · ${dayLabel(d)}</h3><div class="lead">${esc(Sx(sid).name)}</div><div class="hint" style="margin:10px 0 16px">This day is already paid, so it can't be changed here.</div><button class="btn ghost" onclick="closeSheet()">Close</button>`);return}
-  const mates=[...new Set([...DB.rates.filter(r=>r.siteId===sid&&r.workerId!==w).map(r=>r.workerId),...DB.workers.filter(x=>x.active!==false&&x.id!==w&&!isSup(x)).map(x=>x.id)])].filter(id=>W(id).active!==false);
+  const mates=[...new Set([...DB.rates.filter(r=>r.siteId===sid&&r.workerId!==w).map(r=>r.workerId),...DB.workers.filter(x=>x.active!==false&&x.id!==w&&(!isSup(x)||hasSite(x.id))).map(x=>x.id)])].filter(id=>W(id).active!==false);
   const near=DB.rates.filter(r=>r.siteId===sid&&r.workerId!==w).map(r=>r.workerId);
   const chips=[...new Set([...(DT.by?[DT.by]:[]),...near])].slice(0,8);
   const o=(k,ic,bg,t,sub,extra="")=>`<button class="dopt ${DT.opt===k?"sel":""}" onclick="DT.opt='${k}';drawDay()"><span class="ic" style="background:${bg}">${ic}</span><span class="tx"><b>${t}</b><small>${sub}</small></span>${extra}</button>`;
@@ -2475,7 +2475,7 @@ function peoplePage(){
     <div class="search">${ICON.search}<input id="q" type="search" enterkeyhint="search" placeholder="Search name, site or client" value="${esc(state.q)}" oninput="state.q=this.value;state.focusSearch=true;render()" autocomplete="off"></div>
     <div class="chips">${[["all","Everyone"],["owed",`To pay · ${nOwed}`],["paid","Paid"]].map(([k,l])=>`<button class="chip ${state.filter===k?"on":""}" onclick="state.filter='${k}';render()">${l}</button>`).join("")}</div>
     <div class="list" style="margin-top:14px">${ws.length?ws.map(w=>{
-      const sites=isSup(w)?[w.payType==="fixed"?`Supervisor · ${money(w.salary)} per ${PERW[w.salaryPer]}`:"Supervisor"]:DB.rates.filter(r=>r.workerId===w.id).map(r=>Sx(r.siteId).name);
+      const sites=[...(isSup(w)?[w.payType==="fixed"?`Supervisor · ${money(w.salary)} per ${PERW[w.salaryPer]}`:"Supervisor"]:[]),...DB.rates.filter(r=>r.workerId===w.id&&r.siteId!==SUP).map(r=>Sx(r.siteId).name)];
       return `<div class="row tap" onclick="openPerson('${w.id}')">${av(w.name)}<div class="main"><div class="t1">${hl(w.name,q)}</div><div class="t2">${sites.length?sites.map(s=>hl(s,q)).join(", "):"No site yet"}</div></div>
         ${owed[w.id]?`<div class="amt num" style="color:var(--pay)">${money(owed[w.id])}<small>to pay</small></div>`:nrw[w.id]?`<span class="tag warn">Set rate</span>`:hasE.has(w.id)?`<span class="tag ok">Paid</span>`:`<span class="tag mut">No hours yet</span>`}${ICON.chev}</div>`}).join(""):`<div class="empty"><div class="e" style="color:var(--mut)">${ICON.find}</div>${!DB.workers.length?`No workers yet<br><button class="link" onclick="openAdd('worker')">+ Add your first worker</button>`:state.q?`No one matches “${esc(state.q)}”`:"No one in this list"}</div>`}</div>
     ${DB.workers.length?`<button class="btn" style="margin-top:14px" onclick="openAdd('worker')">+ New worker</button>`:""}`;
@@ -2506,7 +2506,7 @@ function personPage(id){
     <div class="ph">${av(w.name)}<div style="flex:1;min-width:0"><h1>${esc(w.name)}${w.active===false?' <span class="tag mut" style="vertical-align:middle">Left</span>':""}</h1><div class="t2">${(()=>{const last=all.filter(e=>e.date).sort((a,b)=>b.date.localeCompare(a.date))[0];return last?`Last worked ${dayRel(last.date)===dayLabel(last.date)?dayLabel(last.date):dayRel(last.date).toLowerCase()} · ${esc(Sx(last.siteId).name)}`:""})()||(isSup(w)?"Supervisor":rates.length?rates.map(r=>esc(Sx(r.siteId).name)).join(" · "):"No site yet")}</div></div></div>
     ${isSup(w)&&w.payType==="fixed"?(()=>{const d=P1.mode==="all"||P1.mode==="day"?todayD():(P1.mode==="month"?P1.d.slice(0,7)+"-15":P1.d),has=salaryAdded(w,d);return `<div class="card" style="padding:16px;margin:0 0 14px;display:flex;align-items:center;gap:12px"><div style="flex:1;min-width:0"><div class="t2">Supervisor · fixed salary</div><div class="t1" style="font-size:17px">${money(w.salary)} per ${PERW[w.salaryPer]}</div><div class="t2">${salaryLabel(w.salaryPer,d)} · ${has?"added ✓":"not added yet"}</div></div>${has?"":`<button class="opt on" style="flex:none" onclick="addSalary('${id}','${d}')">Add salary</button>`}</div>`})():""}
     <div class="pacts">${w.active!==false?`<button class="btn ${owe?"ghost":""}" onclick="openAdd('hours','${id}')">+ Add hours</button>`:""}${owe?`<button class="btn" onclick="openPay('${id}',state.pper)">Pay ${money(owe)}</button>`:""}</div>
-    ${w.active!==false?`<button class="btn ghost calb" onclick="calEdit('${id}')">${ICON.today}<span>Edit hours as calendar</span></button>`:""}
+    ${w.active!==false?`<button class="btn ghost calb" onclick="calEdit('${id}')">${ICON.today}<span>Edit hours as calendar</span></button><button class="btn ghost calb" onclick="payRates('${id}')"><span style="font-size:18px">$</span><span>Pay rates${rates.some(r=>!(+r.rate>0))?' <span class="tag warn" style="margin-left:6px">not set</span>':""}</span></button>`:""}
     ${pr.length?`<div class="problems" style="margin:0 0 14px">${pr.map(p=>{const r=p.type==="rate"&&DB.rates.find(x=>x.workerId===p.e.workerId&&x.siteId===p.e.siteId);return p.type==="rate"&&!r?`<div class="pi tap" onclick="fixRate('${p.e.workerId}','${p.e.siteId}')"><span>${esc(Sx(p.e.siteId).name)}: no pay rate yet</span><b>Set rate ›</b></div>`:r?`<div class="pi tap" onclick="editRate('${r.id}')"><span>${esc(Sx(p.e.siteId).name)}: no pay rate yet</span><b>Set rate ›</b></div>`:`<div class="pi" style="cursor:default">${esc(p.text)}</div>`}).join("")}</div>`:""}
     ${(()=>{const tm=todayD().slice(0,7),me=all.filter(e=>(e.date?e.date.slice(0,7):e.month)===tm),mh=me.reduce((a,e)=>a+(isWork(e)?+e.hours:0),0);return `<div class="ptiles"><div><span>This month</span><b class="num">${money(me.reduce((a,e)=>a+wage(e),0))}</b><em>${fmtH(mh)} hrs</em></div><div><span>Owed now</span><b class="num" style="color:${owe?"var(--pay)":"var(--ok)"}">${money(owe)}</b><em>${all.some(isNoRate)?`<span style="color:var(--warn)">+ ${fmtH(all.filter(isNoRate).reduce((a,e)=>a+ +e.hours,0))} hrs with no rate</span>`:owe?"not paid yet":"all paid"}</em></div></div>`})()}
     <div class="cols">
@@ -2521,7 +2521,7 @@ function personPage(id){
         <div class="list">${rates.length?rates.map(r=>{const s=Sx(r.siteId); const mates=DB.rates.filter(x=>x.siteId===r.siteId&&x.workerId!==id).map(x=>W(x.workerId));
           return `<div class="row"><div class="main" onclick="openSite('${s.id}')" style="cursor:pointer"><div class="t1">${esc(s.name)} <span class="tag mut" style="margin-left:6px">${esc(C(s.clientId).name)}</span></div>
           <div class="t2" onclick="event.stopPropagation();rosterEdit('${id}')" style="cursor:pointer">${(()=>{const c=rLineOn(id,r.siteId,todayD());if(!c)return `Roster: <u>not set</u>`;const I=rInfo(c),L=["Sun","Mon","Tue","Wed","Thu","Fri","Sat"],ds=[1,2,3,4,5,6,0].filter(k=>I.d.includes(k));return "Roster: <u>"+(ds.length===5&&!I.d.includes(0)&&!I.d.includes(6)?"Mon–Fri":ds.map(k=>L[k]).join(", "))+" · "+fmtH(I.h)+" hrs</u>"})()}</div></div>
-          <button class="amt num" style="text-align:right" onclick="editRate('${r.id}')">${money(r.rate)}<small style="color:var(--acc)">per hour · edit</small></button></div>`}).join(""):`<div class="empty">Not linked to a site yet</div>`}</div>
+          <button class="amt num" style="text-align:right" onclick="editRate('${r.id}')">${+r.rate>0?`${money(r.rate)}<small style="color:var(--acc)">per hour · edit</small>`:`<span style="color:var(--warn)">Set rate</span><small style="color:var(--warn)">no pay rate</small>`}</button></div>`}).join(""):`<div class="empty">Not linked to a site yet</div>`}</div>
       </div>
     </div>
     `;
@@ -2625,7 +2625,7 @@ function tdRatesOld(){return DB.rates.filter(r=>W(r.workerId).active!==false&&DB
 function usualRate(wid,sid){const rs=DB.rates.filter(r=>r.workerId===wid&&!r.cover).map(r=>+r.rate).filter(x=>x>0);if(rs.length){const c={};rs.forEach(x=>c[x]=(c[x]||0)+1);return +Object.entries(c).sort((a,b)=>b[1]-a[1])[0][0]}
   const at=DB.rates.filter(r=>r.siteId===sid).map(r=>+r.rate).filter(x=>x>0);return at.length?Math.round(at.reduce((a,b)=>a+b,0)/at.length*100)/100:0}
 function coverPick(sid,q=""){hideToast();const ql=q.trim().toLowerCase(),here=new Set(tdRates().filter(r=>r.siteId===sid).map(r=>r.workerId));
-  const ws=DB.workers.filter(w=>w.active!==false&&!isSup(w)&&!here.has(w.id)&&(!ql||w.name.toLowerCase().includes(ql))).sort((a,b)=>a.name.localeCompare(b.name));
+  const ws=DB.workers.filter(w=>w.active!==false&&(!isSup(w)||hasSite(w.id))&&!here.has(w.id)&&(!ql||w.name.toLowerCase().includes(ql))).sort((a,b)=>a.name.localeCompare(b.name));
   const list=ws.map(w=>{const ur=usualRate(w.id,sid),home=DB.rates.filter(r=>r.workerId===w.id&&!r.cover).map(r=>Sx(r.siteId).name).join(", ");return `<div class="row tap" onclick="coverAdd('${sid}','${w.id}')">${av(w.name)}<div class="main"><div class="t1">${esc(w.name)}</div><div class="t2">${home?"Usually at "+esc(home):"No regular site"}</div></div><div class="amt num">${ur?money(ur):"–"}<small>per hour</small></div></div>`}).join("");
   showSheet(`<h3>Who covered at ${esc(Sx(sid).name)}?</h3><div class="lead">Pick the person who worked here instead — for example when someone was sick. They'll show here for the next two weeks.</div>
   <input class="inp" id="cvq" placeholder="Search a name" autocomplete="off" value="${esc(q)}" oninput="const v=this.value,p=this.selectionStart;coverPick('${sid}',v);const i=$('#cvq');i.focus();i.setSelectionRange(p,p)" style="margin-bottom:10px">
@@ -3060,8 +3060,8 @@ function formHours(){
   return `${leaveOn()?`<div class="pseg" style="margin:0 0 10px">${Object.entries(KIND).map(([k,l])=>`<button class="${(F.hkind||"work")===k?"on":""}" onclick="F.hkind='${k}';drawAdd()">${l}</button>`).join("")}</div>`:""}<div class="pseg" style="margin:0 0 16px">${[["day","One day"],["week","A week"],["month","Month"],["range","Custom"]].map(([k,l])=>`<button class="${F.mode===k?"on":""}" onclick="F.mode='${k}';try{localStorage.setItem('cw_hmode','${k}')}catch(e){};drawAdd()">${l}</button>`).join("")}</div>
   ${when}
   <div class="f"><label>Who worked?</label><input class="inp" id="wq" placeholder="Start typing a name" autocapitalize="words" autocorrect="off" spellcheck="false" value="${esc(F.q)}" autocomplete="off" oninput="F.q=this.value;F.workerId=null;F.siteId=null;sugWorkers()" onfocus="sugWorkers()"><div id="sug"></div></div>
-  ${F.workerId&&isSup(W(F.workerId))&&W(F.workerId).payType==="fixed"?`<div class="dupbox" style="background:var(--card)"><b style="color:var(--ink)">${esc(W(F.workerId).name)} is on a fixed salary</b><div class="t2" style="white-space:normal;margin:4px 0 10px">${money(W(F.workerId).salary)} per ${PERW[W(F.workerId).salaryPer]} — no hours needed.</div><button class="btn" style="margin:0" onclick="closeSheet();addSalary('${F.workerId}')">Add this ${PERW[W(F.workerId).salaryPer]}'s salary</button></div>`:""}
-  ${F.workerId&&!(isSup(W(F.workerId))&&W(F.workerId).payType==="fixed")?`<div class="f"><label>${isSup(W(F.workerId))?"Role":"Which site?"}</label><div class="opts">${rs.length?rs.map(r=>`<button class="opt ${F.siteId===r.siteId?"on":""}" onclick="F.siteId='${r.siteId}';drawAdd()">${esc(Sx(r.siteId).name)}<small>${money(r.rate)}/hr</small></button>`).join(""):`<span class="t2">No site yet — <button class="link" onclick="goSub('worker',{workerId:'${F.workerId}',name:W('${F.workerId}').name})">add one</button></span>`}</div></div>`:""}
+  ${F.workerId&&fixSup(W(F.workerId))&&!hasSite(F.workerId)?`<div class="dupbox" style="background:var(--card)"><b style="color:var(--ink)">${esc(W(F.workerId).name)} is on a fixed salary</b><div class="t2" style="white-space:normal;margin:4px 0 10px">${money(W(F.workerId).salary)} per ${PERW[W(F.workerId).salaryPer]} — no hours needed.</div><button class="btn" style="margin:0" onclick="closeSheet();addSalary('${F.workerId}')">Add this ${PERW[W(F.workerId).salaryPer]}'s salary</button></div>`:""}
+  ${F.workerId&&fixSup(W(F.workerId))&&hasSite(F.workerId)?`<div class="hint" style="margin:-6px 0 12px">Supervisor salary is separate — <button class="link" style="padding:0" onclick="closeSheet();addSalary('${F.workerId}')">add salary</button>. Here add their cleaning hours.</div>`:""}${F.workerId&&!(fixSup(W(F.workerId))&&!hasSite(F.workerId))?`<div class="f"><label>${isSup(W(F.workerId))?"Role / site":"Which site?"}</label><div class="opts">${rs.length?rs.map(r=>`<button class="opt ${F.siteId===r.siteId?"on":""}" onclick="F.siteId='${r.siteId}';drawAdd()">${esc(Sx(r.siteId).name)}<small>${money(r.rate)}/hr</small></button>`).join(""):`<span class="t2">No site yet — <button class="link" onclick="goSub('worker',{workerId:'${F.workerId}',name:W('${F.workerId}').name})">add one</button></span>`}</div></div>`:""}
   ${hoursField}
   <div id="dupw">${dupDays().length&&h>0?dupBox(h):""}</div>
   ${F.more||F.paid||F.notes?`<div class="f"><label>Already paid?</label><button class="toggle" style="width:100%" onclick="F.paid=!F.paid;F.more=true;drawAdd()"><span>${F.paid?"Yes, already paid":"Not yet"}</span><span class="sw ${F.paid?"on":""}"></span></button></div>
@@ -3124,12 +3124,12 @@ async function saveWorker(){
     const w={id:uid(),name,active:true,role:"supervisor",createdAt:todayD(),payType:pt,salary:pt==="fixed"?sal:0,salaryPer:pt==="fixed"?(F.salaryPer||"fort"):""};await put("workers",w);
     if(pt==="hourly")await put("rates",{id:uid(),workerId:w.id,siteId:SUP,rate});
     closeSheet();render();toast(`✓ ${esc(name)} · supervisor · ${pt==="hourly"?money(rate)+"/hr":money(sal)+" per "+PERW[w.salaryPer]}`);return}
-  if(!name)return F.err="Type a name",drawAdd(); if(!F.siteId)return F.err="Pick a site",drawAdd(); if(!(rate>0))return F.err="Type the pay rate",drawAdd();
+  if(!name)return F.err="Type a name",drawAdd(); if(!F.siteId)return F.err="Pick a site",drawAdd(); const r0=rate>0?rate:0;
   let w=F.workerId?W(F.workerId):DB.workers.find(x=>x.name.toLowerCase()===name.toLowerCase());
   if(!w){w={id:uid(),name,active:true};await put("workers",w)}
   const ex=DB.rates.find(r=>r.workerId===w.id&&r.siteId===F.siteId);
-  await put("rates",{id:ex?ex.id:uid(),workerId:w.id,siteId:F.siteId,rate});
-  const msg=`✓ ${esc(w.name)} · ${esc(Sx(F.siteId).name)} · ${money(rate)}/hr`;
+  await put("rates",{id:ex?ex.id:uid(),workerId:w.id,siteId:F.siteId,rate:r0});
+  const msg=`✓ ${esc(w.name)} · ${esc(Sx(F.siteId).name)} · ${r0?money(r0)+"/hr":"no pay rate yet — set it from their page"}`;
   if(FBACK.length&&FBACK[FBACK.length-1].kind==="hours"){const sid=F.siteId;backSub({workerId:w.id,q:w.name,siteId:sid});render();toast(msg);setTimeout(()=>$("#hrs")?.focus(),60);return}
   const isNew=!F.workerId&&!DB.entries.some(e=>e.workerId===w.id);closeSheet();toast(msg);if(isNew){go('people');setTimeout(()=>openPerson(w.id),60)}else render();
 }
@@ -3248,14 +3248,32 @@ function openEntry(id){hideToast();
 
 /* ---- edit worker / rate / client / site / money ---- */
 function showSheet(html){$("#sheet").classList.remove("chatmode");$("#sheet").innerHTML=`<div class="grab"></div>`+html;void $("#sheet").offsetHeight;$("#sheet").classList.add("on");$("#scrim").classList.add("on");sheetClose=null;$("#sheet").scrollTop=0;window.__chk&&window.__chk()}
-function editWorker(id){hideToast();const w=W(id);let name=w.name,active=w.active!==false;
+function payRates(id){hideToast();const w=W(id),rs=DB.rates.filter(r=>r.workerId===id&&r.siteId!==SUP&&!r.cover).sort((a,b)=>Sx(a.siteId).name.localeCompare(Sx(b.siteId).name)),sr=DB.rates.find(r=>r.workerId===id&&r.siteId===SUP);
+  showSheet(`<h3>${esc(w.name)} · pay</h3><div class="lead">Tap a line to set or change it.</div><div class="list" style="margin-bottom:12px">
+  ${rs.map(r=>`<button class="row tap" style="width:100%;text-align:left" onclick="closeSheet();setTimeout(()=>editRate('${r.id}'),200)"><div class="main"><div class="t1">${esc(Sx(r.siteId).name)}</div><div class="t2">Cleaning · per hour</div></div><div class="amt num">${+r.rate>0?money(r.rate):`<span style="color:var(--warn)">Set rate</span>`}</div>${ICON.chev}</button>`).join("")}
+  ${isSup(w)?`<button class="row tap" style="width:100%;text-align:left" onclick="closeSheet();setTimeout(()=>editWorker('${id}'),200)"><div class="main"><div class="t1">Supervisor pay</div><div class="t2">${w.payType==="fixed"?"Fixed salary":"Per hour"}</div></div><div class="amt num">${w.payType==="fixed"?`${money(w.salary)}<small>per ${PERW[w.salaryPer]}</small>`:sr&&+sr.rate>0?money(sr.rate):"Set"}</div>${ICON.chev}</button>`:""}
+  ${!rs.length&&!isSup(w)?`<div class="empty">No site yet</div>`:""}</div>
+  <button class="btn ghost" onclick="closeSheet();setTimeout(()=>openAdd('worker','${id}'),200)">+ Add a site</button>
+  ${isSup(w)?"":`<button class="btn ghost" onclick="closeSheet();setTimeout(()=>editWorker('${id}',1),200)">+ Also pays as supervisor</button>`}
+  <button class="btn ghost" onclick="closeSheet()">Close</button>`)}
+function editWorker(id,openSup){hideToast();const w=W(id);let name=w.name,active=w.active!==false;const sr0=DB.rates.find(r=>r.workerId===id&&r.siteId===SUP);let sup=isSup(w)||!!openSup,pt=w.payType||"hourly",sal=w.salary||"",per=w.salaryPer||"fort",shr=sr0?sr0.rate:"";
   const draw=()=>{showSheet(`<h3>Edit worker</h3><div class="lead">Change the name, or mark them as left.</div>
     <div class="f"><label>Name</label><input class="inp" id="en" autocapitalize="words" value="${esc(name)}"></div>
     <div class="f"><label>Still working?</label><button class="toggle" style="width:100%" id="ea"><span>${active?"Yes, working":"Left the crew"}</span><span class="sw ${active?"on":""}"></span></button></div>
     <div class="hint">People who left are hidden from lists, but their history stays.</div>
+    <div class="f"><label>Also a supervisor?</label><button class="toggle" style="width:100%" id="esu"><span>${sup?"Yes — gets supervisor pay too":"No, cleaning only"}</span><span class="sw ${sup?"on":""}"></span></button></div>
+    ${sup?`<div class="f"><label>Supervisor pay</label><div class="pseg" style="margin:0 0 10px">${[["hourly","By the hour"],["fixed","Fixed salary"]].map(([k,l])=>`<button class="${pt===k?"on":""}" data-pt="${k}">${l}</button>`).join("")}</div>
+    ${pt==="hourly"?`<input class="inp num" inputmode="decimal" id="eshr" placeholder="$ per hour, e.g. 35" value="${esc(shr)}">`:`<input class="inp num" inputmode="decimal" id="esal" placeholder="Amount, e.g. 2000" value="${esc(sal)}"><div class="pseg" style="margin:10px 0 0">${[["week","per week"],["fort","per fortnight"],["month","per month"]].map(([k,l])=>`<button class="${per===k?"on":""}" data-per="${k}">${l}</button>`).join("")}</div>`}</div>
+    <div class="hint">Their site hours stay on their site rates. Supervisor pay is added on top.</div>`:""}
     <button class="btn" id="es">Save</button><button class="btn ghost" style="color:var(--pay)" onclick="delWorker('${id}')">Delete ${esc(w.name.split(" ")[0])}</button>`);
-    $("#en").oninput=e=>name=e.target.value; $("#ea").onclick=()=>{active=!active;draw()};
-    $("#es").onclick=async()=>{if(!name.trim())return;await put("workers",{...w,name:name.trim(),active});closeSheet();render();toast("✓ Saved")}};
+    $("#en").oninput=e=>name=e.target.value; $("#ea").onclick=()=>{active=!active;draw()};$("#esu").onclick=()=>{sup=!sup;draw()};
+    document.querySelectorAll(".sheet.on [data-pt]").forEach(b=>b.onclick=()=>{pt=b.dataset.pt;draw()});document.querySelectorAll(".sheet.on [data-per]").forEach(b=>b.onclick=()=>{per=b.dataset.per;draw()});
+    const hi=$("#eshr");if(hi)hi.oninput=e=>shr=e.target.value;const si=$("#esal");if(si)si.oninput=e=>sal=e.target.value;
+    $("#es").onclick=async()=>{if(!name.trim())return;
+      if(sup&&pt==="fixed"&&!(+sal>0))return toast("Type the salary amount");if(sup&&pt==="hourly"&&!(+shr>0))return toast("Type the supervisor rate");
+      const nw={...w,name:name.trim(),active,role:sup?"supervisor":"crew",payType:sup?pt:"",salary:sup&&pt==="fixed"?+sal:0,salaryPer:sup&&pt==="fixed"?per:""};if(sup&&!nw.createdAt)nw.createdAt=todayD();
+      await put("workers",nw);if(sup&&pt==="hourly")await put("rates",{id:sr0?sr0.id:uid(),workerId:id,siteId:SUP,rate:+shr});else if(sr0&&!sup&&!DB.entries.some(e=>e.workerId===id&&e.siteId===SUP))await del("rates",sr0.id);
+      closeSheet();render();toast("✓ Saved")}};
   draw()}
 async function fillZeroRates(list){const ch=[];list.forEach(({workerId,siteId,rate})=>{if(!(+rate>0))return;DB.entries.forEach(e=>{if(e.workerId===workerId&&e.siteId===siteId&&!e.paid&&isWork(e)&&!(+e.rate>0)&&!ch.some(x=>x.id===e.id))ch.push({...e,rate:+rate})})});
   if(!ch.length)return null;const old=ch.map(e=>({...DB.entries.find(x=>x.id===e.id)}));await putMany("entries",ch);return {n:ch.length,undo:async()=>putMany("entries",old)}}
