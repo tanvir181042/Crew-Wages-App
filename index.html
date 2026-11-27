@@ -310,7 +310,7 @@ input,textarea,select{font-size:max(16px,1em)}
 .calb{display:flex;align-items:center;justify-content:center;gap:10px;margin:0 0 14px}.calb svg{width:20px;height:20px}
 .ppbox{margin-top:10px}.ppok{display:inline-block;font-size:12.5px;font-weight:700;color:#0F7B45;background:#E3F5EA;padding:5px 10px;border-radius:9px;margin-bottom:10px}
 .pprow{display:flex;align-items:center;gap:8px}.pprow>span{font-weight:800;color:var(--mut)}.ppfrom,.ppto{flex:1;min-width:0}.ppfrom small,.ppto small{display:block;font-size:11.5px;color:var(--mut);font-weight:700;margin-bottom:4px}
-.ppfrom b{display:flex;align-items:center;height:52px;padding:0 14px;border-radius:14px;background:var(--card);font-size:15px;box-shadow:inset 0 0 0 1px var(--line)}
+.ppfrom .dpk.inp,.ppfrom .inp{background:var(--card);box-shadow:inset 0 0 0 1px var(--line)}.ppfrom>b{display:flex;align-items:center;height:52px;padding:0 14px;border-radius:14px;background:var(--card);font-size:15px;box-shadow:inset 0 0 0 1px var(--line)}
 .ppto .dpk.inp,.ppto .inp{box-shadow:inset 0 0 0 2px var(--ink);background:var(--card)}
 .ppchips{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.ppchips button{flex:1;min-width:92px;padding:8px 10px;border-radius:12px;background:var(--card);font-weight:750;font-size:13.5px;color:var(--ink);box-shadow:inset 0 0 0 1px var(--line);line-height:1.2}.ppchips button small{display:block;font-weight:600;font-size:11px;color:var(--mut)}
 .ppchips button.on{background:var(--ink);color:var(--bg);box-shadow:none}.ppchips button.on small{color:inherit;opacity:.75}
@@ -855,7 +855,7 @@ const JOIN=(()=>{const m=(location.hash||"").match(/join=(CW1\.[A-Za-z0-9_\-]+)/
 if(JOIN&&!IS_APP){const l=document.querySelector('link[rel="manifest"]');if(l)l.remove()}
 let deferredInstall=null;
 addEventListener("beforeinstallprompt",e=>{e.preventDefault();deferredInstall=e;setTimeout(showInstallGuide,50)});
-const APP_VERSION="7.11.7";
+const APP_VERSION="7.11.8";
 /* new-version check: on focus and every 5 min; shows an Update bar (never reloads on its own, so nothing unsaved is lost) */
 let UPD_SEEN="";async function updCheck(){try{if(!/^https?:/.test(location.protocol)||document.hidden)return;const r=await fetch(location.pathname.replace(/[^/]*$/,"")+"index.html?v="+Date.now(),{cache:"no-store"});const t=await r.text(),m=t.match(/APP_VERSION="([^"]+)"/);
   if(m&&m[1]!==APP_VERSION&&m[1]!==UPD_SEEN){UPD_SEEN=m[1];let b=document.getElementById("updbar");if(!b){b=document.createElement("div");b.id="updbar";document.body.appendChild(b)}
@@ -2702,7 +2702,7 @@ function payToGuess(){const rs=payRuns().filter(r=>r.d!=="?"&&r.n>=Math.min(2,ne
 function payDays(){const o=jp((metaGet("payto")||{}).notes);return Array.isArray(o.days)?o.days:[]}
 async function setPayTo(to,prev){const o=jp((metaGet("payto")||{}).notes),days=[...new Set([+to.slice(8),...(o.days||[])])].slice(0,3);
   await put("meta",{id:"payto",workerId:"",siteId:"",date:to,month:to.slice(0,7),hours:0,rate:0,paid:false,paidAt:"",notes:JSON.stringify({to,prev:prev===undefined?(o.to||""):prev,days}),createdAt:new Date().toISOString(),kind:"meta"})}
-function prPeriodInit(){const td=todayD(),yd=addD(td,-1),pt=payTo();const firstUnpaid=DB.entries.filter(e=>!e.paid&&isWork(e)&&e.date&&e.hours>0).map(e=>e.date).sort()[0];
+function prPeriodInit(){PR.fromSet=false;const td=todayD(),yd=addD(td,-1),pt=payTo();const firstUnpaid=DB.entries.filter(e=>!e.paid&&isWork(e)&&e.date&&e.hours>0).map(e=>e.date).sort()[0];
   PR.mode="period";PR.from=pt?addD(pt,1):(firstUnpaid||td.slice(0,7)+"-01");PR.to=yd>=PR.from?yd:td>=PR.from?td:PR.from;PR.off=new Set()}
 function prEndChips(){const td=todayD(),yd=addD(td,-1),out=[["Yesterday",yd]];payDays().forEach(dm=>{let c=td.slice(0,7)+"-"+String(dm).padStart(2,"0");if(c>td)c=addM(td.slice(0,7),-1)+"-"+String(dm).padStart(2,"0");if(c>=PR.from&&!out.some(x=>x[1]===c))out.push([`Up to the ${dm}${[,"st","nd","rd"][dm%10>3||Math.floor(dm/10)===1?0:dm%10]||"th"}`,c])});
   if(td>=PR.from&&!out.some(x=>x[1]===td))out.push(["Today",td]);return out.filter(x=>x[1]>=PR.from)}
@@ -2719,7 +2719,7 @@ async function clearPayTo(){const m=metaGet("payto");if(m)await del("meta",m.id)
 function prPeriodUI(){const pt=payTo(),old=prOld(),oldAmt=old.reduce((a,e)=>a+wage(e),0);
   return `<div class="ppbox">${pt?`<div class="ppokrow"><span class="ppok">✓ Paid up to ${dayLabel(pt)}</span><button class="link" style="font-size:13px;padding:0" onclick="payToEdit()">Change</button></div>`:`<div class="hint" style="margin:0 0 10px">Starts from the oldest unpaid day. After you tap Mark paid, the next pay starts the day after.</div>`}
     ${PR.from>todayD()?`<div class="hint" style="margin:0 0 10px">Everyone is paid up to ${dayLabel(pt)}. The next pay starts ${dayLabel(PR.from)} — come back after that day's work. Paid too far by mistake? Undo it in Past payments below.</div>`:""}
-    <div class="pprow"><div class="ppfrom"><small>From</small><b>${dayLabel(PR.from)}</b></div><span>→</span><div class="ppto"><small>Up to</small><input class="inp" type="date" value="${PR.to}" min="${PR.from}" onchange="if(this.value&&this.value>=PR.from){PR.to=this.value;PR.off=new Set();render()}"></div></div>
+    <div class="pprow"><div class="ppfrom"><small>From${PR.fromSet?` · <button class="link" style="font-size:11.5px;padding:0" onclick="PR.fromSet=false;prPeriodInit();render()">reset</button>`:" · auto"}</small><input class="inp" type="date" value="${PR.from}" onchange="if(this.value){PR.from=this.value;PR.fromSet=true;if(PR.to<PR.from)PR.to=PR.from;PR.off=new Set();render()}"></div><span>→</span><div class="ppto"><small>Up to</small><input class="inp" type="date" value="${PR.to}" min="${PR.from}" onchange="if(this.value&&this.value>=PR.from){PR.to=this.value;PR.off=new Set();render()}"></div></div>
     <div class="ppchips">${prEndChips().map(([l,d])=>`<button class="${PR.to===d?"on":""}" onclick="PR.to='${d}';PR.off=new Set();render()">${l}<small>${dayLabel(d).replace(/^\\w+ /,"")}</small></button>`).join("")}</div>
     ${old.length?`<div class="warn2" style="margin:10px 0 0"><b>⚠ Earlier, not paid yet: ${money(oldAmt)}</b>${plural(old.length,"entry")} before ${dayLabel(PR.from)}${[...new Set(old.map(e=>W(e.workerId).name))].slice(0,3).map(n=>" · "+esc(n)).join("")}<button class="btn ${PR.old?"ghost":""}" style="margin-top:10px" onclick="PR.old=!PR.old;PR.off=new Set();render()">${PR.old?"Leave them for later":"Add them to this pay"}</button></div>`:""}</div>`}
 function payPage(){
